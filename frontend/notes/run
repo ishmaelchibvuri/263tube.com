@@ -1,0 +1,68 @@
+Feature Request Prompt: Referral Engine & Trending System
+Context: We are extending the 263Tube architecture. To drive traffic, we are gamifying the platform. Creators will compete to be featured in the "Hero Section" based on how much traffic they send to us via referral links (e.g., 263tube.com/?ref=creator-slug).
+
+Your Task: Implement the full stack logic for the Referral Tracking System.
+
+1. Database Schema Updates (DynamoDB)
+
+Update the Creator Interface:
+
+Add referralStats: { currentWeek: number, allTime: number }.
+
+Define a New GSI (Access Pattern):
+
+Index Name: GSI_REFERRALS
+
+PK: STATUS#ACTIVE (Partition Key)
+
+SK: STAT#referrals_currentWeek (Sort Key - Number).
+
+Goal: To allow Query(PK="STATUS#ACTIVE", ScanIndexForward=false, Limit=3) to fetch the Top 3 traffic drivers instantly.
+
+2. Backend Logic (Server Action) Create a Server Action src/actions/track-referral.ts:
+
+Input: slug (string).
+
+Logic:
+
+Perform a DynamoDB Atomic Counter Update (UpdateItem).
+
+Increment referralStats.currentWeek by 1.
+
+Increment referralStats.allTime by 1.
+
+Update the GSI attribute gsiReferralSk (set it to the new value) so the index updates.
+
+Constraint: Do not re-fetch the item first; use an atomic ADD operation to prevent race conditions.
+
+3. Frontend: Tracking Hook Create a client-side hook src/hooks/useReferralTracker.ts:
+
+Logic:
+
+Check useSearchParams for ?ref=slug.
+
+If found, and if the user hasn't been tracked for this session (use sessionStorage to debounce), call the trackReferral server action.
+
+Clean up the URL (remove the ?ref param) after tracking so it looks clean to the user.
+
+Integration: Add this hook to the main app/layout.tsx or app/page.tsx so it runs globally.
+
+4. Frontend: "Trending Heroes" UI Update app/page.tsx:
+
+Fetch: Create a data function getTrendingCreators() that queries the GSI_REFERRALS index (Limit 3).
+
+Display: Replace the top Hero section with a "Trending This Week" Podium.
+
+#1 Spot: Large, Gold border/glow, "Trending #1" badge.
+
+#2 & #3: Smaller, Silver/Bronze styles.
+
+Fallback: If all counts are 0 (start of week), default to a curated list or random selection.
+
+Action Plan:
+
+Write the Server Action (track-referral.ts) first.
+
+Update the Seed Script to initialize referralStats to 0 for existing items.
+
+Build the Hook and UI.

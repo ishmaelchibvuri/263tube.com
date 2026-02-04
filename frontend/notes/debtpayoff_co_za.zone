@@ -1,0 +1,38 @@
+; Zone file exported from Afrihost ClientZone @ 20251201_083227
+$TTL 7200
+$ORIGIN debtpayoff.co.za.
+;
+@                           IN    SOA      ns.dns1.co.za. support.afrihost.com. (
+                                           2006082101
+                                           28800
+                                           3600
+                                           2419200
+                                           86400
+                                           )
+
+@                     86400 IN    NS       ns.dns1.co.za.
+@                     86400 IN    NS       ns.dns2.co.za.
+@                     86400 IN    NS       ns.otherdns.com.
+@                     86400 IN    NS       ns.otherdns.net.
+;
+@                     7200 IN    MX       10 mail.debtpayoff.co.za.
+;
+_imaps._tcp           7200 IN    SRV      1 993 envoy.aserv.co.za
+_autodiscover._tcp    7200 IN    SRV      0 443 envoy.aserv.co.za
+_submission._tcp      7200 IN    SRV      1 25 envoy.aserv.co.za
+;
+@                     7200 IN    TXT      "mailconf=https://envoy.aserv.co.za/mail/config-v1.1.xml"
+@                     7200 IN    TXT      "v=spf1 include:spf.aserv.co.za +a +mx -all"
+_dmarc                7200 IN    TXT      "v=DMARC1; p=none; fo=0; adkim=s; aspf=s"
+;
+autoconfig            7200 IN    CNAME    envoy.aserv.co.za.
+autodiscover          7200 IN    CNAME    envoy.aserv.co.za.
+;
+www                   7200 IN    A        102.222.124.101
+ftp                   7200 IN    A        102.222.124.101
+cpanel                7200 IN    A        102.222.124.101
+webmail               7200 IN    A        102.222.124.101
+mail                  7200 IN    A        102.222.124.101
+*                     7200 IN    A        102.222.124.101
+@                     7200 IN    A        102.222.124.101
+;

@@ -1,0 +1,53 @@
+www.google.com/pagead/1p-user-list/957504589/?random=1770117091527&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Flogin&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Fdashboard&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1eXl7Xn_XefHCxeBETVEOvk_S9SBenvzC1eAjJGvTNCC-llMgRXS4pBr5m_ATCgunEuMnBfnKlIHfv-HTEpNbCf2ZdvuK-hIzEKIaDgAp7yFVaMLa6tCyzMfqFYPFfHeBbGrOMQxxPCiuns3uqwXs77yO3WTlQpW3fJc3g-vtP6OuKRiCYYCtfxE&random=2899126004&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+www.google.com/pagead/1p-user-list/957504589/?random=1770117565321&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Fregister&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Flogin&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dpage_view&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1eV_f8-niAcGs7jBHy3MraNrd1PmE3WCdQrfo7oHBXuGfzqrUxO2FZ3iV4iNehjC1Pcw8ag7KZ2H41BQmd6A0J2bJCGTVcbF9j5hmpBIbCZxLYkIiydEgJDuudYUXiaIM8Gp39N2kw3xyNUZh7zZu5LSOX8BSw32ug6GH04oN5tVTfayI5ivpfxs&random=1913401073&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+www.google.com/pagead/1p-user-list/957504589/?random=1770117609067&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Flogin%3Fverified%3Dtrue&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Fregister&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dpage_view&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1ecB2OkpfmxVEWGJqAkIYaD-_jCBlGFagq-lR28y_D0zMa_2yUn-s3j9x2uDJ-4EyXnZIsvB0Hnm-5U9rA9wY1BxKd8S10jO4n2NeaQIL9w_onUECM-SEwAUMVA4LeY3YOSKzmWXUeu6TRPioaNJIQQ3rY_OGI7wEI4R0jA7H5hIgoBcGGheoaIM&random=2959085078&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+www.google.com/pagead/1p-user-list/957504589/?random=1770117623418&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Fdashboard&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Flogin%3Fverified%3Dtrue&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dpage_view&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1eZ15mtU6QxscftU6stzp0-mUnvFBd3Gz7HxaFEkTZjh2YecOlz7GECQTRwlKU1-WGBHzhm3m6ozxqTzpPp7dwU5wJ4iLlsgjWId3V_ryjeH6QjiynDIy1J619zliRriyhxYk9oJsgFr9VyiLWYlWYcxP1fgfqWuqoLeTA25Upq4B2cRnQsXN848&random=1359138195&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+www.google.com/pagead/1p-user-list/957504589/?random=1770117627270&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Fbudget&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Fdashboard&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dpage_view&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1eYpPEFHXN2PbZ5-l-GYiggNQs0ZnghBcsBC7q9cqZSX5b-u9bV34lcnFReH2NyEpxFvl2bTzVLiF3FodMwZ-L9j2gsmiDuAzLH6lrSpHHK2xrlAI785WszMg1ddSSP1th44T04141sfEEip6axNgRBrLEg0HnrEsFoq79ixiwUgohN9yz6EPkRc&random=365315500&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+www.google.com/pagead/1p-user-list/957504589/?random=1770117651647&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Fprofile&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Fbudget&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dpage_view&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1eV24VGpujyz9R2nmsrvAWrktVNjdgjGdWOQYDZiEq6jKwBI0sa0joUnr7vamSbH33EK_unMCLCI31AThB1lRimkYBdm_saZ0tmvzYuOuB-CTx6DH2NrQNwcRsaYgRFhRjEde9_eQriw277v7RuV_t6zXtgNdDDRBW6c1MjrwE6HgsZMQ8_-giD4&random=3195233596&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+www.google.com/pagead/1p-user-list/957504589/?random=1770117813702&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=45be61u1v9236413653za200zd9236413653xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104573694~104684208~104684211~115616985~115938465~115938469~116185181~116185182~116988315~117041588&u_w=1920&u_h=1080&url=https%3A%2F%2Fwww.quickbudget.co.za%2Fbudget&ref=https%3A%2F%2Fwww.quickbudget.co.za%2Fprofile&frm=0&tiba=QuickBudget%20SA%20-%20Simple%20Budgeting%20for%20South%20Africans&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=426339560.1770117092&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.110%7CGoogle%2520Chrome%3B144.0.7559.110&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dpage_view&rfmt=3&fmt=3&is_vtc=1&cid=CAQSjQEA56J1eVwDUP9S0EqWFi2w6AAPvxEJqlTUvHWrxLtegQBRRZ0DRsz2DoWBVJSqqwTk147EEC_fRHrrx6QLPh5VJOwutqDmDsgr_WdxRRHEjefbBzfMXSXt5gLpJUWyWa5B2sj3RALsHOQFeeAx44ZPv1OLmMP5ybaDPZTEJES9sNicBm9fuN-Gc5_kNq0&random=2874396201&rmt_tld=0&ipr=y:1  Failed to load resource: net::ERR_FAILED
+957504589/?random=1770117821304&cv=11&fst=1770116400000&bg=ffffff&guid=ON&async=1&en=page_view&gtm=…:1  Failed to load resource: net::ERR_FAILED
+hn98hhwfj5.execute-api.af-south-1.amazonaws.com/prod/profile:1  Failed to load resource: the server responded with a status of 500 ()
+rrweb-plugin-console-record.js:160 Account deletion error: Error: Failed to delete account
+    at L (page-55c044324065ce10.js:1:12032)
+(anonymous) @ rrweb-plugin-console-record.js:160
+
+================================================================================
+ACCOUNT DELETION ISSUE - ROOT CAUSE IDENTIFIED AND FIXED
+================================================================================
+Date: 2026-02-03
+Status: FIXED - Awaiting Deployment
+
+PROBLEM:
+Account deletion works in dev environment but fails with 500 error in production.
+Error: "Failed to delete account" from backend API.
+
+ROOT CAUSE:
+The profile Lambda function (quickbudget-profile-prod) was missing:
+1. FROM_EMAIL environment variable needed for sending goodbye emails via AWS SES
+2. SES permissions to send emails
+
+The Lambda attempts to send a goodbye email during account deletion (sendGoodbyeEmail),
+but without the FROM_EMAIL env var and SES permissions, it fails with a 500 error.
+
+SOLUTION APPLIED:
+Updated infrastructure/lib/nested-stacks/user-api-nested-stack.ts to add:
+1. FROM_EMAIL: 'support@quickbudget.co.za' environment variable
+2. SES send permissions (ses:SendEmail, ses:SendRawEmail)
+
+FILES MODIFIED:
+- infrastructure/lib/nested-stacks/user-api-nested-stack.ts (lines 41-69)
+- backend/.env (updated FROM_EMAIL for dev environment)
+
+DEPLOYMENT REQUIRED:
+To fix the production issue, you need to redeploy the infrastructure:
+1. cd infrastructure
+2. npm run build (or cdk synth)
+3. cdk deploy --all (or deploy the specific stack containing the profile Lambda)
+4. Test account deletion in production after deployment
+
+VERIFICATION STEPS:
+1. Deploy the updated infrastructure
+2. Log in to production
+3. Attempt to delete an account
+4. Should successfully delete and send goodbye email
+5. Check CloudWatch logs for confirmation

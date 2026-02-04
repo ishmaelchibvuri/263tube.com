@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Regulatory Exams Practice</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        h3 { color: #455a64; margin-top: 20px; }
+        .warning-box { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        ul { padding-left: 20px; }
+        a { color: #3498db; }
+    </style>
+</head>
+<body>
+
+    <h1>Privacy Policy</h1>
+    <p><strong>Last updated:</strong> November 19, 2025</p>
+
+    <div class="warning-box">
+        <h3>⚠️ Important Disclaimer: Government Affiliation</h3>
+        <p><strong>Regulatory Exams Practice</strong> ("the Application") is an independent educational tool developed by <strong>Active Wave Group</strong>. It is <strong>NOT</strong> affiliated with, endorsed by, or representative of the Financial Sector Conduct Authority (FSCA) or the South African Government.</p>
+        <p>Public information contained within this app is synthesized from the following official sources:</p>
+        <ul>
+            <li>Financial Sector Conduct Authority: <a href="https://www.fsca.co.za" target="_blank">https://www.fsca.co.za</a></li>
+            <li>South African Government: <a href="https://www.gov.za" target="_blank">https://www.gov.za</a></li>
+        </ul>
+    </div>
+
+    <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
+
+    <h2>Interpretation and Definitions</h2>
+    <h3>Interpretation</h3>
+    <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
+
+    <h3>Definitions</h3>
+    <p>For the purposes of this Privacy Policy:</p>
+    <ul>
+        <li><strong>Account</strong> means a unique account created for You to access our Service or parts of our Service.</li>
+        <li><strong>Application</strong> means the software program provided by the Company downloaded by You on any electronic device, named <strong>Regulatory Exams Practice</strong>.</li>
+        <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to <strong>Active Wave Group</strong>.</li>
+        <li><strong>Country</strong> refers to: South Africa.</li>
+        <li><strong>Device</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
+        <li><strong>Personal Data</strong> is any information that relates to an identified or identifiable individual.</li>
+        <li><strong>Service</strong> refers to the Application.</li>
+        <li><strong>Service Provider</strong> means any natural or legal person who processes the data on behalf of the Company.</li>
+        <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
+    </ul>
+
+    <h2>Collecting and Using Your Personal Data</h2>
+    
+    <h3>Types of Data Collected</h3>
+    
+    <h4>Personal Data</h4>
+    <p>While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:</p>
+    <ul>
+        <li>Email address</li>
+        <li>First name and last name</li>
+        <li>Usage Data</li>
+    </ul>
+
+    <h4>Usage Data</h4>
+    <p>Usage Data is collected automatically when using the Service. Usage Data may include information such as Your Device's Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that You visit, the time and date of Your visit, the time spent on those pages, unique device identifiers and other diagnostic data.</p>
+
+    <h2>Use of Your Personal Data</h2>
+    <p>The Company may use Personal Data for the following purposes:</p>
+    <ul>
+        <li>To provide and maintain our Service, including to monitor the usage of our Service.</li>
+        <li>To manage Your Account: to manage Your registration as a user of the Service.</li>
+        <li>To contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication.</li>
+        <li>To provide You with news, special offers and general information about other goods, services and events.</li>
+        <li>To manage Your requests: To attend and manage Your requests to Us.</li>
+    </ul>
+
+    <h2>Retention of Your Personal Data</h2>
+    <p>The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations, resolve disputes, and enforce our legal agreements and policies.</p>
+
+    <h2>Disclosure of Your Personal Data</h2>
+    <h3>Law enforcement</h3>
+    <p>Under certain circumstances, the Company may be required to disclose Your Personal Data if required to do so by law or in response to valid requests by public authorities (e.g. a court or a government agency).</p>
+
+    <h2>Children's Privacy</h2>
+    <p>Our Service does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from anyone under the age of 13. If You are a parent or guardian and You are aware that Your child has provided Us with Personal Data, please contact Us.</p>
+
+    <h2>Links to Other Websites</h2>
+    <p>Our Service may contain links to other websites that are not operated by Us. If You click on a third party link, You will be directed to that third party's site. We strongly advise You to review the Privacy Policy of every site You visit.</p>
+
+    <h2>Changes to this Privacy Policy</h2>
+    <p>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.</p>
+<h2>Active Wave Group Pty Ltd</h2>
+    <h2>Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, You can contact us:</p>
+    <ul>
+        <li>By email: support@activewave.co.za</li>
+        <li>1 Eland Road, Robin Hills, Randburg, 2194, South Africa</li>
+        <li>By visiting this page on our website: regulatoryexams.co.za</li>
+    </ul>
+
+</body>
+</html>

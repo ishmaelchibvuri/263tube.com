@@ -1,0 +1,63 @@
+ DEV Environment
+
+  API URL: https://fsip035ubi.execute-api.af-south-1.amazonaws.com/dev/
+  User Pool ID: af-south-1_wIt1ZSQzm
+  User Pool Client ID: 6r8eilp02nkdlmu75640dma31c
+  Identity Pool ID: af-south-1:97cc965b-f982-4055-bb18-9579a5a281c8
+  DynamoDB Table: quickbudget-data-dev
+
+  QA Environment
+
+  API URL: https://924h174ifg.execute-api.af-south-1.amazonaws.com/qa/
+  User Pool ID: af-south-1_SuHGfQYU4
+  User Pool Client ID: 6p230ov5kjc58s3gq75e7e9jqh
+  Identity Pool ID: af-south-1:3d8bd935-20b6-4839-8e1b-17a8efdb5571
+  DynamoDB Table: quickbudget-data-qa
+
+  PRODUCTION Environment
+
+  API URL: https://hn98hhwfj5.execute-api.af-south-1.amazonaws.com/prod/
+  User Pool ID: af-south-1_ES85Mldcu
+  User Pool Client ID: 6b5hcfcmc0bmbp98en1sdsm3gc
+  Identity Pool ID: af-south-1:4f8cff68-a896-4f04-838e-d4fc8ef860f0
+  DynamoDB Table: quickbudget-data-prod
+
+  ---
+  Files Updated
+
+  - .env.local - Dev environment config
+  - .env.qa - QA environment config
+  - .env.production - Production environment config
+  - package.json - Renamed to quickbudget-frontend
+  - amplify.yml - Updated workspace name
+
+  CloudWatch Dashboards
+
+  - Dev: QuickBudget-dev
+  - QA: QuickBudget-qa
+  - Prod: QuickBudget-prod
+
+  API Endpoints (All Environments)
+  ┌────────┬──────────────────┬─────────────────────┐
+  │ Method │     Endpoint     │     Description     │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ GET    │ /budget          │ Get current budget  │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ PUT    │ /budget          │ Update budget       │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ POST   │ /budget          │ Create budget       │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ DELETE │ /budget          │ Delete budget       │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ GET    │ /budget/history  │ Get budget history  │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ GET    │ /dashboard/stats │ Get dashboard stats │
+  ├────────┼──────────────────┼─────────────────────┤
+  │ GET    │ /user/access     │ Get user access     │
+  └────────┴──────────────────┴─────────────────────┘
+  ---
+  Next Steps
+
+  1. Set up DNS records in Route 53 to point subdomains to the frontend hosting
+  2. Set up AWS Amplify for frontend hosting (or use the existing amplify.yml)
+  3. Test the API endpoints with the new configuration

@@ -1,0 +1,11 @@
+# QuickBudget SA - robots.txt
+User-agent: *
+Allow: /
+
+# Disallow authenticated/private areas
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /admin
+
+# Sitemap
+Sitemap: https://quickbudget.co.za/sitemap.xml

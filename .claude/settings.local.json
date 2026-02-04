@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(yarn install)",
+      "Bash(node fix-types.js)",
+      "Bash(npm run deploy:*)",
+      "Bash(timeout 540 npm run deploy -- --require-approval never)",
+      "Bash(npx cdk deploy:*)",
+      "Bash(cat /c/Temp/apps/app.regulatoryexams.co.za/frontend/src/app/(dashboard)/exams/page.tsx)",
+      "Bash(cat /c/Temp/apps/app.regulatoryexams.co.za/frontend/src/app/(dashboard)/pricing/page.tsx)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "www.quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "ftp.quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "cpanel.quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "webmail.quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "mail.quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "*.quickbudget.co.za.",
+        "Type": "A",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "102.222.124.101"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "quickbudget.co.za.",
+        "Type": "MX",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "10 mail.quickbudget.co.za"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "autoconfig.quickbudget.co.za.",
+        "Type": "CNAME",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "envoy.aserv.co.za"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "autodiscover.quickbudget.co.za.",
+        "Type": "CNAME",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "envoy.aserv.co.za"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "quickbudget.co.za.",
+        "Type": "TXT",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "\"mailconf=https://envoy.aserv.co.za/mail/config-v1.1.xml\""
+          },
+          {
+            "Value": "\"v=spf1 include:spf.aserv.co.za +a +mx -all\""
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "_dmarc.quickbudget.co.za.",
+        "Type": "TXT",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "\"v=DMARC1; p=none; fo=0; adkim=s; aspf=s\""
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "_imaps._tcp.quickbudget.co.za.",
+        "Type": "SRV",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "1 993 0 envoy.aserv.co.za"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "_autodiscover._tcp.quickbudget.co.za.",
+        "Type": "SRV",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "0 443 0 envoy.aserv.co.za"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "_submission._tcp.quickbudget.co.za.",
+        "Type": "SRV",
+        "TTL": 7200,
+        "ResourceRecords": [
+          {
+            "Value": "1 25 0 envoy.aserv.co.za"
+          }
+        ]
+      }
+    }
+  ]
+}

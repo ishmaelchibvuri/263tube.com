@@ -1,0 +1,20 @@
+taskkill /F /IM node.exe
+
+//RUN IN DEV MODE
+npm run dev
+
+// MIMICK PRODUCTION
+npm run build
+npm run start
+
+// SYNC TO ANDROID FRON FRONTEND FOLDER
+npx cap sync android
+
+//CHECK EMAILS IN S3 BUCKET
+aws s3 ls s3://regulatoryexams-inbound-emails/emails/ --region af-south-1 --recursive --human-readable 2>&1
+
+//UPDATE JIRA API TOKEN
+aws ssm put-parameter --name "/regulatoryexams/dev/jira/api-token" --value "NEW_API_TOKEN_HERE" --type SecureString --overwrite --region af-south-1
+
+//UPDATE JIRA API EMAIL  
+aws ssm put-parameter --name "/regulatoryexams/dev/jira/email" --value "new-email@example.com" --overwrite --region af-south-1

@@ -1,0 +1,186 @@
+# .coderabbit.yaml
+# CodeRabbit configuration for AWS multi-tenant templates
+
+# Language and framework settings
+language: typescript
+framework: 
+  - nextjs
+  - aws-cdk
+
+# Review settings
+reviews:
+  # Request reviews on all PRs
+  request_changes_workflow: true
+  
+  # Auto-approve simple changes
+  auto_approve:
+    enabled: false  # Keep false for infrastructure code
+  
+  # Review depth
+  review_level: detailed
+  
+  # Path-specific instructions
+  path_instructions:
+    - path: "infrastructure/**/*.ts"
+      instructions: |
+        ## AWS CDK Infrastructure Review Checklist
+        
+        ### Tenant Isolation
+        - Verify all resource names include ${tenantId} prefix
+        - Check IAM policies restrict access to tenant-specific resources only
+        - Ensure no cross-tenant data access is possible
+        - Validate resource ARNs use tenant-scoped patterns
+        
+        ### Security
+        - No public access to S3 buckets unless explicitly required
+        - DynamoDB tables use encryption at rest
+        - Lambda functions have minimal IAM permissions
+        - API Gateway has proper authentication/authorization
+        - Secrets use AWS Secrets Manager, not environment variables
+        
+        ### Cost Optimization
+        - Lambda memory settings appropriate for workload (start at 256MB)
+        - DynamoDB billing mode appropriate (PAY_PER_REQUEST for variable traffic)
+        - S3 lifecycle policies configured for old data
+        - CloudFront caching enabled where appropriate
+        - Resources tagged for cost allocation
+        
+        ### Free Tier Compliance
+        - Verify resource configurations stay within free tier limits
+        - Check Lambda timeout settings (max 30s unless justified)
+        - DynamoDB read/write capacity units reasonable
+        - S3 storage class appropriate for usage pattern
+    
+    - path: "src/lib/**/*.ts"
+      instructions: |
+        ## Application Code Review Checklist
+        
+        ### Tenant Context
+        - Every database query includes tenant validation
+        - Tenant ID extracted from request and validated
+        - No hardcoded tenant references
+        - User can only access their tenant's data
+        
+        ### Security
+        - Input validation on all user inputs
+        - SQL injection prevention (parameterized queries)
+        - XSS prevention (proper escaping)
+        - Authentication verified before data access
+        - Authorization checked for each operation
+        
+        ### Error Handling
+        - Try-catch blocks around external calls
+        - Meaningful error messages without exposing internals
+        - Proper HTTP status codes returned
+        - Errors logged with tenant context
+        
+        ### Performance
+        - Database queries optimized (proper indexes used)
+        - No N+1 query problems
+        - Appropriate pagination for list operations
+        - Caching used where beneficial
+    
+    - path: "src/app/**/*.{ts,tsx}"
+      instructions: |
+        ## Frontend Code Review Checklist
+        
+        ### Security
+        - No sensitive data in client-side code
+        - API calls use proper authentication headers
+        - User input sanitized before display
+        - CSRF protection for state-changing operations
+        
+        ### User Experience
+        - Loading states for async operations
+        - Error states with helpful messages
+        - Proper form validation
+        - Accessibility standards followed
+        
+        ### Performance
+        - Components properly memoized
+        - Unnecessary re-renders avoided
+        - Images optimized
+        - Code splitting where appropriate
+    
+    - path: "lambda/**/*.ts"
+      instructions: |
+        ## Lambda Function Review Checklist
+        
+        ### Cold Start Optimization
+        - Dependencies imported efficiently
+        - Heavy initialization outside handler
+        - Connection pooling used for databases
+        
+        ### Error Handling
+        - All errors caught and logged
+        - Proper error responses returned
+        - Dead letter queues configured
+        
+        ### Tenant Isolation
+        - Tenant ID validated from event
+        - Resource access scoped to tenant
+        - No cross-tenant operations possible
+
+# Exclude paths that don't need review
+reviews:
+  exclude_paths:
+    - "**/*.md"
+    - "**/package-lock.json"
+    - "**/yarn.lock"
+    - "**/*.log"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/out/**"
+    - "**/.next/**"
+    - "**/node_modules/**"
+
+# Custom checks
+checks:
+  # Enforce tenant-aware resource naming
+  - name: tenant_resource_naming
+    pattern: "new\\s+(\\w+)\\(.*bucketName.*['\"](?!.*\\$\\{tenantId\\})"
+    message: "S3 bucket must include ${tenantId} in name for tenant isolation"
+    severity: error
+    
+  - name: tenant_table_naming
+    pattern: "new\\s+dynamodb\\.Table\\(.*tableName.*['\"](?!.*\\$\\{tenantId\\})"
+    message: "DynamoDB table must include ${tenantId} in name for tenant isolation"
+    severity: error
+  
+  - name: lambda_timeout_check
+    pattern: "timeout:\\s*Duration\\.(minutes|hours)\\("
+    message: "Lambda timeout should typically be in seconds (under 30s for cost optimization)"
+    severity: warning
+  
+  - name: public_s3_bucket
+    pattern: "publicReadAccess:\\s*true"
+    message: "Public S3 bucket access detected. Verify this is intentional and required."
+    severity: error
+  
+  - name: hardcoded_secrets
+    pattern: "(password|secret|api[_-]?key|token)\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
+    message: "Possible hardcoded secret detected. Use AWS Secrets Manager instead."
+    severity: error
+
+# AI behavior
+ai:
+  # Make suggestions more contextual
+  context_lines: 10
+  
+  # Focus on important issues
+  min_severity: info
+  
+  # Provide explanations
+  explain_issues: true
+  
+  # Suggest fixes
+  suggest_fixes: true
+
+# Chat settings (for interactive discussions)
+chat:
+  enabled: true
+  
+# Summary settings
+summary:
+  enabled: true
+  include_cost_estimate: true

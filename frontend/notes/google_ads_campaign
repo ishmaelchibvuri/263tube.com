@@ -1,0 +1,123 @@
+# GOOGLE ADS CAMPAIGN SETUP TEMPLATE
+# Project: QuickBudget SA
+# Date: 26 January 2026
+
+========================================================================
+PART 1: CAMPAIGN SETTINGS (The "Hidden" Traps)
+========================================================================
+
+1. CAMPAIGN GOAL:
+   [X] Website Traffic
+
+2. NETWORKS (Critical Step):
+   [X] Search Network: CHECKED
+   [ ] Display Network: UNCHECKED (Crucial: Keep this off)
+
+3. LOCATIONS:
+   Target: South Africa
+   Location Options Setting: "Presence: People in or regularly in your targeted locations"
+
+4. LANGUAGES:
+   [X] English
+
+5. BUDGET & BIDDING:
+   Currency: ZAR
+   Daily Budget: R 50.00
+   Bidding Strategy: Maximize Clicks
+   Set Maximum Bid Limit? Yes -> R 5.00 (Optional safety net)
+
+========================================================================
+PART 2: KEYWORDS
+========================================================================
+
+TARGET KEYWORDS (High Intent):
+- budgeting software south africa
+- budget planner app
+- money management app
+- personal finance software
+- 50 30 20 rule app
+- track debt south africa
+- expense tracker zar
+
+NEGATIVE KEYWORDS (Words to exclude to save money):
+- loans
+- consolidation
+- debt review
+- debt counsellor
+- financial advisor
+- broker
+- free excel template
+
+========================================================================
+PART 3: THE AD COPY
+========================================================================
+
+FINAL URL:
+https://quickbudget.co.za
+
+DISPLAY PATH:
+www.quickbudget.co.za / Budget-App / South-Africa
+
+HEADLINES (Max 30 Characters each)
+*Includes Keyword matches and Branding hooks*
+
+1. Budgeting Software SA
+2. Best Budget Planner App
+3. Money Management App
+4. Personal Finance Tool
+5. 50/30/20 Rule App
+6. Track Daily Expenses
+7. Online Budget Planner
+8. Master Your Money
+9. Simple Budgeting Tool
+10. Track Expenses in ZAR
+11. Stop Overspending
+12. See Where Your Money Goes
+13. Easy Financial Planning
+14. Secure & Local
+15. Build a Brighter Future
+
+DESCRIPTIONS (Max 90 Characters each)
+*Tailored for trust and monetization potential*
+
+1. Budget, Save, Thrive! QuickBudget SA: Your Smart Financial Planning App.
+2. QuickBudget SA: Budgeting software designed for South Africans, by South Africans.
+3. 50/30/20 Made Easy! QuickBudget SA: Your Financial Freedom Starts Here.
+4. QuickBudget SA: The financial planning tool that helps you build a brighter future.
+
+========================================================================
+PART 4: EXTENSIONS (Sitelinks)
+========================================================================
+*Drafted for future use when these pages are ready*
+
+SITELINK 1: How It Works
+Text: How It Works
+Line 1: Master the 50/30/20 rule.
+Line 2: Simple steps to save more.
+Final URL: https://quickbudget.co.za/how-it-works
+
+SITELINK 2: About Us
+Text: About QuickBudget
+Line 1: Proudly South African.
+Line 2: Built specifically for ZAR.
+Final URL: https://quickbudget.co.za/about
+
+SITELINK 3: Pricing
+Text: Pricing Plans
+Line 1: Affordable tools for everyone.
+Line 2: Invest in your future today.
+Final URL: https://quickbudget.co.za/pricing
+
+SITELINK 4: Start Now
+Text: Get Started
+Line 1: Create your account now.
+Line 2: Take control of your money.
+Final URL: https://quickbudget.co.za/register
+
+========================================================================
+PART 5: FINAL PRE-FLIGHT CHECKLIST
+========================================================================
+[X] Did I uncheck "Display Network"?
+[X] Is the Currency correct (ZAR)?
+[X] Is the landing page working?
+[X] Did I exclude the word "Free" (Used "Smart/Affordable" instead)?

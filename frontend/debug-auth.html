@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Auth State</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .section {
+            background: #252526;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007acc;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        h2 {
+            color: #569cd6;
+            margin-top: 0;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        pre {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #3c3c3c;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+        .error {
+            color: #f48771;
+        }
+        .warning {
+            color: #dcdcaa;
+        }
+        .key {
+            color: #9cdcfe;
+        }
+        .value {
+            color: #ce9178;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Auth State Debugger</h1>
+    <p>Run this while logged into localhost:3000 to see what's happening with your auth state.</p>
+
+    <div class="section">
+        <h2>1. LocalStorage Data</h2>
+        <button onclick="checkLocalStorage()">Check localStorage</button>
+        <pre id="localStorageOutput">Click button to check...</pre>
+    </div>
+
+    <div class="section">
+        <h2>2. Amplify/Cognito Tokens</h2>
+        <button onclick="checkAmplifyTokens()">Check Cognito Tokens</button>
+        <pre id="amplifyOutput">Click button to check...</pre>
+    </div>
+
+    <div class="section">
+        <h2>3. API Profile Response</h2>
+        <button onclick="fetchProfile()">Fetch /auth/profile from API</button>
+        <pre id="profileOutput">Click button to fetch...</pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Auth Context State</h2>
+        <button onclick="checkReactState()">Check React Auth Context</button>
+        <p class="warning">⚠️ This only works if you run it from the browser console on localhost:3000</p>
+        <pre id="reactOutput">Open browser console on localhost:3000 and run:
+
+// Get React internals (this is hacky but works)
+const rootElement = document.querySelector('#__next') || document.querySelector('[data-reactroot]');
+if (rootElement) {
+  const fiberNode = Object.keys(rootElement).find(key => key.startsWith('__reactFiber'));
+  console.log('React Fiber:', rootElement[fiberNode]);
+}
+
+// Alternative: Check if auth context exposes user globally
+console.log('Window auth?', window.__auth);
+        </pre>
+    </div>
+
+    <div class="section">
+        <h2>5. Quick Fixes</h2>
+        <button onclick="clearAllAuth()">🧹 Clear All Auth Data</button>
+        <button onclick="window.location.href='http://localhost:3000/login'">🚀 Go to Login</button>
+        <pre id="fixOutput"></pre>
+    </div>
+
+    <script>
+        function checkLocalStorage() {
+            const output = document.getElementById('localStorageOutput');
+            let html = '';
+
+            const relevantKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('cognito') || key.includes('amplify') || key.includes('CognitoIdentityServiceProvider') || key === 'admin_impersonated_tier') {
+                    relevantKeys.push(key);
+                }
+            }
+
+            if (relevantKeys.length === 0) {
+                html = '<span class="warning">⚠️ No auth-related localStorage items found</span>\n';
+                html += '<span class="error">This means you might not be logged in, or tokens are stored elsewhere</span>';
+            } else {
+                html = `<span class="success">Found ${relevantKeys.length} auth-related items:</span>\n\n`;
+                relevantKeys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    const preview = value.length > 100 ? value.substring(0, 100) + '...' : value;
+                    html += `<span class="key">${key}:</span>\n<span class="value">${preview}</span>\n\n`;
+                });
+            }
+
+            // Check impersonation specifically
+            const impersonation = localStorage.getItem('admin_impersonated_tier');
+            html += `\n<span class="key">admin_impersonated_tier:</span> <span class="${impersonation ? 'error' : 'success'}">${impersonation || 'null (✅ good)'}</span>`;
+
+            output.innerHTML = html;
+        }
+
+        function checkAmplifyTokens() {
+            const output = document.getElementById('amplifyOutput');
+            output.innerHTML = '<span class="warning">Searching for Cognito tokens...</span>';
+
+            // Find CognitoIdentityServiceProvider keys
+            const cognitoKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('CognitoIdentityServiceProvider')) {
+                    cognitoKeys.push(key);
+                }
+            }
+
+            if (cognitoKeys.length === 0) {
+                output.innerHTML = '<span class="error">❌ No Cognito tokens found - you are NOT logged in via Amplify</span>';
+                return;
+            }
+
+            let html = `<span class="success">✅ Found ${cognitoKeys.length} Cognito keys</span>\n\n`;
+
+            // Try to decode tokens
+            cognitoKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (key.includes('idToken') || key.includes('accessToken')) {
+                    try {
+                        // JWT tokens have 3 parts separated by dots
+                        const tokenParts = value.split('.');
+                        if (tokenParts.length === 3) {
+                            const payload = JSON.parse(atob(tokenParts[1]));
+                            html += `<span class="key">${key}:</span>\n`;
+                            html += `<span class="value">`;
+                            html += `  email: ${payload.email || payload.username || 'N/A'}\n`;
+                            html += `  sub (user ID): ${payload.sub || 'N/A'}\n`;
+                            html += `  exp: ${new Date(payload.exp * 1000).toISOString()}\n`;
+                            html += `  ⚠️ NOTE: Cognito tokens don't contain 'role' - role comes from DynamoDB`;
+                            html += `</span>\n\n`;
+                        }
+                    } catch (e) {
+                        html += `<span class="error">Failed to decode ${key}</span>\n`;
+                    }
+                } else {
+                    html += `<span class="key">${key}:</span> <span class="value">${value.substring(0, 50)}...</span>\n`;
+                }
+            });
+
+            output.innerHTML = html;
+        }
+
+        async function fetchProfile() {
+            const output = document.getElementById('profileOutput');
+            output.innerHTML = '<span class="warning">Fetching profile from API...</span>';
+
+            try {
+                // Try to get access token from localStorage
+                let accessToken = null;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.includes('accessToken')) {
+                        accessToken = localStorage.getItem(key);
+                        break;
+                    }
+                }
+
+                if (!accessToken) {
+                    output.innerHTML = '<span class="error">❌ No access token found in localStorage - cannot call API</span>\n';
+                    output.innerHTML += '<span class="warning">You need to be logged in first!</span>';
+                    return;
+                }
+
+                const API_URL = 'https://snpfsl3dtg.execute-api.af-south-1.amazonaws.com/dev';
+                const response = await fetch(`${API_URL}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    output.innerHTML = `<span class="error">❌ API Error (${response.status}):</span>\n`;
+                    output.innerHTML += JSON.stringify(data, null, 2);
+                    return;
+                }
+
+                let html = '<span class="success">✅ API Response:</span>\n\n';
+                html += JSON.stringify(data, null, 2);
+                html += '\n\n';
+
+                // Highlight the role
+                if (data.role === 'admin') {
+                    html += '<span class="success">✅ API says you are ADMIN</span>\n';
+                    html += '<span class="warning">⚠️ If you still can\'t access /admin/dashboard, the frontend is not reading this correctly</span>';
+                } else {
+                    html += `<span class="error">❌ API says your role is: ${data.role || 'undefined'}</span>\n`;
+                    html += '<span class="error">This is the problem - database still has old role!</span>';
+                }
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<span class="error">❌ Error:</span>\n${error.message}\n\n`;
+                output.innerHTML += '<span class="warning">Make sure you are logged in to localhost:3000 first!</span>';
+            }
+        }
+
+        function clearAllAuth() {
+            const output = document.getElementById('fixOutput');
+
+            if (!confirm('Clear all auth data? You will need to login again.')) {
+                return;
+            }
+
+            // Clear all auth-related localStorage
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('cognito') || key.includes('amplify') || key.includes('CognitoIdentityServiceProvider') || key === 'admin_impersonated_tier')) {
+                    keysToRemove.push(key);
+                }
+            }
+
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            sessionStorage.clear();
+
+            output.innerHTML = `<span class="success">✅ Cleared ${keysToRemove.length} auth items</span>\n`;
+            output.innerHTML += '<span class="warning">Now go to localhost:3000/login and sign in again</span>';
+        }
+    </script>
+
+    <div class="section">
+        <h2>📋 Instructions</h2>
+        <ol>
+            <li>Make sure you're logged in to <code>localhost:3000</code></li>
+            <li>Click each "Check" button above to see your auth state</li>
+            <li>Pay special attention to "API Profile Response" - it should show <code>role: admin</code></li>
+            <li>If API shows admin but you still can't access dashboard, the frontend isn't reading it</li>
+        </ol>
+    </div>
+</body>
+</html>

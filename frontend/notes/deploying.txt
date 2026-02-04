@@ -1,0 +1,72 @@
+COMPILES AND DEPLOYS EVERYTHING
+npm run deploy
+
+DEPLOY A SINGLE STACK
+npm run cdk -- deploy debtpayoff-api-dev --require-approval never
+
+DEPLOYMENT FIX Error
+rmdir /s /q cdk.out
+
+DEPLOY IN CURRENT ENVIRONMENT
+cdk deploy --all --require-approval never
+
+
+DEPLOY DEV
+cdk deploy -c environment=dev --all --require-approval never
+❌ cdk destroy -c environment=dev --all --force --require-approval never
+
+
+DEPLOY QA
+cdk deploy -c environment=qa --all --require-approval never
+❌ cdk destroy -c environment=qa --all --force --require-approval never
+
+
+DEPLOY PROD
+cdk deploy -c environment=prod --all --require-approval never
+❌ cdk destroy -c environment=prod --all --force --require-approval never
+
+________________________________________________
+
+DELETE AND RECREATE QA BRANCH FROM DEV
+
+# Checkout dev
+git checkout dev
+git pull origin dev
+
+# Delete qa locally
+git branch -D qa
+
+# Create new qa from current dev
+git checkout -b qa
+
+# Force push to GitHub
+git push origin qa --force
+
+git checkout qa
+git reset --hard dev
+git push origin qa --force
+
+----------------------------------------------
+
+________________________________________________
+
+DELETE AND RECREATE MAIN BRANCH FROM QA
+
+# Checkout qa
+git checkout qa
+git pull origin qa
+
+# Delete main locally
+git branch -D main
+
+# Create new main from current qa
+git checkout -b main
+
+# Force push to GitHub
+git push origin main --force
+
+git checkout main
+git reset --hard qa
+git push origin main --force
+
+----------------------------------------------

@@ -1,0 +1,49 @@
+# Role: Senior Frontend Engineer
+# Task: Implement PostHog Event Tracking for Signup Funnel
+
+## 1. Objective
+We need to track user behavior to understand why users are dropping off before completing a signup. We have PostHog already, so we need to instrument the React app with specific events.
+
+## 2. Technical Requirements
+- **Library:** `posthog-js`
+- **Environment:** React (Vite/CRA) + AWS Cognito for Auth.
+- **Context:** Offline-first app. PostHog should be initialized to handle persistence.
+
+## 3. Implementation Steps
+
+### Step A: PostHog Initialization
+Ensure PostHog is initialized in `src/index.js` or `src/main.js`. 
+- Set `capture_pageview: true`.
+- Set `persistence: 'localStorage+cookie'`.
+
+### Step B: Tracking Key Milestones
+Instrument the following events throughout the app:
+
+1. **Landing Page Interaction:**
+   - Event: `landing_page_cta_clicked`
+   - Trigger: When a user clicks the "Create Plan" or "Sign Up" button on the landing page.
+
+2. **Cognito Signup Process:**
+   - Event: `signup_form_submitted`
+   - Trigger: When the user clicks "Submit" on the registration form (before Cognito response).
+   - Event: `signup_failed` (Property: `reason`)
+   - Trigger: Inside the `catch` block of your Cognito signup logic.
+   - Event: `signup_success`
+   - Trigger: When Cognito returns a successful user creation.
+
+3. **Verification Step:**
+   - Event: `verification_code_submitted`
+   - Event: `verification_success`
+   - *Note: This is usually where SA users drop off if the email is slow.*
+
+4. **First Value Moment (Activation):**
+   - Event: `first_budget_created`
+   - Trigger: When the user successfully saves their first budget entry to Dexie/DynamoDB.
+
+### Step C: User Identification
+Once a user successfully logs in, call:
+`posthog.identify(user.sub, { email: user.email, tier: 'free' });`
+
+## 4. Deliverables
+- Provide a utility file `src/telemetry.js` to wrap PostHog calls.
+- Update the Signup and Budget components to trigger these events.
