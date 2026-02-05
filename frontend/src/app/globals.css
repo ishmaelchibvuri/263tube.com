@@ -4,72 +4,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  263Tube Theme - Zimbabwe Flag Colors
+  Red: #DE2010 (Primary - YouTube red)
+  Yellow/Gold: #FFD200
+  Green: #319E31
+  Cyan accent: #00D4FF (from logo glow)
+*/
+
 @layer base {
-  /* 263Tube Dark Mode Media Intelligence Theme */
   :root {
-    /* Dark Mode by Default - Slate 950 */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
 
-    /* Card backgrounds - Deep Navy / Slate 800 */
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
 
-    /* Primary: Electric Orange (#f97316) */
-    --primary: 25 95% 53%;
+    /* Primary: Zimbabwe Red / YouTube Red */
+    --primary: 4 85% 47%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Deep Navy (#1e293b) */
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 64%;
 
-    --accent: 25 95% 53%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Zimbabwe Gold */
+    --accent: 49 100% 50%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 25%;
-    --input: 217 33% 25%;
-    --ring: 25 95% 53%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 4 85% 47%;
 
     --radius: 0.75rem;
 
-    /* Chart colors - Media tones */
-    --chart-1: 25 95% 53%;
-    --chart-2: 199 89% 48%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 271 76% 53%;
-    --chart-5: 340 75% 55%;
-  }
-
-  /* Light mode alternative (if toggled) */
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 25 95% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 95%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 20% 40%;
-    --accent: 25 95% 95%;
-    --accent-foreground: 25 95% 40%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 25 95% 53%;
+    /* Custom Zimbabwe colors */
+    --zim-red: #DE2010;
+    --zim-yellow: #FFD200;
+    --zim-green: #319E31;
+    --zim-black: #09090b;
+    --zim-cyan: #00D4FF;
   }
 }
 
@@ -83,112 +65,132 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    background-color: #0f172a;
+    @apply bg-[#09090b] text-foreground font-sans antialiased;
+  }
+
+  /* Custom selection color - Zim red */
+  ::selection {
+    background: rgba(222, 32, 16, 0.3);
+    color: white;
   }
 }
 
-/* 263Tube Custom Component Styles */
 @layer components {
-  /* Creator Card Styles */
-  .creator-card {
-    @apply relative bg-card rounded-xl overflow-hidden border border-border transition-all duration-300;
+  /* Glass morphism */
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.05];
   }
 
-  .creator-card:hover {
-    @apply border-primary/50 shadow-lg shadow-primary/10;
+  .glass-strong {
+    @apply bg-black/40 backdrop-blur-xl border border-white/[0.08];
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-300;
+  }
+
+  .card-hover:hover {
+    @apply shadow-lg;
+    border-color: rgba(222, 32, 16, 0.3);
+    box-shadow: 0 10px 40px rgba(222, 32, 16, 0.1);
     transform: translateY(-4px);
   }
 
-  .creator-card-cover {
-    @apply w-full h-32 object-cover;
-  }
-
-  .creator-card-avatar {
-    @apply w-20 h-20 rounded-full border-4 border-card absolute left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover;
-  }
-
-  /* Stats Badge */
-  .stats-badge {
-    @apply inline-flex flex-col items-center px-4 py-3 bg-secondary rounded-lg border border-border;
-  }
-
-  .stats-badge-value {
-    @apply text-2xl font-bold text-foreground;
-  }
-
-  .stats-badge-label {
-    @apply text-xs text-muted-foreground uppercase tracking-wider;
-  }
-
-  /* Social Link Group */
-  .social-link-group {
-    @apply flex items-start gap-4 p-4 bg-secondary/50 rounded-lg border border-border/50;
-  }
-
-  .social-link-icon {
-    @apply w-10 h-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary;
-  }
-
-  /* Niche Tag */
-  .niche-tag {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary;
-  }
-
-  /* Search Bar */
-  .search-bar {
-    @apply w-full max-w-2xl mx-auto relative;
-  }
-
-  .search-bar input {
-    @apply w-full h-14 pl-12 pr-4 bg-secondary rounded-xl border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
-  }
-
-  /* Hero Section */
-  .hero-gradient {
-    background: radial-gradient(ellipse at top, rgba(249, 115, 22, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.1) 0%, transparent 40%);
-  }
-
-  /* Orange Glow Effect */
-  .glow-orange {
-    box-shadow: 0 0 30px rgba(249, 115, 22, 0.3);
-  }
-
-  .glow-orange:hover {
-    box-shadow: 0 0 50px rgba(249, 115, 22, 0.5);
-  }
-
-  /* Button Styles */
+  /* Button styles */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-white font-semibold rounded-xl transition-all;
+    background: linear-gradient(135deg, #DE2010 0%, #b01a0d 100%);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #ff2a17 0%, #DE2010 100%);
+    box-shadow: 0 10px 30px rgba(222, 32, 16, 0.3);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-secondary text-foreground font-medium rounded-lg border border-border transition-all duration-200 hover:bg-secondary/80 hover:border-primary/50;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/[0.05] border border-white/[0.1] text-white font-medium rounded-xl transition-all;
   }
 
-  /* Profile Banner */
-  .profile-banner {
-    @apply relative w-full h-48 md:h-64 overflow-hidden;
+  .btn-secondary:hover {
+    @apply bg-white/[0.1];
   }
 
-  .profile-banner::after {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-t from-background to-transparent;
+  /* Text gradients - Zim colors */
+  .text-gradient {
+    background: linear-gradient(135deg, #DE2010 0%, #FFD200 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-zim {
+    background: linear-gradient(135deg, #319E31 0%, #FFD200 50%, #DE2010 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow effects */
+  .glow-red {
+    box-shadow: 0 0 60px rgba(222, 32, 16, 0.2);
+  }
+
+  .glow-red-strong {
+    box-shadow: 0 0 80px rgba(222, 32, 16, 0.35);
+  }
+
+  .glow-yellow {
+    box-shadow: 0 0 60px rgba(255, 210, 0, 0.15);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 60px rgba(49, 158, 49, 0.15);
+  }
+
+  /* Creator card */
+  .creator-card {
+    @apply relative bg-white/[0.02] rounded-2xl overflow-hidden border border-white/[0.05] transition-all duration-300;
+  }
+
+  .creator-card:hover {
+    border-color: rgba(222, 32, 16, 0.3);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(222, 32, 16, 0.1);
+  }
+
+  /* Niche tag */
+  .niche-tag {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/[0.05] text-slate-300 border border-white/[0.05];
+  }
+
+  .niche-tag:hover {
+    background: rgba(222, 32, 16, 0.1);
+    color: #DE2010;
+    border-color: rgba(222, 32, 16, 0.3);
+  }
+
+  /* Stats display */
+  .stat-block {
+    @apply flex flex-col items-center p-4 bg-white/[0.02] rounded-xl border border-white/[0.05];
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold text-white;
+  }
+
+  .stat-label {
+    @apply text-xs text-slate-500 uppercase tracking-wider mt-1;
+  }
+
+  /* Zimbabwe flag stripe accent */
+  .zim-stripe {
+    background: linear-gradient(90deg, #319E31 0%, #319E31 33%, #FFD200 33%, #FFD200 66%, #DE2010 66%, #DE2010 100%);
+    height: 3px;
   }
 }
 
-/* Utility Classes */
 @layer utilities {
-  .text-gradient-orange {
-    @apply bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent;
-  }
-
-  .border-gradient {
-    border-image: linear-gradient(to right, #f97316, #ea580c) 1;
-  }
-
   /* Hide scrollbar */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -199,13 +201,33 @@
     scrollbar-width: none;
   }
 
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(222, 32, 16, 0.3);
+  }
+
   /* Touch optimization */
   .touch-manipulation {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Safe area support */
+  /* Safe area */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -213,70 +235,226 @@
   .safe-area-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
+
+  /* Aspect ratios */
+  .aspect-card {
+    aspect-ratio: 3 / 4;
+  }
+
+  .aspect-banner {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation: fade-in 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.6s ease-out forwards;
+  }
 }
 
 /* Animations */
-@keyframes loading-bar {
-  0% {
-    transform: translateX(-100%);
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
   }
   50% {
-    transform: translateX(0%);
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
   }
   100% {
-    transform: translateX(100%);
+    background-position: 200% 0;
   }
 }
 
-.animate-loading-bar {
-  animation: loading-bar 2s ease-in-out infinite;
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }
 
-/* Blog/Content Styling */
-.prose img, .blog-content img {
-  @apply rounded-xl shadow-2xl my-8 mx-auto;
-  max-width: 100%;
-  height: auto;
-  border: 2px solid hsl(217 33% 25%);
+/* Prose styling for content pages */
+.prose {
+  @apply text-slate-300 leading-relaxed;
 }
 
-.prose p, .blog-content p {
-  @apply mb-6 leading-relaxed text-muted-foreground;
-  font-size: 1.125rem;
-  line-height: 1.8;
+.prose h1,
+.prose h2,
+.prose h3 {
+  @apply text-white font-bold mt-10 mb-4;
 }
 
-.prose h1, .blog-content h1,
-.prose h2, .blog-content h2,
-.prose h3, .blog-content h3 {
-  @apply font-bold mt-12 mb-6 text-foreground;
+.prose h1 {
+  @apply text-4xl;
 }
 
-.prose h1, .blog-content h1 {
-  @apply text-4xl md:text-5xl;
-  margin-top: 2rem;
+.prose h2 {
+  @apply text-3xl;
 }
 
-.prose h2, .blog-content h2 {
-  @apply text-3xl md:text-4xl;
+.prose h3 {
+  @apply text-2xl;
 }
 
-.prose h3, .blog-content h3 {
-  @apply text-2xl md:text-3xl;
+.prose p {
+  @apply mb-6 text-lg leading-relaxed;
 }
 
-.prose a, .blog-content a {
-  @apply font-medium text-primary hover:text-primary/80 transition-colors;
+.prose a {
+  color: #DE2010;
+  @apply hover:opacity-80 transition-opacity underline underline-offset-4;
 }
 
-.prose code, .blog-content code {
-  @apply px-2 py-1 rounded bg-secondary text-primary text-sm font-mono;
+.prose ul,
+.prose ol {
+  @apply my-6 ml-6;
 }
 
-.prose pre, .blog-content pre {
-  @apply bg-secondary p-6 rounded-xl overflow-x-auto my-8 border border-border;
+.prose li {
+  @apply mb-2;
 }
 
-.prose blockquote, .blog-content blockquote {
-  @apply border-l-4 border-primary pl-6 italic my-8 text-muted-foreground;
+.prose blockquote {
+  border-left: 4px solid #DE2010;
+  @apply pl-6 my-8 italic text-slate-400;
+}
+
+.prose code {
+  @apply px-2 py-1 bg-white/[0.05] rounded text-sm font-mono;
+  color: #FFD200;
+}
+
+.prose pre {
+  @apply bg-white/[0.03] p-6 rounded-xl overflow-x-auto my-8 border border-white/[0.05];
+}
+
+.prose img {
+  @apply rounded-2xl my-8 border border-white/[0.05];
+}
+
+/* Rank badges for leaderboard */
+.rank-badge {
+  @apply w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold;
+}
+
+.rank-gold {
+  background: linear-gradient(135deg, #FFD200 0%, #e6bd00 100%);
+  color: #1a1a00;
+}
+
+.rank-silver {
+  @apply bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800;
+}
+
+.rank-bronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #a66528 100%);
+  color: #1a0f00;
+}
+
+.rank-default {
+  @apply bg-white/10 text-white/60;
+}
+
+/* Focus states - Zim red */
+*:focus-visible {
+  @apply outline-none ring-2 ring-offset-2 ring-offset-[#09090b];
+  --tw-ring-color: rgba(222, 32, 16, 0.5);
+}
+
+/* Auto-scrolling carousel animation */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 20s linear infinite;
+}
+
+@media (min-width: 640px) {
+  .animate-scroll-left {
+    animation: scroll-left 30s linear infinite;
+  }
+}
+
+.animate-scroll-left:hover,
+.hover\:pause-animation:hover {
+  animation-play-state: paused;
+}
+
+/* Touch device - allow manual scroll */
+@media (hover: none) {
+  .animate-scroll-left {
+    animation: scroll-left 25s linear infinite;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-scroll-left {
+    animation: none;
+    overflow-x: auto;
+  }
 }

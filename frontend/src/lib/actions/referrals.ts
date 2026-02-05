@@ -9,6 +9,7 @@
 
 import { trackReferral as dbTrackReferral, getTopReferrers } from "@/lib/creators";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 // Rate limiting: Track referrals in a cookie to prevent spam
 const REFERRAL_COOKIE_PREFIX = "ref_tracked_";
@@ -62,6 +63,11 @@ export async function trackReferralAction(
       sameSite: "lax",
       path: "/",
     });
+
+    // Revalidate the homepage so the "Trending This Week" section updates
+    revalidatePath("/");
+    // Also revalidate the trending page
+    revalidatePath("/trending");
 
     return {
       success: true,

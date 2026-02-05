@@ -1,256 +1,255 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, Shield, Mail, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { ArrowLeft, Shield, Mail, MapPin, Eye, Database, Lock, UserCheck, Trash2 } from "lucide-react";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#09090b]">
+      {/* Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[#DE2010]/10 rounded-full blur-[100px] sm:blur-[150px]" />
+        <div className="absolute bottom-0 right-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-[#319E31]/5 rounded-full blur-[80px] sm:blur-[120px]" />
+      </div>
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 backdrop-blur-sm bg-white/95">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              QuickBudget SA
-            </Link>
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+      <header className="sticky top-0 z-50 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.05]">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back</span>
+          </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg overflow-hidden">
+              <Image src="/images/logo.png" alt="263Tube" width={32} height={32} className="w-full h-full object-contain" />
+            </div>
+            <span className="text-base font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+          </Link>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Title Section */}
-        <div className="mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary mb-6">
-            <Shield className="h-8 w-8 text-white" />
+        <div className="mb-8 sm:mb-12 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#319E31]/10 mb-4 sm:mb-6">
+            <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-[#319E31]" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
             Privacy Policy
           </h1>
-          <p className="text-lg text-gray-600">
-            <strong>Last updated:</strong> January 2025
+          <p className="text-slate-400">
+            <strong className="text-slate-300">Last updated:</strong> January 2025
           </p>
         </div>
 
-        {/* POPIA Compliance Notice */}
-        <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-6 mb-8 shadow-sm">
-          <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
-            <Shield className="h-5 w-5" /> POPIA Compliant
-          </h3>
-          <p className="text-green-800">
-            QuickBudget SA is fully compliant with the Protection of Personal Information
-            Act (POPIA) of South Africa. We are committed to protecting your personal
-            information and your right to privacy.
+        {/* Introduction */}
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8 mb-6">
+          <p className="text-slate-300 leading-relaxed">
+            This Privacy Policy describes how 263Tube ("we", "us", or "our") collects, uses,
+            and protects your information when you use our Zimbabwean creator directory platform
+            (the "Service"). We are committed to protecting your privacy and being transparent
+            about our data practices.
           </p>
         </div>
 
-        {/* Content Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8 prose prose-blue max-w-none">
-          <p className="text-gray-700 leading-relaxed mb-6">
-            This Privacy Policy describes how Active Wave Group (Pty) Ltd ("we", "us",
-            or "our") collects, uses, and protects your information when you use
-            our QuickBudget SA application (the "Service").
-          </p>
+        {/* Sections */}
+        <div className="space-y-6">
+          {/* Information We Collect */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-[#DE2010]/10 flex items-center justify-center">
+                <Database className="w-5 h-5 text-[#DE2010]" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Information We Collect</h2>
+            </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Information We Collect
-          </h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">For Visitors</h3>
+                <p className="text-slate-400 mb-2">When you browse our platform, we may collect:</p>
+                <ul className="list-disc list-inside space-y-1 text-slate-400 ml-2">
+                  <li>Browser type and version</li>
+                  <li>Device type and operating system</li>
+                  <li>Pages visited and time spent on site</li>
+                  <li>Referring website or search terms</li>
+                </ul>
+              </div>
 
-          <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">
-            Account Information
-          </h3>
-          <p className="text-gray-700 leading-relaxed mb-3">
-            When you create an account, we collect:
-          </p>
-          <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4 mb-6">
-            <li>Email address</li>
-            <li>Name (optional)</li>
-            <li>Password (encrypted)</li>
-          </ul>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">For Registered Users</h3>
+                <p className="text-slate-400 mb-2">When you create an account, we collect:</p>
+                <ul className="list-disc list-inside space-y-1 text-slate-400 ml-2">
+                  <li>Email address</li>
+                  <li>Name (optional)</li>
+                  <li>Password (encrypted)</li>
+                </ul>
+              </div>
 
-          <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">
-            Budget Information
-          </h3>
-          <p className="text-gray-700 leading-relaxed mb-3">
-            To provide our budgeting service, we collect:
-          </p>
-          <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4 mb-6">
-            <li>Income amounts and sources you enter</li>
-            <li>Expense categories and amounts you enter</li>
-            <li>Budget goals and preferences</li>
-          </ul>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            <strong>Important:</strong> All budget data is entered manually by you.
-            We do not automatically access your bank accounts or financial institutions.
-          </p>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">For Creator Submissions</h3>
+                <p className="text-slate-400 mb-2">When you submit a creator profile, we collect:</p>
+                <ul className="list-disc list-inside space-y-1 text-slate-400 ml-2">
+                  <li>Creator name and channel names</li>
+                  <li>Social media profile URLs</li>
+                  <li>Content niche/category</li>
+                  <li>Bio and description</li>
+                  <li>Submitter contact information</li>
+                </ul>
+              </div>
+            </div>
+          </section>
 
-          <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">
-            Usage Data
-          </h3>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            We automatically collect certain information when you use the Service,
-            including your device type, browser type, IP address, and how you interact
-            with the app. This helps us improve the Service.
-          </p>
+          {/* How We Use Your Information */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-[#FFD200]/10 flex items-center justify-center">
+                <Eye className="w-5 h-5 text-[#FFD200]" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">How We Use Your Information</h2>
+            </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            How We Use Your Information
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-3">
-            We use the information we collect to:
-          </p>
-          <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-6">
-            <li>Provide, maintain, and improve the Service</li>
-            <li>Calculate your budget insights and 50/30/20 analysis</li>
-            <li>Send you important updates about the Service</li>
-            <li>Respond to your questions and support requests</li>
-            <li>Protect against fraud and unauthorized access</li>
-          </ul>
+            <p className="text-slate-400 mb-3">We use the information we collect to:</p>
+            <ul className="list-disc list-inside space-y-2 text-slate-400 ml-2">
+              <li>Operate and maintain the 263Tube creator directory</li>
+              <li>Display creator profiles publicly on the platform</li>
+              <li>Process and review creator submissions</li>
+              <li>Communicate with you about submissions and account updates</li>
+              <li>Improve our platform and user experience</li>
+              <li>Protect against spam, fraud, and abuse</li>
+              <li>Comply with legal obligations</li>
+            </ul>
+          </section>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Data Storage and Security
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            Your data is stored securely using industry-standard encryption (256-bit).
-            We use Amazon Web Services (AWS) with servers located in South Africa
-            to ensure your data remains within the country where possible.
-          </p>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            We implement appropriate technical and organizational measures to protect
-            your personal information against unauthorized access, alteration,
-            disclosure, or destruction.
-          </p>
+          {/* Public Information */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-[#319E31]/10 flex items-center justify-center">
+                <UserCheck className="w-5 h-5 text-[#319E31]" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Public Information</h2>
+            </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Data Sharing
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            <strong>We do not sell your personal information.</strong> We only share
-            your information in the following limited circumstances:
-          </p>
-          <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-6">
-            <li>With your explicit consent</li>
-            <li>To comply with legal obligations or valid legal requests</li>
-            <li>With service providers who help us operate the Service (under strict confidentiality agreements)</li>
-          </ul>
+            <p className="text-slate-400 leading-relaxed">
+              <strong className="text-slate-300">Please note:</strong> Creator profiles on 263Tube are
+              designed to be publicly visible. This includes creator names, profile images, social media
+              links, content niches, and biographical information. By submitting a creator profile
+              (whether your own or someone else's), you acknowledge that this information will be
+              displayed publicly on our platform.
+            </p>
+          </section>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Your Rights Under POPIA
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-3">
-            Under the Protection of Personal Information Act, you have the right to:
-          </p>
-          <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-6">
-            <li><strong>Access:</strong> Request a copy of your personal information</li>
-            <li><strong>Correction:</strong> Request correction of inaccurate information</li>
-            <li><strong>Deletion:</strong> Request deletion of your personal information</li>
-            <li><strong>Object:</strong> Object to the processing of your information</li>
-            <li><strong>Withdraw consent:</strong> Withdraw previously given consent</li>
-          </ul>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            To exercise any of these rights, please contact us using the details below
-            or use the account deletion feature in your Profile settings.
-          </p>
+          {/* Data Security */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-[#DE2010]/10 flex items-center justify-center">
+                <Lock className="w-5 h-5 text-[#DE2010]" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Data Security</h2>
+            </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Data Retention
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            We retain your personal information only for as long as necessary to
-            provide the Service and fulfill the purposes described in this policy.
-            When you delete your account, we will delete your personal information
-            within 30 days, except where we are required by law to retain it.
-          </p>
+            <p className="text-slate-400 leading-relaxed mb-4">
+              We implement appropriate security measures to protect your personal information:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-slate-400 ml-2">
+              <li>Passwords are encrypted using industry-standard hashing</li>
+              <li>All data transmission uses HTTPS encryption</li>
+              <li>Regular security audits and updates</li>
+              <li>Limited access to personal data on a need-to-know basis</li>
+            </ul>
+          </section>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Children's Privacy
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            Our Service is not intended for children under 18 years of age. We do
-            not knowingly collect personal information from children. If you are a
-            parent or guardian and believe your child has provided us with personal
-            information, please contact us.
-          </p>
+          {/* Your Rights */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-[#FFD200]/10 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-[#FFD200]" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Your Rights</h2>
+            </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Cookies and Tracking
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            We use essential cookies to keep you logged in and remember your preferences.
-            We do not use third-party advertising cookies or tracking pixels.
-          </p>
+            <p className="text-slate-400 mb-3">You have the right to:</p>
+            <ul className="list-disc list-inside space-y-2 text-slate-400 ml-2">
+              <li><strong className="text-slate-300">Access:</strong> Request a copy of your personal data</li>
+              <li><strong className="text-slate-300">Correction:</strong> Request correction of inaccurate data</li>
+              <li><strong className="text-slate-300">Deletion:</strong> Request removal of your data or creator profile</li>
+              <li><strong className="text-slate-300">Opt-out:</strong> Unsubscribe from marketing communications</li>
+            </ul>
+            <p className="text-slate-400 mt-4">
+              To exercise these rights, please contact us at the email address below.
+            </p>
+          </section>
 
-          <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3 mb-4 mt-8">
-            Changes to This Policy
-          </h2>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            We may update this Privacy Policy from time to time. We will notify you
-            of any changes by posting the new Privacy Policy on this page and updating
-            the "Last updated" date. We encourage you to review this Privacy Policy
-            periodically.
-          </p>
+          {/* Cookies */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Cookies</h2>
+            <p className="text-slate-400 leading-relaxed">
+              We use essential cookies to keep you logged in and remember your preferences.
+              We may also use analytics cookies to understand how visitors interact with our
+              platform. You can control cookie settings through your browser preferences.
+            </p>
+          </section>
+
+          {/* Third-Party Links */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Third-Party Links</h2>
+            <p className="text-slate-400 leading-relaxed">
+              Creator profiles contain links to external social media platforms (YouTube, TikTok,
+              Instagram, Facebook, X, etc.). These third-party sites have their own privacy policies,
+              and we are not responsible for their content or practices.
+            </p>
+          </section>
+
+          {/* Changes to Policy */}
+          <section className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Changes to This Policy</h2>
+            <p className="text-slate-400 leading-relaxed">
+              We may update this Privacy Policy from time to time. We will notify you of any
+              changes by posting the new Privacy Policy on this page and updating the
+              "Last updated" date. We encourage you to review this policy periodically.
+            </p>
+          </section>
         </div>
 
         {/* Contact Section */}
-        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 border border-blue-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Active Wave Group (Pty) Ltd
-          </h2>
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">
-            Contact Us
-          </h3>
-          <p className="text-gray-700 mb-4">
-            If you have any questions about this Privacy Policy or wish to exercise
-            your rights, you can contact us:
+        <div className="mt-8 bg-gradient-to-br from-[#DE2010]/10 to-[#319E31]/10 rounded-xl p-6 sm:p-8 border border-white/[0.05]">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Contact Us</h2>
+          <p className="text-slate-400 mb-4">
+            If you have any questions about this Privacy Policy or wish to exercise your rights,
+            you can contact us:
           </p>
           <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-gray-600 text-sm">Email:</p>
-                <a
-                  href="mailto:support@quickbudget.co.za"
-                  className="text-primary hover:underline font-medium"
-                >
-                  support@quickbudget.co.za
-                </a>
-              </div>
+            <div className="flex items-center gap-3">
+              <Mail className="h-5 w-5 text-[#DE2010]" />
+              <a href="mailto:privacy@263tube.com" className="text-[#FFD200] hover:underline">
+                privacy@263tube.com
+              </a>
             </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-gray-600 text-sm">Location:</p>
-                <p className="text-gray-900 font-medium">
-                  Cape Town, South Africa
-                </p>
-              </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-[#319E31]" />
+              <span className="text-slate-300">Harare, Zimbabwe</span>
             </div>
           </div>
         </div>
 
-        {/* Back to Top Button */}
+        {/* Back to Top */}
         <div className="mt-8 text-center">
-          <Button
-            variant="outline"
+          <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="px-6 py-2.5 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white text-sm font-medium hover:bg-white/[0.1] transition-all"
           >
             Back to Top
-          </Button>
+          </button>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-400 text-sm">
-            &copy; 2025 Active Wave Group (Pty) Ltd. All rights reserved.
+      <footer className="relative border-t border-white/[0.05] bg-black/40 mt-12">
+        <div className="h-1 bg-gradient-to-r from-[#319E31] via-[#FFD200] to-[#DE2010]" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-center">
+          <p className="text-slate-500 text-sm">
+            &copy; 2025 263Tube. All rights reserved.
           </p>
         </div>
       </footer>

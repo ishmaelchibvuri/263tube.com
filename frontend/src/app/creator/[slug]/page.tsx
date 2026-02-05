@@ -60,8 +60,8 @@ const MOCK_CREATOR = {
     ],
     twitter: [
       {
-        label: "Twitter",
-        url: "https://twitter.com/madamboss",
+        label: "X",
+        url: "https://x.com/madamboss",
         handle: "madamboss",
       },
     ],
@@ -104,26 +104,35 @@ export default function CreatorProfilePage({ params }: PageProps) {
   const creator = MOCK_CREATOR;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#09090b]">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-background/95 backdrop-blur-sm border-b border-border z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Directory</span>
-          </Link>
-          <button className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg border border-border hover:border-primary/50 transition-colors">
-            <Share2 className="w-4 h-4" />
-            <span className="text-sm font-medium">Share</span>
+      <nav className="fixed top-0 w-full bg-[#09090b]/95 backdrop-blur-xl border-b border-white/[0.05] z-50">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium hidden sm:inline">Back</span>
+            </Link>
+            {/* Branding */}
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg overflow-hidden">
+                <Image src="/images/logo.png" alt="263Tube" width={32} height={32} className="w-full h-full object-contain" />
+              </div>
+              <span className="text-base font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+            </Link>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-lg border border-white/[0.05] hover:border-[#DE2010]/30 transition-colors">
+            <Share2 className="w-4 h-4 text-slate-400" />
+            <span className="text-sm font-medium text-white">Share</span>
           </button>
         </div>
       </nav>
 
       {/* Banner */}
-      <div className="profile-banner pt-16">
+      <div className="relative h-48 sm:h-64 mt-14">
         {creator.bannerUrl ? (
           <Image
             src={creator.bannerUrl}
@@ -133,16 +142,18 @@ export default function CreatorProfilePage({ params }: PageProps) {
             priority
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-slate-800 to-slate-900" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#DE2010]/30 via-slate-800 to-slate-900" />
         )}
+        {/* Gradient overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent" />
       </div>
 
       {/* Profile Header */}
       <div className="container mx-auto px-4">
-        <div className="relative -mt-16 mb-8">
-          <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="relative -mt-16 sm:-mt-20 mb-8">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-start">
             {/* Avatar */}
-            <div className="w-32 h-32 rounded-2xl border-4 border-background overflow-hidden bg-secondary flex-shrink-0">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[#09090b] overflow-hidden bg-slate-800 flex-shrink-0 shadow-xl">
               {creator.profilePicUrl ? (
                 <Image
                   src={creator.profilePicUrl}
@@ -152,8 +163,8 @@ export default function CreatorProfilePage({ params }: PageProps) {
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-primary/20">
-                  <span className="text-4xl font-bold text-primary">
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#DE2010] to-[#b01a0d]">
+                  <span className="text-3xl sm:text-4xl font-bold text-white">
                     {creator.name.charAt(0)}
                   </span>
                 </div>
@@ -161,15 +172,15 @@ export default function CreatorProfilePage({ params }: PageProps) {
             </div>
 
             {/* Name & Meta */}
-            <div className="flex-1 pt-4">
+            <div className="flex-1 pt-2 sm:pt-4">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
                   {creator.name}
                 </h1>
                 {creator.verified && (
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#319E31] flex items-center justify-center">
                     <svg
-                      className="w-4 h-4 text-white"
+                      className="w-3 h-3 sm:w-4 sm:h-4 text-white"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -183,23 +194,23 @@ export default function CreatorProfilePage({ params }: PageProps) {
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="niche-tag">{creator.niche}</span>
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#DE2010]/10 text-[#DE2010] border border-[#DE2010]/20">{creator.niche}</span>
                 <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   {creator.location}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  Creating since {creator.joinedDate}
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Since {creator.joinedDate}
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-3 md:pt-4">
-              <button className="btn-primary">
-                <Heart className="w-4 h-4 mr-2" />
+              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-[#DE2010]/20">
+                <Heart className="w-4 h-4" />
                 Follow
               </button>
             </div>
@@ -207,23 +218,23 @@ export default function CreatorProfilePage({ params }: PageProps) {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-8 pb-16">
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8 pb-16">
           {/* Left Column - Profile Info */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
             {/* Bio */}
-            <div className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">About</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">About</h2>
+              <p className="text-sm text-slate-400 leading-relaxed">
                 {creator.bio}
               </p>
             </div>
 
             {/* Stats */}
-            <div className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
+            <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
                 Stats
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <StatsBadge
                   label="Total Reach"
                   value={creator.metrics.totalReach}
@@ -253,17 +264,17 @@ export default function CreatorProfilePage({ params }: PageProps) {
           </div>
 
           {/* Right Column - Ecosystem & Video */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* The Ecosystem */}
-            <div className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
+            <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-2">
                 The Ecosystem
               </h2>
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-6">
                 Find {creator.name} across all platforms
               </p>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                 {creator.platforms.youtube && (
                   <SocialLinkGroup
                     platform="youtube"
@@ -304,14 +315,14 @@ export default function CreatorProfilePage({ params }: PageProps) {
             </div>
 
             {/* Top Video */}
-            <div className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
+            <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
                 Featured Video
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Video Embed */}
-                <div className="relative aspect-video rounded-lg overflow-hidden bg-secondary">
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800">
                   <iframe
                     src={creator.topVideo.embedUrl}
                     title={creator.topVideo.title}
@@ -323,11 +334,11 @@ export default function CreatorProfilePage({ params }: PageProps) {
 
                 {/* Video Info */}
                 <div>
-                  <h3 className="font-semibold text-foreground">
+                  <h3 className="text-sm sm:text-base font-semibold text-white">
                     {creator.topVideo.title}
                   </h3>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <Eye className="w-4 h-4" />
+                  <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-500">
+                    <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     {(creator.topVideo.views / 1000000).toFixed(1)}M views
                   </div>
                 </div>
@@ -335,15 +346,15 @@ export default function CreatorProfilePage({ params }: PageProps) {
             </div>
 
             {/* Contact for Collaborations */}
-            <div className="bg-gradient-to-r from-primary/10 via-card to-primary/10 rounded-xl border border-primary/20 p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-2">
+            <div className="bg-gradient-to-r from-[#DE2010]/10 via-white/[0.02] to-[#DE2010]/10 rounded-xl border border-[#DE2010]/20 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-2">
                 Work with {creator.name}
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-xs sm:text-sm text-slate-400 mb-4">
                 Interested in collaborations, sponsorships, or brand deals?
               </p>
-              <button className="btn-primary">
-                <ExternalLink className="w-4 h-4 mr-2" />
+              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] text-white text-sm font-semibold rounded-xl transition-all">
+                <ExternalLink className="w-4 h-4" />
                 Get in Touch
               </button>
             </div>
@@ -352,9 +363,17 @@ export default function CreatorProfilePage({ params }: PageProps) {
       </div>
 
       {/* Footer */}
-      <footer className="py-8 px-4 bg-secondary/50 border-t border-border">
-        <div className="container mx-auto text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 263Tube. Made with love in Zimbabwe.</p>
+      <footer className="py-6 sm:py-8 px-4 bg-black/40 border-t border-white/[0.05]">
+        {/* Zimbabwe Flag Stripe */}
+        <div className="h-[3px] bg-gradient-to-r from-[#319E31] via-[#FFD200] to-[#DE2010] mb-6" />
+        <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded overflow-hidden">
+              <Image src="/images/logo.png" alt="263Tube" width={24} height={24} className="w-full h-full object-contain" />
+            </div>
+            <span className="text-sm font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+          </div>
+          <p className="text-xs text-slate-500">&copy; 2025 263Tube. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { Users, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreatorCardProps {
@@ -37,27 +37,35 @@ export function CreatorCard({
   return (
     <Link
       href={`/creator/${slug}`}
-      className={cn("creator-card group block", className)}
+      className={cn(
+        "group relative block rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.05] transition-all duration-300 hover:border-[#DE2010]/30 hover:-translate-y-1",
+        className
+      )}
     >
       {/* Cover Image */}
-      <div className="relative h-32 bg-gradient-to-br from-primary/20 to-secondary overflow-hidden">
+      <div className="relative h-28 overflow-hidden">
         {coverImageUrl ? (
           <Image
             src={coverImageUrl}
             alt={`${name} cover`}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/30 via-slate-800 to-slate-900" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#DE2010]/20 via-slate-800 to-slate-900" />
         )}
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent" />
+
+        {/* Hover indicator */}
+        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <ArrowUpRight className="w-4 h-4 text-white" />
+        </div>
       </div>
 
       {/* Avatar */}
       <div className="relative flex justify-center">
-        <div className="absolute -top-10 w-20 h-20 rounded-full border-4 border-card overflow-hidden bg-secondary">
+        <div className="absolute -top-8 w-16 h-16 rounded-2xl overflow-hidden border-2 border-[#09090b] bg-slate-800 shadow-lg">
           {profilePicUrl ? (
             <Image
               src={profilePicUrl}
@@ -66,8 +74,8 @@ export function CreatorCard({
               className="object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-primary/20">
-              <span className="text-2xl font-bold text-primary">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#DE2010] to-[#b01a0d]">
+              <span className="text-xl font-bold text-white">
                 {name.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -76,30 +84,27 @@ export function CreatorCard({
       </div>
 
       {/* Content */}
-      <div className="pt-12 pb-5 px-4 text-center">
+      <div className="pt-10 pb-5 px-4 text-center">
         {/* Name */}
-        <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+        <h3 className="text-base font-semibold text-white truncate group-hover:text-[#FFD200] transition-colors duration-300">
           {name}
         </h3>
 
         {/* Niche Tag */}
-        <span className="niche-tag mt-2">{niche}</span>
+        <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium bg-white/[0.05] text-slate-400 border border-white/[0.05] group-hover:bg-[#DE2010]/10 group-hover:text-[#DE2010] group-hover:border-[#DE2010]/20 transition-all duration-300">
+          {niche}
+        </span>
 
         {/* Total Reach */}
-        <div className="flex items-center justify-center gap-1.5 mt-4 text-muted-foreground">
-          <Users className="w-4 h-4" />
+        <div className="flex items-center justify-center gap-1.5 mt-4 text-slate-500">
+          <Users className="w-3.5 h-3.5" />
           <span className="text-sm">
-            <span className="font-semibold text-foreground">
+            <span className="font-medium text-white">
               {formatNumber(totalReach)}
             </span>{" "}
-            Total Reach
+            reach
           </span>
         </div>
-
-        {/* View Profile Button */}
-        <button className="w-full mt-4 py-2.5 px-4 bg-primary/10 text-primary font-medium rounded-lg border border-primary/20 transition-all duration-200 group-hover:bg-primary group-hover:text-white group-hover:border-primary">
-          View Profile
-        </button>
       </div>
     </Link>
   );

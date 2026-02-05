@@ -1,68 +1,57 @@
-Feature Request Prompt: Referral Engine & Trending System
-Context: We are extending the 263Tube architecture. To drive traffic, we are gamifying the platform. Creators will compete to be featured in the "Hero Section" based on how much traffic they send to us via referral links (e.g., 263tube.com/?ref=creator-slug).
+Context: The backend logic (DAL) and the UI components for 263Tube.com are complete, but the main pages are currently "Client Components" using mock data. We need to refactor these into Async Server Components to fetch real data from DynamoDB and ensure the site is SEO-optimized and production-ready.
 
-Your Task: Implement the full stack logic for the Referral Tracking System.
+Your Mission: Refactor the core pages to replace all mock data with real database calls from src/lib/creators.ts.
 
-1. Database Schema Updates (DynamoDB)
+1. Home Page Refactor (app/page.tsx)
 
-Update the Creator Interface:
+Action: Remove "use client" from the main page file.
 
-Add referralStats: { currentWeek: number, allTime: number }.
+Data Fetching:
 
-Define a New GSI (Access Pattern):
+Make the component async.
 
-Index Name: GSI_REFERRALS
+Fetch trendingCreators using getTopReferrers(3).
 
-PK: STATUS#ACTIVE (Partition Key)
+Fetch allCreators using getAllCreators().
 
-SK: STAT#referrals_currentWeek (Sort Key - Number).
+Component Split: \* The "Podium" and "Grid" should receive this real data as props.
 
-Goal: To allow Query(PK="STATUS#ACTIVE", ScanIndexForward=false, Limit=3) to fetch the Top 3 traffic drivers instantly.
+Extract the interactive Search & Filter Bar into a separate client component (e.g., src/components/creators/SearchFilters.tsx) so it can still handle user input without making the whole page a client component.
 
-2. Backend Logic (Server Action) Create a Server Action src/actions/track-referral.ts:
+2. Profile Page Refactor (app/creator/[slug]/page.tsx)
 
-Input: slug (string).
-
-Logic:
-
-Perform a DynamoDB Atomic Counter Update (UpdateItem).
-
-Increment referralStats.currentWeek by 1.
-
-Increment referralStats.allTime by 1.
-
-Update the GSI attribute gsiReferralSk (set it to the new value) so the index updates.
-
-Constraint: Do not re-fetch the item first; use an atomic ADD operation to prevent race conditions.
-
-3. Frontend: Tracking Hook Create a client-side hook src/hooks/useReferralTracker.ts:
+Action: Convert to an async Server Component.
 
 Logic:
 
-Check useSearchParams for ?ref=slug.
+Use params.slug to call getCreatorBySlug(slug).
 
-If found, and if the user hasn't been tracked for this session (use sessionStorage to debounce), call the trackReferral server action.
+If the creator is not found, return the Next.js notFound() function.
 
-Clean up the URL (remove the ?ref param) after tracking so it looks clean to the user.
+Mapping: Pass the real creator object into the existing SocialLinkGroup, StatsBadge, and Header components.
 
-Integration: Add this hook to the main app/layout.tsx or app/page.tsx so it runs globally.
+3. Directory & Trending Pages
 
-4. Frontend: "Trending Heroes" UI Update app/page.tsx:
+Action: Perform similar refactors for /creators and /trending pages.
 
-Fetch: Create a data function getTrendingCreators() that queries the GSI_REFERRALS index (Limit 3).
+Ensure they call getAllCreators() and getTopReferrers() respectively.
 
-Display: Replace the top Hero section with a "Trending This Week" Podium.
+4. Admin "Approval" Route (New Task)
 
-#1 Spot: Large, Gold border/glow, "Trending #1" badge.
+Requirement: I need a way to see the submissions created by the submitCreatorRequest action.
 
-#2 & #3: Smaller, Silver/Bronze styles.
+Create Page: app/admin-portal-preview/page.tsx (Use a simple, un-styled list for now).
 
-Fallback: If all counts are 0 (start of week), default to a curated list or random selection.
+Logic: Call getPendingRequests() and display the submitted data.
 
-Action Plan:
+Action: Add a simple "Approve" button that (conceptually or literally) triggers a Server Action to change the status of that creator to ACTIVE.
 
-Write the Server Action (track-referral.ts) first.
+5. Verification:
 
-Update the Seed Script to initialize referralStats to 0 for existing items.
+Ensure revalidatePath("/") is working so that after a referral is tracked, the Server Component re-renders the home page with the updated count.
 
-Build the Hook and UI.
+Deliverables:
+
+Fully functional app/page.tsx and app/creator/[slug]/page.tsx with zero mock data.
+
+A working (private) Admin route to view submissions.

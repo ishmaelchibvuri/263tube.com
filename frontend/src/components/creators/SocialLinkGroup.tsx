@@ -62,7 +62,7 @@ const platformConfig: Record<
   },
   twitter: {
     icon: Twitter,
-    label: "X (Twitter)",
+    label: "X",
     color: "text-sky-500 bg-sky-500/10",
   },
   facebook: {
