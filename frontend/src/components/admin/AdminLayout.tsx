@@ -36,6 +36,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const navItems = [
     { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/admin/submissions", icon: BookOpen, label: "Submissions" },
     { href: "/admin/users", icon: Users, label: "Users" },
     { href: "/admin/subscriptions", icon: CreditCard, label: "Subscriptions" },
     { href: "/admin/questions", icon: BookOpen, label: "Questions" },

@@ -58,9 +58,9 @@ SOLUTION:
    - Run: npm run dev
 
 3. Verify variables in .env.local:
-   NEXT_PUBLIC_USER_POOL_ID=af-south-1_DujUfW9wf
-   NEXT_PUBLIC_USER_POOL_CLIENT_ID=29j6009e9l379rcehp0mhbr010
-   NEXT_PUBLIC_IDENTITY_POOL_ID=af-south-1:13819d17-22d6-4ff7-8c5b-e125c548a783
+   NEXT_PUBLIC_USER_POOL_ID=af-south-1_tl53nFXtH
+   NEXT_PUBLIC_USER_POOL_CLIENT_ID=26v0nfdfbm36pd4orvd4e5cuip
+   NEXT_PUBLIC_IDENTITY_POOL_ID=af-south-1:10f3b94d-4e95-4c16-961f-f794e8610b03
    NEXT_PUBLIC_AWS_REGION=af-south-1
 `;
     console.error(errorMsg);

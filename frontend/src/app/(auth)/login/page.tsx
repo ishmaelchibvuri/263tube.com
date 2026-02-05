@@ -48,16 +48,33 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  // Redirect to dashboard if already logged in
+  // Redirect based on user role after login
   useEffect(() => {
     if (!isLoading && user) {
-      if (user.role === "admin") {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/dashboard");
+      // Check for callback URL first
+      const callbackUrl = searchParams.get("callbackUrl");
+      if (callbackUrl) {
+        router.push(callbackUrl);
+        return;
+      }
+
+      // Route based on user role
+      switch (user.role) {
+        case "admin":
+          router.push("/admin/dashboard");
+          break;
+        case "creator":
+          router.push("/creator/dashboard"); // Creators go to their dashboard
+          break;
+        case "sponsor":
+          router.push("/sponsor/dashboard"); // Sponsors go to their dashboard
+          break;
+        default:
+          router.push("/"); // Viewers go to home page
+          break;
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

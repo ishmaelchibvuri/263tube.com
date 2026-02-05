@@ -2,20 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import Image from "next/image";
+import { Mail, Lock, User, Key, Sparkles, ArrowRight, Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 import { usePostHog } from 'posthog-js/react';
-import { Loader2, Mail, Lock, CheckCircle2, Key, Sparkles, ArrowRight, User } from "lucide-react";
+import Confetti from "react-confetti";
 
 export default function ActivateAccountPage() {
   const router = useRouter();
@@ -30,9 +22,27 @@ export default function ActivateAccountPage() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+
+  // Handle window resize for confetti
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Pre-fill email from URL params
   useEffect(() => {
@@ -131,6 +141,8 @@ export default function ActivateAccountPage() {
       }
 
       setSuccess(true);
+      setShowConfetti(true);
+      toast.success("Account activated successfully!");
 
       // Redirect to login after 2 seconds
       setTimeout(() => {
@@ -141,6 +153,7 @@ export default function ActivateAccountPage() {
       console.error("Activation error:", err);
       const errorMessage = err.message || "Failed to activate account. Please try again.";
       setError(errorMessage);
+      toast.error("Activation failed");
 
       if (posthog) {
         posthog.capture('account_activation_failed', {
@@ -153,211 +166,269 @@ export default function ActivateAccountPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0">
-        <CardHeader className="space-y-1 text-center pb-6">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <Key className="h-8 w-8 text-white" />
+  if (success) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] bg-[#09090b] flex items-center justify-center py-8 px-4 sm:px-6">
+        {/* Ambient Background */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[#319E31]/10 rounded-full blur-[100px] sm:blur-[150px]" />
+          <div className="absolute bottom-0 right-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-[#FFD200]/5 rounded-full blur-[80px] sm:blur-[120px]" />
+        </div>
+
+        {/* Confetti Effect */}
+        {showConfetti && (
+          <Confetti
+            width={windowSize.width}
+            height={windowSize.height}
+            recycle={false}
+            numberOfPieces={500}
+            gravity={0.3}
+          />
+        )}
+
+        <div className="relative w-full max-w-md mx-auto text-center space-y-6">
+          <div className="w-20 h-20 mx-auto rounded-full bg-[#319E31]/20 flex items-center justify-center">
+            <CheckCircle className="h-10 w-10 text-[#319E31]" />
           </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Activate Your Account
-          </CardTitle>
-          <CardDescription className="text-base">
-            Enter your activation code and set your password
-          </CardDescription>
-        </CardHeader>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            Account Activated!
+          </h1>
+          <p className="text-slate-400">
+            Redirecting to login...
+          </p>
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-[#319E31]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        <CardContent>
-          {success ? (
-            <div className="text-center py-8 space-y-4">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle2 className="h-10 w-10 text-green-600 animate-bounce" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Account Activated Successfully!
-              </h3>
-              <p className="text-gray-600">
-                Redirecting to login...
-              </p>
-              <div className="flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-              </div>
+  return (
+    <div className="min-h-screen min-h-[100dvh] bg-[#09090b] flex items-center justify-center py-8 px-4 sm:px-6">
+      {/* Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[#FFD200]/10 rounded-full blur-[100px] sm:blur-[150px]" />
+        <div className="absolute bottom-0 right-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-[#DE2010]/5 rounded-full blur-[80px] sm:blur-[120px]" />
+      </div>
+
+      <div className="relative w-full max-w-md mx-auto space-y-6 sm:space-y-8">
+        {/* Logo & Header */}
+        <div className="text-center">
+          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <div className="w-12 h-12 rounded-xl overflow-hidden">
+              <Image src="/images/logo.png" alt="263Tube" width={48} height={48} className="w-full h-full object-contain" />
             </div>
-          ) : (
-            <form onSubmit={handleActivate} className="space-y-5">
-              {error && (
-                <Alert variant="destructive" className="animate-shake">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            <span className="text-2xl font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+          </Link>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-[#FFD200]/20 flex items-center justify-center">
+            <Key className="h-7 w-7 text-[#FFD200]" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Activate Your Account
+          </h1>
+          <p className="text-slate-400 flex items-center justify-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#FFD200]" />
+            Enter your activation code and set your password
+          </p>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  Email Address
-                </Label>
-                <Input
+        {/* Activation Card */}
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6 sm:p-8">
+          <form onSubmit={handleActivate} className="space-y-5">
+            {error && (
+              <div className="bg-[#DE2010]/10 border border-[#DE2010]/20 rounded-xl p-4">
+                <p className="text-[#DE2010] text-sm">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
+                <input
                   id="email"
                   type="email"
                   placeholder="your@email.com"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="h-11"
+                  disabled={loading}
+                  className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FFD200]/50 transition-colors disabled:opacity-50"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-sm font-medium flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    First Name
-                  </Label>
-                  <Input
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="block text-sm font-medium text-slate-300">
+                  First Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  <input
                     id="firstName"
                     type="text"
                     placeholder="John"
                     value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
-                    className="h-11"
+                    disabled={loading}
+                    className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FFD200]/50 transition-colors disabled:opacity-50"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-sm font-medium flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    Last Name
-                  </Label>
-                  <Input
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="block text-sm font-medium text-slate-300">
+                  Last Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  <input
                     id="lastName"
                     type="text"
                     placeholder="Doe"
                     value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
-                    className="h-11"
+                    disabled={loading}
+                    className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FFD200]/50 transition-colors disabled:opacity-50"
                   />
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="activationCode" className="text-sm font-medium flex items-center gap-2">
-                  <Key className="h-4 w-4 text-gray-500" />
-                  Activation Code
-                </Label>
-                <Input
-                  id="activationCode"
-                  type="text"
-                  placeholder="Enter 6-character code"
-                  value={formData.activationCode}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      activationCode: e.target.value.toUpperCase().slice(0, 6)
-                    })
-                  }
-                  required
-                  maxLength={6}
-                  className="h-11 text-center text-xl font-mono tracking-widest uppercase"
-                />
-                <p className="text-xs text-gray-500">
-                  Check your email for the 6-character activation code
-                </p>
-              </div>
+            <div className="space-y-2">
+              <label htmlFor="activationCode" className="block text-sm font-medium text-slate-300">
+                Activation Code
+              </label>
+              <input
+                id="activationCode"
+                type="text"
+                placeholder="XXXXXX"
+                value={formData.activationCode}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    activationCode: e.target.value.toUpperCase().slice(0, 6)
+                  })
+                }
+                required
+                maxLength={6}
+                disabled={loading}
+                className="w-full h-14 px-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white text-2xl text-center font-mono tracking-[0.5em] uppercase placeholder:text-slate-500 placeholder:tracking-[0.5em] focus:outline-none focus:border-[#FFD200]/50 transition-colors disabled:opacity-50"
+              />
+              <p className="text-xs text-slate-500 text-center">
+                Check your email for the 6-character activation code
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-gray-500" />
-                  New Password
-                </Label>
-                <Input
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                New Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
+                <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
                   value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  className="h-11"
+                  disabled={loading}
+                  className="w-full h-12 pl-12 pr-12 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FFD200]/50 transition-colors disabled:opacity-50"
                 />
-                <p className="text-xs text-gray-500">
-                  Min 8 characters with uppercase, lowercase, and numbers
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
+              <p className="text-xs text-slate-500">
+                Min 8 characters with uppercase, lowercase, and numbers
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-gray-500" />
-                  Confirm Password
-                </Label>
-                <Input
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
+                <input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({ ...formData, confirmPassword: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required
-                  className="h-11"
+                  disabled={loading}
+                  className="w-full h-12 pl-12 pr-12 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FFD200]/50 transition-colors disabled:opacity-50"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:shadow-lg transition-all duration-200 text-base font-semibold"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Activating Account...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-5 w-5" />
-                    Activate Account
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 bg-gradient-to-r from-[#FFD200] to-[#e6bd00] hover:from-[#ffe033] hover:to-[#FFD200] disabled:from-slate-700 disabled:to-slate-800 disabled:cursor-not-allowed text-black font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Activating Account...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  Activate Account
+                </>
+              )}
+            </button>
+          </form>
 
-              <div className="pt-4 text-center space-y-3">
-                <p className="text-sm text-gray-600">
-                  Already activated?{" "}
-                  <Link
-                    href="/login"
-                    className="font-semibold text-purple-600 hover:text-purple-700 hover:underline transition-colors"
-                  >
-                    Log in here
-                  </Link>
-                </p>
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/[0.1]"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-[#09090b] text-slate-500">Already activated?</span>
+            </div>
+          </div>
 
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-gray-500">
-                    Didn't receive the code?{" "}
-                    <Link
-                      href="/register"
-                      className="font-medium text-purple-600 hover:text-purple-700 hover:underline transition-colors"
-                    >
-                      Request new activation
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+          {/* Sign In Link */}
+          <Link
+            href="/login"
+            className="w-full h-12 flex items-center justify-center gap-2 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white font-medium hover:bg-white/[0.1] transition-all"
+          >
+            Sign in instead
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-xs sm:text-sm text-slate-500 px-4">
+          <p>
+            Didn't receive the code?{" "}
+            <Link href="/register" className="text-[#FFD200] hover:underline">
+              Request new activation
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

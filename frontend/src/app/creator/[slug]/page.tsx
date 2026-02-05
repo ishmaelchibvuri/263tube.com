@@ -1,110 +1,68 @@
-"use client";
-
-import { use } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import {
   ArrowLeft,
   MapPin,
   Calendar,
-  Users,
   Eye,
   Heart,
-  Share2,
-  Play,
   ExternalLink,
-  Youtube,
-  Instagram,
-  Twitter,
-  Facebook,
-  Globe,
 } from "lucide-react";
-import { SocialLinkGroup, StatsBadge } from "@/components/creators";
-
-// Mock data - in production, this would come from DynamoDB
-const MOCK_CREATOR = {
-  slug: "madam-boss",
-  name: "Madam Boss",
-  bio: "Award-winning Zimbabwean comedian and content creator known for my unique brand of humor that celebrates everyday Zimbabwean life. From market vendors to corporate meetings, I bring the laughs that hit home. My content reaches millions across Africa and the diaspora.",
-  profilePicUrl: "/creators/madam-boss.jpg",
-  bannerUrl: "/creators/madam-boss-banner.jpg",
-  location: "Harare, Zimbabwe",
-  niche: "Comedy",
-  joinedDate: "2018",
-  verified: true,
-  metrics: {
-    totalReach: 4500000,
-    monthlyViews: 2100000,
-    engagement: 8.5,
-    totalVideos: 450,
-  },
-  platforms: {
-    youtube: [
-      {
-        label: "Main Channel",
-        url: "https://youtube.com/@madamboss",
-        handle: "madamboss",
-      },
-      {
-        label: "Vlog Channel",
-        url: "https://youtube.com/@madambossvlogs",
-        handle: "madambossvlogs",
-      },
-    ],
-    instagram: [
-      {
-        label: "Official Page",
-        url: "https://instagram.com/madamboss",
-        handle: "madamboss",
-      },
-    ],
-    twitter: [
-      {
-        label: "X",
-        url: "https://x.com/madamboss",
-        handle: "madamboss",
-      },
-    ],
-    facebook: [
-      {
-        label: "Facebook Page",
-        url: "https://facebook.com/madamboss",
-      },
-    ],
-    tiktok: [
-      {
-        label: "TikTok",
-        url: "https://tiktok.com/@madamboss",
-        handle: "madamboss",
-      },
-    ],
-    website: [
-      {
-        label: "Official Website",
-        url: "https://madamboss.co.zw",
-      },
-    ],
-  },
-  topVideo: {
-    title: "When Your Mother Visits From the Village",
-    thumbnail: "/creators/madam-boss-video.jpg",
-    views: 2500000,
-    embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-};
+import { getCreatorBySlug } from "@/lib/creators";
+import { SocialLinkGroup, StatsBadge, ContactCreatorForm } from "@/components/creators";
+import { ReferralTracker } from "@/components/creators/ReferralTracker";
+import { ShareButton } from "@/components/creators/ShareButton";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default function CreatorProfilePage({ params }: PageProps) {
-  const { slug } = use(params);
+// Generate metadata for SEO
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const creator = await getCreatorBySlug(slug);
 
-  // In production, fetch creator data based on slug from DynamoDB
-  const creator = MOCK_CREATOR;
+  if (!creator) {
+    return {
+      title: "Creator Not Found - 263Tube",
+    };
+  }
+
+  return {
+    title: `${creator.name} - 263Tube`,
+    description: creator.bio || `Check out ${creator.name} on 263Tube - Zimbabwe's creator directory`,
+    openGraph: {
+      title: `${creator.name} - 263Tube`,
+      description: creator.bio || `Check out ${creator.name} on 263Tube`,
+      images: creator.profilePicUrl ? [creator.profilePicUrl] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${creator.name} - 263Tube`,
+      description: creator.bio || `Check out ${creator.name} on 263Tube`,
+      images: creator.profilePicUrl ? [creator.profilePicUrl] : [],
+    },
+  };
+}
+
+export default async function CreatorProfilePage({ params }: PageProps) {
+  const { slug } = await params;
+
+  // Fetch creator data from DynamoDB
+  const creator = await getCreatorBySlug(slug);
+
+  // Return 404 if creator doesn't exist
+  if (!creator) {
+    notFound();
+  }
 
   return (
     <div className="min-h-screen bg-[#09090b]">
+      {/* Referral Tracker - Client Component */}
+      <ReferralTracker slug={slug} />
+
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-[#09090b]/95 backdrop-blur-xl border-b border-white/[0.05] z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -119,23 +77,28 @@ export default function CreatorProfilePage({ params }: PageProps) {
             {/* Branding */}
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg overflow-hidden">
-                <Image src="/images/logo.png" alt="263Tube" width={32} height={32} className="w-full h-full object-contain" />
+                <Image
+                  src="/images/logo.png"
+                  alt="263Tube"
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-contain"
+                />
               </div>
-              <span className="text-base font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+              <span className="text-base font-bold text-white">
+                263<span className="text-[#DE2010]">Tube</span>
+              </span>
             </Link>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-lg border border-white/[0.05] hover:border-[#DE2010]/30 transition-colors">
-            <Share2 className="w-4 h-4 text-slate-400" />
-            <span className="text-sm font-medium text-white">Share</span>
-          </button>
+          <ShareButton creatorName={creator.name} slug={slug} />
         </div>
       </nav>
 
       {/* Banner */}
       <div className="relative h-48 sm:h-64 mt-14">
-        {creator.bannerUrl ? (
+        {creator.bannerUrl || creator.coverImageUrl ? (
           <Image
-            src={creator.bannerUrl}
+            src={creator.bannerUrl || creator.coverImageUrl || ""}
             alt={`${creator.name} banner`}
             fill
             className="object-cover"
@@ -195,15 +158,21 @@ export default function CreatorProfilePage({ params }: PageProps) {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#DE2010]/10 text-[#DE2010] border border-[#DE2010]/20">{creator.niche}</span>
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {creator.location}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Since {creator.joinedDate}
-                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#DE2010]/10 text-[#DE2010] border border-[#DE2010]/20">
+                  {creator.niche}
+                </span>
+                {creator.location && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    {creator.location}
+                  </div>
+                )}
+                {creator.joinedDate && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Since {creator.joinedDate}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -223,9 +192,11 @@ export default function CreatorProfilePage({ params }: PageProps) {
           <div className="lg:col-span-1 space-y-4 sm:space-y-6">
             {/* Bio */}
             <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">About</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
+                About
+              </h2>
               <p className="text-sm text-slate-400 leading-relaxed">
-                {creator.bio}
+                {creator.bio || `${creator.name} is a ${creator.niche} creator from Zimbabwe.`}
               </p>
             </div>
 
@@ -238,27 +209,33 @@ export default function CreatorProfilePage({ params }: PageProps) {
                 <StatsBadge
                   label="Total Reach"
                   value={creator.metrics.totalReach}
-                  icon={Users}
+                  icon="users"
                   size="sm"
                 />
-                <StatsBadge
-                  label="Monthly Views"
-                  value={creator.metrics.monthlyViews}
-                  icon={Eye}
-                  size="sm"
-                />
-                <StatsBadge
-                  label="Engagement"
-                  value={`${creator.metrics.engagement}%`}
-                  icon={Heart}
-                  size="sm"
-                />
-                <StatsBadge
-                  label="Total Videos"
-                  value={creator.metrics.totalVideos}
-                  icon={Play}
-                  size="sm"
-                />
+                {creator.metrics.monthlyViews && (
+                  <StatsBadge
+                    label="Monthly Views"
+                    value={creator.metrics.monthlyViews}
+                    icon="eye"
+                    size="sm"
+                  />
+                )}
+                {creator.metrics.engagement && (
+                  <StatsBadge
+                    label="Engagement"
+                    value={`${creator.metrics.engagement}%`}
+                    icon="heart"
+                    size="sm"
+                  />
+                )}
+                {creator.metrics.totalVideos && (
+                  <StatsBadge
+                    label="Total Videos"
+                    value={creator.metrics.totalVideos}
+                    icon="play"
+                    size="sm"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -275,37 +252,37 @@ export default function CreatorProfilePage({ params }: PageProps) {
               </p>
 
               <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-                {creator.platforms.youtube && (
+                {creator.platforms.youtube && creator.platforms.youtube.length > 0 && (
                   <SocialLinkGroup
                     platform="youtube"
                     links={creator.platforms.youtube}
                   />
                 )}
-                {creator.platforms.instagram && (
+                {creator.platforms.instagram && creator.platforms.instagram.length > 0 && (
                   <SocialLinkGroup
                     platform="instagram"
                     links={creator.platforms.instagram}
                   />
                 )}
-                {creator.platforms.twitter && (
+                {creator.platforms.twitter && creator.platforms.twitter.length > 0 && (
                   <SocialLinkGroup
                     platform="twitter"
                     links={creator.platforms.twitter}
                   />
                 )}
-                {creator.platforms.facebook && (
+                {creator.platforms.facebook && creator.platforms.facebook.length > 0 && (
                   <SocialLinkGroup
                     platform="facebook"
                     links={creator.platforms.facebook}
                   />
                 )}
-                {creator.platforms.tiktok && (
+                {creator.platforms.tiktok && creator.platforms.tiktok.length > 0 && (
                   <SocialLinkGroup
                     platform="tiktok"
                     links={creator.platforms.tiktok}
                   />
                 )}
-                {creator.platforms.website && (
+                {creator.platforms.website && creator.platforms.website.length > 0 && (
                   <SocialLinkGroup
                     platform="website"
                     links={creator.platforms.website}
@@ -315,49 +292,40 @@ export default function CreatorProfilePage({ params }: PageProps) {
             </div>
 
             {/* Top Video */}
-            <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
-                Featured Video
-              </h2>
+            {creator.topVideo && (
+              <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
+                  Featured Video
+                </h2>
 
-              <div className="space-y-3 sm:space-y-4">
-                {/* Video Embed */}
-                <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800">
-                  <iframe
-                    src={creator.topVideo.embedUrl}
-                    title={creator.topVideo.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full"
-                  />
-                </div>
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Video Embed */}
+                  <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800">
+                    <iframe
+                      src={creator.topVideo.embedUrl}
+                      title={creator.topVideo.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  </div>
 
-                {/* Video Info */}
-                <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-white">
-                    {creator.topVideo.title}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-500">
-                    <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {(creator.topVideo.views / 1000000).toFixed(1)}M views
+                  {/* Video Info */}
+                  <div>
+                    <h3 className="text-sm sm:text-base font-semibold text-white">
+                      {creator.topVideo.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-500">
+                      <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      {(creator.topVideo.views / 1000000).toFixed(1)}M views
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Contact for Collaborations */}
-            <div className="bg-gradient-to-r from-[#DE2010]/10 via-white/[0.02] to-[#DE2010]/10 rounded-xl border border-[#DE2010]/20 p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-2">
-                Work with {creator.name}
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mb-4">
-                Interested in collaborations, sponsorships, or brand deals?
-              </p>
-              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] text-white text-sm font-semibold rounded-xl transition-all">
-                <ExternalLink className="w-4 h-4" />
-                Get in Touch
-              </button>
-            </div>
+            <ContactCreatorForm creatorSlug={slug} creatorName={creator.name} />
           </div>
         </div>
       </div>
@@ -369,11 +337,21 @@ export default function CreatorProfilePage({ params }: PageProps) {
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded overflow-hidden">
-              <Image src="/images/logo.png" alt="263Tube" width={24} height={24} className="w-full h-full object-contain" />
+              <Image
+                src="/images/logo.png"
+                alt="263Tube"
+                width={24}
+                height={24}
+                className="w-full h-full object-contain"
+              />
             </div>
-            <span className="text-sm font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+            <span className="text-sm font-bold text-white">
+              263<span className="text-[#DE2010]">Tube</span>
+            </span>
           </div>
-          <p className="text-xs text-slate-500">&copy; 2025 263Tube. All rights reserved.</p>
+          <p className="text-xs text-slate-500">
+            &copy; 2025 263Tube. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

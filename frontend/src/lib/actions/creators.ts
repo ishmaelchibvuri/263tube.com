@@ -41,11 +41,28 @@ const getTableName = (): string => {
 export interface PlatformLink {
   label: string;
   url: string;
+  // Verification data (populated when user clicks "Verify")
+  verified?: boolean;
+  verifiedAt?: string;
+  verifiedDisplayName?: string | null;
+  verifiedImage?: string | null;
+  verifiedFollowers?: number | null;
+}
+
+export interface VerifiedLinkData {
+  platform: string;
+  displayName: string | null;
+  image: string | null;
+  followers: number | null;
+  verifiedAt: string;
 }
 
 export interface CreatorSubmission {
   creatorName: string;
-  niche: string;
+  /** Array of niche values from the taxonomy */
+  niches: string[];
+  /** Custom niche suggestion when "other" is selected (for admin review) */
+  customNiche?: string;
   platforms: string[];
   platformLinks: Record<string, PlatformLink[]>;
   website?: string;
@@ -54,6 +71,10 @@ export interface CreatorSubmission {
   submitterEmail: string;
   submitterRelation?: string;
   submissionType: "self" | "other";
+  // Aggregated verified data for ecosystem preview
+  verifiedLinks?: VerifiedLinkData[];
+  // Primary profile image (from verified YouTube or highest follower platform)
+  primaryProfileImage?: string | null;
 }
 
 export interface SubmitCreatorResult {
@@ -83,8 +104,8 @@ export async function submitCreatorRequest(
     return { success: false, message: "Creator name is required" };
   }
 
-  if (!submission.niche || submission.niche.trim().length === 0) {
-    return { success: false, message: "Content niche is required" };
+  if (!submission.niches || submission.niches.length === 0) {
+    return { success: false, message: "At least one content niche is required" };
   }
 
   if (!submission.platforms || submission.platforms.length === 0) {
@@ -129,6 +150,12 @@ export async function submitCreatorRequest(
     .replace(/-+/g, "-");
 
   try {
+    // Count verified links for admin visibility
+    const verifiedLinkCount = submission.platforms.reduce((count, platform) => {
+      const links = submission.platformLinks[platform] || [];
+      return count + links.filter((link) => link.verified).length;
+    }, 0);
+
     const item = {
       // Primary key for pending requests
       pk: `PENDING_REQUEST#${timestamp}`,
@@ -146,7 +173,11 @@ export async function submitCreatorRequest(
       // Creator information
       creatorName: submission.creatorName.trim(),
       slug,
-      niche: submission.niche,
+      niches: submission.niches,
+      // Primary niche (first selected) for GSI2 categorization
+      primaryNiche: submission.niches[0],
+      // Custom niche suggestion for admin review
+      customNiche: submission.customNiche?.trim() || null,
       platforms: submission.platforms,
       platformLinks: submission.platformLinks,
       website: submission.website?.trim() || null,
@@ -157,6 +188,11 @@ export async function submitCreatorRequest(
       submitterEmail: submission.submitterEmail.trim().toLowerCase(),
       submitterRelation: submission.submitterRelation?.trim() || null,
       submissionType: submission.submissionType,
+
+      // Verification metadata (for admin review)
+      verifiedLinks: submission.verifiedLinks || [],
+      primaryProfileImage: submission.primaryProfileImage || null,
+      verifiedLinkCount,
 
       // Timestamps
       createdAt: timestamp,

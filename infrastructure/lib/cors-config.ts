@@ -24,14 +24,14 @@ export function getAllowedOrigins(environment: string): string[] {
   switch (environment) {
     case "prod":
       return [
-        "https://quickbudget.co.za",
-        "https://www.quickbudget.co.za",
+        "https://263tube.com",
+        "https://www.263tube.com",
         "http://localhost:3000",
       ];
 
     case "qa":
       return [
-        "https://qa.quickbudget.co.za",
+        "https://qa.263tube.com",
         "http://localhost:3000", // Keep for local testing against QA
       ];
 
@@ -42,10 +42,10 @@ export function getAllowedOrigins(environment: string): string[] {
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "https://192.168.1.105:3000",
-        "https://dev.quickbudget.co.za",
-        "https://qa.quickbudget.co.za",
-        "https://quickbudget.co.za",
-        "https://www.quickbudget.co.za",
+        "https://dev.263tube.com",
+        "https://qa.263tube.com",
+        "https://263tube.com",
+        "https://www.263tube.com",
       ];
   }
 }

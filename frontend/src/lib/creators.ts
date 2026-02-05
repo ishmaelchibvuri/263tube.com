@@ -233,6 +233,10 @@ export async function getCreatorBySlug(slug: string): Promise<Creator | null> {
 /**
  * Get creators by category/niche
  * Uses GSI2 for category-based queries
+ *
+ * IMPORTANT: Uses exact case-sensitive matching with taxonomy values.
+ * The category parameter should match exactly the niche value from
+ * src/constants/niches.ts (e.g., "comedy", "music", "technology").
  */
 export async function getCreatorsByCategory(
   category: string,
@@ -241,12 +245,14 @@ export async function getCreatorsByCategory(
   const tableName = getTableName();
 
   try {
+    // Use exact category value for case-sensitive matching
+    // Category values should match taxonomy values exactly (lowercase)
     const command = new QueryCommand({
       TableName: tableName,
       IndexName: "GSI2",
       KeyConditionExpression: "gsi2pk = :pk",
       ExpressionAttributeValues: {
-        ":pk": `CATEGORY#${category.toLowerCase()}`,
+        ":pk": `CATEGORY#${category}`,
       },
       ScanIndexForward: false, // Sort by reach descending
       Limit: limit,
@@ -306,13 +312,14 @@ export async function createCreator(creator: Creator): Promise<Creator> {
   // Create sort key for GSI sorting (padded reach + slug)
   const reachSortKey = `${String(creator.metrics.totalReach).padStart(12, "0")}#${creator.slug}`;
 
+  // Use exact niche value for GSI2 (should match taxonomy values from src/constants/niches.ts)
   const item: CreatorDynamoDBItem = {
     ...creator,
     pk: `CREATOR#${creator.slug}`,
     sk: "METADATA",
     gsi1pk: `STATUS#${creator.status}`,
     gsi1sk: reachSortKey,
-    gsi2pk: `CATEGORY#${creator.niche.toLowerCase()}`,
+    gsi2pk: `CATEGORY#${creator.niche}`,
     gsi2sk: reachSortKey,
     entityType: "CREATOR",
     createdAt: creator.createdAt || now,
@@ -363,13 +370,14 @@ export async function updateCreator(
   // Recalculate sort keys if metrics changed
   const reachSortKey = `${String(updated.metrics.totalReach).padStart(12, "0")}#${slug}`;
 
+  // Use exact niche value for GSI2 (should match taxonomy values from src/constants/niches.ts)
   const item: CreatorDynamoDBItem = {
     ...updated,
     pk: `CREATOR#${slug}`,
     sk: "METADATA",
     gsi1pk: `STATUS#${updated.status}`,
     gsi1sk: reachSortKey,
-    gsi2pk: `CATEGORY#${updated.niche.toLowerCase()}`,
+    gsi2pk: `CATEGORY#${updated.niche}`,
     gsi2sk: reachSortKey,
     entityType: "CREATOR",
   };
@@ -425,13 +433,14 @@ export async function batchCreateCreators(creators: Creator[]): Promise<void> {
     const putRequests = batch.map((creator) => {
       const reachSortKey = `${String(creator.metrics.totalReach).padStart(12, "0")}#${creator.slug}`;
 
+      // Use exact niche value for GSI2 (should match taxonomy values)
       const item: CreatorDynamoDBItem = {
         ...creator,
         pk: `CREATOR#${creator.slug}`,
         sk: "METADATA",
         gsi1pk: `STATUS#${creator.status}`,
         gsi1sk: reachSortKey,
-        gsi2pk: `CATEGORY#${creator.niche.toLowerCase()}`,
+        gsi2pk: `CATEGORY#${creator.niche}`,
         gsi2sk: reachSortKey,
         entityType: "CREATOR",
         createdAt: creator.createdAt || now,

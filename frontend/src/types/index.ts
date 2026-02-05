@@ -1,8 +1,11 @@
 import { z } from 'zod';
 
 // ============================================================================
-// USER TYPES (Keep existing auth structure)
+// USER TYPES
 // ============================================================================
+
+export const userRoleSchema = z.enum(['user', 'admin', 'creator', 'sponsor']);
+export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const userSchema = z.object({
   userId: z.string(),
@@ -10,452 +13,301 @@ export const userSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   emailVerified: z.boolean().optional(),
-  role: z.enum(['user', 'admin']),
-  status: z.enum(['verified_free', 'active']).optional(),
+  role: userRoleSchema,
+  status: z.enum(['pending', 'active', 'suspended']).optional(),
   isActive: z.boolean().optional(),
   createdAt: z.string().optional(),
   lastLoginAt: z.string().optional(),
   profilePicture: z.string().optional(),
+  // Creator-linked users (for creators who have claimed their profile)
+  creatorSlug: z.string().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
 
 // ============================================================================
-// DEBT TYPES (Page 2: My Debts)
+// PLATFORM TYPES
 // ============================================================================
 
-export const debtSchema = z.object({
-  debtId: z.string(),
-  userId: z.string(),
+export const platformSchema = z.enum([
+  'YouTube',
+  'TikTok',
+  'Instagram',
+  'Facebook',
+  'Twitter',
+  'Rumble',
+]);
+export type Platform = z.infer<typeof platformSchema>;
+
+export const platformLinkSchema = z.object({
+  platform: platformSchema,
+  url: z.string().url(),
+  label: z.string().optional(), // e.g., "Main Channel", "Vlog Channel"
+  verified: z.boolean().default(false),
+  verifiedAt: z.string().optional(),
+  verifiedDisplayName: z.string().nullable().optional(),
+  verifiedImage: z.string().nullable().optional(),
+  verifiedFollowers: z.number().nullable().optional(),
+});
+
+export type PlatformLink = z.infer<typeof platformLinkSchema>;
+
+// ============================================================================
+// NICHE TYPES
+// ============================================================================
+
+export const nicheSchema = z.enum([
+  'comedy',
+  'music',
+  'education',
+  'lifestyle',
+  'tech',
+  'gaming',
+  'sports',
+  'news',
+  'food',
+  'travel',
+  'fashion',
+  'beauty',
+  'fitness',
+  'business',
+  'entertainment',
+  'vlogs',
+  'documentary',
+  'kids',
+  'religion',
+  'other',
+]);
+export type Niche = z.infer<typeof nicheSchema>;
+
+// ============================================================================
+// CREATOR TYPES
+// ============================================================================
+
+export const creatorStatusSchema = z.enum([
+  'pending',     // Awaiting review
+  'approved',    // Listed on the directory
+  'featured',    // Featured/promoted creator
+  'rejected',    // Submission rejected
+  'suspended',   // Account suspended
+]);
+export type CreatorStatus = z.infer<typeof creatorStatusSchema>;
+
+export const creatorSchema = z.object({
+  creatorId: z.string(),
+  slug: z.string(), // URL-friendly identifier
 
   // Basic Info
-  creditor: z.string(),
-  debtName: z.string(),
-  accountNumber: z.string().optional(),
-
-  // Principal Amounts
-  originalPrincipal: z.number(), // Amount originally borrowed
-  openingBalance: z.number(), // Balance when agreement started
-  currentBalance: z.number(), // Current outstanding amount
-
-  // Interest & Rates
-  annualInterestRate: z.number(), // Annual percentage rate
-
-  // Fees & Insurance
-  monthlyServiceFee: z.number().default(0),
-  creditLifePremium: z.number().default(0), // Monthly premium
-  initiationFeeBalance: z.number().default(0),
-
-  // Payment Terms
-  minimumPayment: z.number(),
-  paymentDueDay: z.number().min(1).max(31),
-
-  // Section 129 Tracking (Legal notices)
-  section129Received: z.boolean().default(false),
-  section129Date: z.string().nullable().optional(),
-  section129Deadline: z.string().nullable().optional(), // Auto-calculated: +10 business days
-
-  // In Duplum Tracking (NCA Section 103(5))
-  accumulatedInterestAndFees: z.number().default(0), // Running total since inception
-  inDuplumCapReached: z.boolean().default(false),
-
-  // Agreement Details
-  agreementDate: z.string(), // When credit agreement was signed
-  debtType: z.enum(['mortgage', 'vehicle', 'unsecured', 'shortTerm', 'creditCard', 'storeCard', 'personalLoan', 'other']).optional(),
-
-  // Metadata
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  paidOffAt: z.string().nullable().optional(),
-  isArchived: z.boolean().default(false),
-});
-
-export type Debt = z.infer<typeof debtSchema>;
-
-export const debtStatusSchema = z.enum([
-  'on_track',
-  'in_duplum_zone', // Approaching 85-100% of In Duplum cap
-  'section_129_active', // Legal notice received
-  'paid_off',
-  'archived',
-]);
-
-export type DebtStatus = z.infer<typeof debtStatusSchema>;
-
-// ============================================================================
-// BUDGET TYPES (Page 4: Family & Life Budget)
-// ============================================================================
-
-export const budgetLineItemSchema = z.object({
-  id: z.string(),
-  type: z.enum(['income', 'obligation']),
-  category: z.enum(['netSalary', 'secondaryIncome', 'partnerContribution', 'grants', 'housing', 'transport', 'utilities', 'insurance', 'education', 'familySupport', 'subscriptions', 'childcare', 'medicalAid', 'security', 'savings', 'loans', 'communication', 'groceries', 'personalCare', 'health', 'entertainment', 'other']),
   name: z.string(),
-  amount: z.number(),
-});
+  bio: z.string().optional(),
+  profileImage: z.string().optional(),
+  coverImage: z.string().optional(),
 
-export type BudgetLineItem = z.infer<typeof budgetLineItemSchema>;
+  // Content
+  niches: z.array(nicheSchema),
+  customNiche: z.string().optional(),
 
-export const budgetSchema = z.object({
-  budgetId: z.string(),
-  userId: z.string(),
-  month: z.string(), // Format: "YYYY-MM" (e.g., "2025-01" for January 2025)
+  // Platform Links
+  platforms: z.array(platformSchema),
+  platformLinks: z.array(platformLinkSchema),
+  website: z.string().url().optional(),
 
-  // Income
-  netSalary: z.number().default(0),
-  secondaryIncome: z.number().default(0),
-  partnerContribution: z.number().default(0),
-  grants: z.number().default(0), // SASSA, child support, etc.
+  // Stats (aggregated from verified platforms)
+  totalFollowers: z.number().default(0),
+  totalViews: z.number().optional(),
 
-  // Fixed Obligations (Cannot be reduced)
-  housing: z.number().default(0), // Rent, bond, levies
-  transport: z.number().default(0), // Petrol, taxi, car payment
-  utilities: z.number().default(0), // Electricity, water, WiFi/data
-  insurance: z.number().default(0), // Car, household, funeral cover
-  education: z.number().default(0), // School fees, uniforms, transport
-  familySupport: z.number().default(0), // BLACK TAX - Protected category, never suggested for reduction
+  // Location
+  country: z.string().default('Zimbabwe'),
+  city: z.string().optional(),
 
-  // Variable Expenses
-  groceries: z.number().default(0),
-  personalCare: z.number().default(0),
-  health: z.number().default(0), // Medical, pharmacy
-  entertainment: z.number().default(0),
-  other: z.number().default(0),
+  // Status & Flags
+  status: creatorStatusSchema,
+  isFeatured: z.boolean().default(false),
+  isVerified: z.boolean().default(false), // Profile claimed by creator
 
-  // Custom line items
-  customItems: z.array(budgetLineItemSchema).optional().default([]),
-
-  // Calculated Fields (computed, not stored)
-  totalIncome: z.number().optional(),
-  totalFixedObligations: z.number().optional(),
-  totalVariableExpenses: z.number().optional(),
-  debtAttackBudget: z.number().optional(), // Amount available for debt repayment
+  // Linked User (if creator has claimed their profile)
+  userId: z.string().optional(),
 
   // Metadata
   createdAt: z.string(),
   updatedAt: z.string(),
+  approvedAt: z.string().optional(),
+  featuredAt: z.string().optional(),
 });
 
-export type Budget = z.infer<typeof budgetSchema>;
-
-export const budgetViabilitySchema = z.object({
-  status: z.enum(['DEFICIT', 'BELOW_MINIMUM', 'TIGHT', 'HEALTHY']),
-  shortfall: z.number().optional(),
-  surplus: z.number().optional(),
-  recommendation: z.string(),
-  message: z.string(),
-});
-
-export type BudgetViability = z.infer<typeof budgetViabilitySchema>;
+export type Creator = z.infer<typeof creatorSchema>;
 
 // ============================================================================
-// STRATEGY TYPES (Page 3: Strategy Hub)
+// SUBMISSION TYPES
 // ============================================================================
 
-export const repaymentStrategySchema = z.enum([
-  'SNOWBALL', // Smallest balance first
-  'AVALANCHE', // Highest interest first
-  'SMART_SA', // SA-specific: prioritizes Section 129, optimizes In Duplum
+export const submissionTypeSchema = z.enum(['self', 'other']);
+export type SubmissionType = z.infer<typeof submissionTypeSchema>;
+
+export const submissionStatusSchema = z.enum([
+  'pending',
+  'under_review',
+  'approved',
+  'rejected',
+  'duplicate',
 ]);
+export type SubmissionStatus = z.infer<typeof submissionStatusSchema>;
 
-export type RepaymentStrategy = z.infer<typeof repaymentStrategySchema>;
+export const creatorSubmissionSchema = z.object({
+  submissionId: z.string(),
 
-export const debtPrioritySchema = z.enum([
-  'LEGAL', // Section 129 active
-  'STRATEGY', // Per user's chosen strategy
-  'IN_DUPLUM_WATCH', // Approaching In Duplum cap
-]);
+  // Creator Information
+  creatorName: z.string(),
+  niches: z.array(z.string()),
+  customNiche: z.string().optional(),
+  platforms: z.array(z.string()),
+  platformLinks: z.record(z.string(), z.array(z.object({
+    label: z.string(),
+    url: z.string(),
+    verified: z.boolean().optional(),
+    verifiedAt: z.string().optional(),
+    verifiedDisplayName: z.string().nullable().optional(),
+    verifiedImage: z.string().nullable().optional(),
+    verifiedFollowers: z.number().nullable().optional(),
+  }))),
+  website: z.string().optional(),
+  about: z.string().optional(),
 
-export type DebtPriority = z.infer<typeof debtPrioritySchema>;
+  // Verified Links Data
+  verifiedLinks: z.array(z.object({
+    platform: z.string(),
+    displayName: z.string().nullable(),
+    image: z.string().nullable(),
+    followers: z.number().nullable(),
+    verifiedAt: z.string(),
+  })).optional(),
+  primaryProfileImage: z.string().nullable().optional(),
 
-export const attackOrderItemSchema = z.object({
-  debt: debtSchema,
-  priority: debtPrioritySchema,
-  order: z.number(), // Position in attack order (1, 2, 3, etc.)
-  recommendedAction: z.string().optional(), // e.g., "Pay minimums only - interest capping soon"
-});
-
-export type AttackOrderItem = z.infer<typeof attackOrderItemSchema>;
-
-export const strategyOutcomeSchema = z.object({
-  strategy: repaymentStrategySchema,
-  totalInterestPaid: z.number(),
-  monthsToFreedom: z.number(),
-  debtFreeDate: z.string(),
-  firstDebtClearedMonth: z.number(),
-  interestSavedVsMinimum: z.number().optional(),
-});
-
-export type StrategyOutcome = z.infer<typeof strategyOutcomeSchema>;
-
-export const userStrategySchema = z.object({
-  userId: z.string(),
-  selectedStrategy: repaymentStrategySchema,
-  monthlyDebtBudget: z.number(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-export type UserStrategy = z.infer<typeof userStrategySchema>;
-
-// ============================================================================
-// IN DUPLUM AUDIT TYPES (Page 5: In Duplum Audit Tool)
-// ============================================================================
-
-export const inDuplumStatusSchema = z.enum([
-  'COMPLIANT', // < 50% of cap
-  'APPROACHING', // 50-85% of cap
-  'NEAR_CAP', // 85-99% of cap
-  'BREACHED', // > 100% of cap (illegal)
-]);
-
-export type InDuplumStatus = z.infer<typeof inDuplumStatusSchema>;
-
-export const inDuplumAuditSchema = z.object({
-  auditId: z.string(),
-  debtId: z.string(),
-  userId: z.string(),
-  auditDate: z.string(),
-
-  // Core Values
-  originalPrincipal: z.number(),
-  inDuplumCap: z.number(), // Equal to originalPrincipal per NCA 103(5)
-
-  // Cost Breakdown
-  accumulatedInterest: z.number(),
-  accumulatedFees: z.number(),
-  accumulatedInsurance: z.number(),
-  totalCostsCharged: z.number(),
-
-  // Calculation Results
-  capRemaining: z.number(),
-  capExceeded: z.boolean(),
-  excessAmount: z.number(),
-  capPercentageUsed: z.number(),
-
-  // Projections
-  estimatedMonthsToCapFromCurrent: z.number().nullable(),
+  // Submitter Information
+  submitterName: z.string(),
+  submitterEmail: z.string().email(),
+  submitterRelation: z.string().optional(),
+  submissionType: submissionTypeSchema,
 
   // Status
-  status: inDuplumStatusSchema,
+  status: submissionStatusSchema,
+  reviewedAt: z.string().optional(),
+  reviewedBy: z.string().optional(),
+  reviewNotes: z.string().optional(),
+
+  // If approved, link to creator
+  creatorId: z.string().optional(),
 
   // Metadata
   createdAt: z.string(),
+  updatedAt: z.string(),
+  ipAddress: z.string().optional(),
 });
 
-export type InDuplumAudit = z.infer<typeof inDuplumAuditSchema>;
+export type CreatorSubmission = z.infer<typeof creatorSubmissionSchema>;
 
-export const letterTypeSchema = z.enum([
-  'CAP_REACHED', // Request to stop charging interest
-  'CAP_BREACHED', // Demand refund of overcharges
-  'REQUEST_BREAKDOWN', // Request itemized cost breakdown
+// ============================================================================
+// SPONSORSHIP / CLIENT TYPES
+// ============================================================================
+
+export const campaignStatusSchema = z.enum([
+  'draft',
+  'active',
+  'paused',
+  'completed',
+  'cancelled',
 ]);
+export type CampaignStatus = z.infer<typeof campaignStatusSchema>;
 
-export type LetterType = z.infer<typeof letterTypeSchema>;
+export const sponsorshipCampaignSchema = z.object({
+  campaignId: z.string(),
+  sponsorId: z.string(), // User ID of the client
 
-export const letterGenerationRequestSchema = z.object({
-  auditId: z.string(),
-  letterType: letterTypeSchema,
-  userDetails: z.object({
-    fullName: z.string(),
-    idNumber: z.string(),
-    address: z.string(),
-  }),
-});
+  // Campaign Details
+  title: z.string(),
+  description: z.string(),
+  budget: z.number().optional(),
+  currency: z.string().default('USD'),
 
-export type LetterGenerationRequest = z.infer<typeof letterGenerationRequestSchema>;
+  // Target Criteria
+  targetNiches: z.array(nicheSchema).optional(),
+  targetPlatforms: z.array(platformSchema).optional(),
+  minFollowers: z.number().optional(),
+  maxFollowers: z.number().optional(),
 
-export const generatedLetterSchema = z.object({
-  content: z.string(), // Letter text
-  pdfUrl: z.string().optional(),
-  wordUrl: z.string().optional(),
-});
-
-export type GeneratedLetter = z.infer<typeof generatedLetterSchema>;
-
-// ============================================================================
-// PAYMENT TRACKING TYPES
-// ============================================================================
-
-export const paymentRecordSchema = z.object({
-  paymentId: z.string(),
-  userId: z.string(),
-  debtId: z.string(),
-  amount: z.number(),
-  paymentDate: z.string(),
-
-  // Payment Breakdown (per NCA Section 126 order)
-  amountToFees: z.number(),
-  amountToInterest: z.number(),
-  amountToPrincipal: z.number(),
-
-  // Balances After Payment
-  balanceAfterPayment: z.number(),
-  accumulatedInterestAfter: z.number(),
+  // Status
+  status: campaignStatusSchema,
 
   // Metadata
-  notes: z.string().optional(),
   createdAt: z.string(),
+  updatedAt: z.string(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
-export type PaymentRecord = z.infer<typeof paymentRecordSchema>;
+export type SponsorshipCampaign = z.infer<typeof sponsorshipCampaignSchema>;
 
-// ============================================================================
-// DASHBOARD TYPES (Page 1: Financial Dignity Dashboard)
-// ============================================================================
+export const sponsorshipInquirySchema = z.object({
+  inquiryId: z.string(),
+  sponsorId: z.string(),
+  creatorId: z.string(),
+  campaignId: z.string().optional(),
 
-export const dashboardStatsSchema = z.object({
-  // Debt Overview
-  totalDebtBalance: z.number(),
-  totalMonthlyPayment: z.number(),
-  debtsKilled: z.number(), // Paid off debts
-  totalDebts: z.number(),
+  // Message
+  subject: z.string(),
+  message: z.string(),
 
-  // Progress Metrics
-  debtFreeDate: z.string().nullable(),
-  daysUntilDebtFree: z.number().nullable(),
-  monthsUntilDebtFree: z.number().nullable(),
+  // Status
+  status: z.enum(['pending', 'read', 'replied', 'accepted', 'declined']),
 
-  // Freedom Bar Data
-  interestSaved: z.number(), // Saved vs minimum payment scenario
-  projectedTotalInterestMinimum: z.number(),
-  projectedTotalInterestStrategy: z.number(),
-
-  // Streak & Activity
-  paymentStreak: z.number(), // Days of on-time payments
-  lastPaymentDate: z.string().nullable(),
-
-  // Current Strategy
-  selectedStrategy: repaymentStrategySchema,
-  monthlyDebtBudget: z.number(),
-
-  // Alerts
-  section129Active: z.boolean(),
-  section129DebtCount: z.number(),
-  inDuplumWarnings: z.number(),
+  // Metadata
+  createdAt: z.string(),
+  respondedAt: z.string().optional(),
 });
 
-export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
-
-export const progressStatusSchema = z.enum([
-  'on_track', // Green - meeting payment targets
-  'at_risk', // Amber - missed payment or behind schedule
-  'behind', // Red - significantly behind
-]);
-
-export type ProgressStatus = z.infer<typeof progressStatusSchema>;
+export type SponsorshipInquiry = z.infer<typeof sponsorshipInquirySchema>;
 
 // ============================================================================
-// BUDGET DASHBOARD TYPES (Simple Budget-Focused Dashboard)
+// ANALYTICS TYPES
 // ============================================================================
 
-export const budgetHealthStatusSchema = z.enum(['HEALTHY', 'TIGHT', 'DEFICIT']);
-export type BudgetHealthStatus = z.infer<typeof budgetHealthStatusSchema>;
+export const creatorAnalyticsSchema = z.object({
+  creatorId: z.string(),
+  period: z.string(), // e.g., "2025-01" for monthly
 
-export const budgetDashboardStatsSchema = z.object({
-  totalIncome: z.number(),
-  totalFixedObligations: z.number(),
-  totalVariableExpenses: z.number(),
-  availableBalance: z.number(),
-  healthStatus: budgetHealthStatusSchema,
-  healthPercentage: z.number(), // % of income remaining after expenses
-  monthlyHistory: z.array(z.object({
-    month: z.string(),
-    income: z.number(),
-    expenses: z.number(),
-  })),
-  currentMonth: z.string(),
-  budgetExists: z.boolean(),
+  // Profile Stats
+  profileViews: z.number().default(0),
+  linkClicks: z.number().default(0),
+  inquiriesReceived: z.number().default(0),
+
+  // Platform Breakdown
+  platformClicks: z.record(z.string(), z.number()).optional(),
+
+  // Referral Sources
+  referralSources: z.record(z.string(), z.number()).optional(),
 });
 
-export type BudgetDashboardStats = z.infer<typeof budgetDashboardStatsSchema>;
+export type CreatorAnalytics = z.infer<typeof creatorAnalyticsSchema>;
 
-// ============================================================================
-// SUBSCRIPTION TYPES (Keep for payment/access control)
-// ============================================================================
+export const platformAnalyticsSchema = z.object({
+  period: z.string(),
 
-export const subscriptionTierSchema = z.enum(['free', 'pro']);
-export type SubscriptionTier = z.infer<typeof subscriptionTierSchema>;
+  // Overall Stats
+  totalCreators: z.number(),
+  totalViews: z.number(),
+  totalSubmissions: z.number(),
 
-export const subscriptionInfoSchema = z.object({
-  tier: subscriptionTierSchema,
-  status: z.enum(['active', 'expired', 'none']),
-  expiresAt: z.string().optional(),
-  daysRemaining: z.number().optional(),
-  features: z.array(z.string()),
+  // Breakdown
+  creatorsByNiche: z.record(z.string(), z.number()),
+  creatorsByPlatform: z.record(z.string(), z.number()),
+  submissionsByStatus: z.record(z.string(), z.number()),
+
+  // Growth
+  newCreators: z.number(),
+  newUsers: z.number(),
 });
 
-export type SubscriptionInfo = z.infer<typeof subscriptionInfoSchema>;
-
-export const userAccessSchema = z.object({
-  subscription: subscriptionInfoSchema,
-  debtsLimit: z.number().nullable(), // Max debts for free tier
-  expiringSoon: z.boolean(),
-});
-
-export type UserAccess = z.infer<typeof userAccessSchema>;
-
-// ============================================================================
-// SA PUBLIC HOLIDAYS (for Section 129 business day calculations)
-// ============================================================================
-
-export const saPublicHolidaySchema = z.object({
-  date: z.string(), // ISO date format
-  name: z.string(),
-  type: z.enum(['fixed', 'moveable']),
-});
-
-export type SAPublicHoliday = z.infer<typeof saPublicHolidaySchema>;
-
-// SA Public Holidays 2025 (will need annual updates)
-export const SA_PUBLIC_HOLIDAYS_2025: SAPublicHoliday[] = [
-  { date: '2025-01-01', name: "New Year's Day", type: 'fixed' },
-  { date: '2025-03-21', name: 'Human Rights Day', type: 'fixed' },
-  { date: '2025-04-18', name: 'Good Friday', type: 'moveable' },
-  { date: '2025-04-21', name: 'Family Day', type: 'moveable' },
-  { date: '2025-04-27', name: 'Freedom Day', type: 'fixed' },
-  { date: '2025-05-01', name: "Workers' Day", type: 'fixed' },
-  { date: '2025-06-16', name: 'Youth Day', type: 'fixed' },
-  { date: '2025-08-09', name: "National Women's Day", type: 'fixed' },
-  { date: '2025-09-24', name: 'Heritage Day', type: 'fixed' },
-  { date: '2025-12-16', name: 'Day of Reconciliation', type: 'fixed' },
-  { date: '2025-12-25', name: 'Christmas Day', type: 'fixed' },
-  { date: '2025-12-26', name: 'Day of Goodwill', type: 'fixed' },
-];
-
-// ============================================================================
-// NCA COMPLIANCE TYPES
-// ============================================================================
-
-export const ncaRateCapsSchema = z.object({
-  mortgage: z.number(), // repoRate + 12
-  vehicle: z.number(), // repoRate + 15
-  unsecured: z.number(), // repoRate + 19.25 (max 27.25% as of 2024)
-  shortTerm: z.number(), // 5% per month (60% p.a.)
-  currentRepoRate: z.number(),
-  lastUpdated: z.string(),
-});
-
-export type NCARateCaps = z.infer<typeof ncaRateCapsSchema>;
-
-// Current NCA rate caps (as of 2024, repo rate ~8%)
-export const CURRENT_NCA_CAPS: NCARateCaps = {
-  mortgage: 20.0,
-  vehicle: 23.0,
-  unsecured: 27.25,
-  shortTerm: 60.0,
-  currentRepoRate: 8.0,
-  lastUpdated: '2024-01-01',
-};
-
-export const rateValidationResultSchema = z.object({
-  valid: z.boolean(),
-  warning: z.string().optional(),
-  maxAllowedRate: z.number(),
-  exceedsBy: z.number().optional(),
-});
-
-export type RateValidationResult = z.infer<typeof rateValidationResultSchema>;
+export type PlatformAnalytics = z.infer<typeof platformAnalyticsSchema>;
 
 // ============================================================================
 // API RESPONSE TYPES
@@ -465,170 +317,117 @@ export const apiResponseSchema = <T extends z.ZodTypeAny>(data: T) =>
   z.object({
     success: z.boolean(),
     data,
+    message: z.string().optional(),
     timestamp: z.string(),
   });
 
-export type ApiResponse<T> = z.infer<ReturnType<typeof apiResponseSchema<z.ZodType<T>>>>;
+export type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+  message?: string;
+  timestamp: string;
+};
 
 export const apiErrorSchema = z.object({
+  success: z.literal(false),
   error: z.string(),
+  code: z.string().optional(),
   details: z.any().optional(),
   timestamp: z.string(),
 });
 
 export type ApiError = z.infer<typeof apiErrorSchema>;
 
+export const paginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    items: z.array(itemSchema),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+    hasMore: z.boolean(),
+  });
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+};
+
 // ============================================================================
-// CREDITOR LIST (Pre-populated for debt entry)
+// SEARCH & FILTER TYPES
 // ============================================================================
 
-export interface Creditor {
-  id: string;
-  name: string;
-  logo?: string;
-  type: 'bank' | 'retailer' | 'microlender' | 'other';
-  commonFees?: {
-    monthlyServiceFee?: number;
-    creditLifePremium?: number;
-    typicalInterestRate?: number;
-  };
-}
-
-// ============================================================================
-// RISK PROFILE TYPES (Upsell Intelligence)
-// ============================================================================
-
-export const riskLevelSchema = z.enum(['LOW', 'MEDIUM', 'HIGH']);
-export type RiskLevel = z.infer<typeof riskLevelSchema>;
-
-export const upsellStatusSchema = z.enum(['NONE', 'NUDGE', 'TARGET', 'CRITICAL']);
-export type UpsellStatus = z.infer<typeof upsellStatusSchema>;
-
-export const userRiskProfileSchema = z.object({
-  userId: z.string(),
-  upsellStatus: upsellStatusSchema,
-  riskScore: z.number().min(0).max(100),
-  riskLevel: riskLevelSchema,
-  dtiRatio: z.number(), // Debt-to-Income ratio as percentage
-  debtVelocity: z.number(), // Monthly debt change rate as percentage
-  distressEvents: z.array(z.string()).optional(), // Keywords found: "Dishonour", "Arrears", etc.
-  lastAssessedAt: z.string(),
-  updatedAt: z.string(),
+export const creatorSearchFiltersSchema = z.object({
+  query: z.string().optional(),
+  niches: z.array(nicheSchema).optional(),
+  platforms: z.array(platformSchema).optional(),
+  minFollowers: z.number().optional(),
+  maxFollowers: z.number().optional(),
+  isVerified: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  sortBy: z.enum(['name', 'followers', 'createdAt', 'updatedAt']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
 });
 
-export type UserRiskProfile = z.infer<typeof userRiskProfileSchema>;
-
-export const monthlySummarySchema = z.object({
-  month: z.string(), // Format: "YYYY-MM"
-  totalIncome: z.number(),
-  totalDebt: z.number(),
-  dtiRatio: z.number(),
-  debtVelocity: z.number(),
-  interestPaid: z.number().optional(),
-  principalPaid: z.number().optional(),
-});
-
-export type MonthlySummary = z.infer<typeof monthlySummarySchema>;
+export type CreatorSearchFilters = z.infer<typeof creatorSearchFiltersSchema>;
 
 // ============================================================================
-// ALERT TYPES (User Notifications)
+// NOTIFICATION TYPES
 // ============================================================================
 
-export const alertSeveritySchema = z.enum(['INFO', 'WARNING', 'CRITICAL']);
-export type AlertSeverity = z.infer<typeof alertSeveritySchema>;
+export const notificationTypeSchema = z.enum([
+  'submission_approved',
+  'submission_rejected',
+  'new_inquiry',
+  'inquiry_response',
+  'profile_featured',
+  'system_announcement',
+]);
+export type NotificationType = z.infer<typeof notificationTypeSchema>;
 
-export const userAlertSchema = z.object({
-  alertId: z.string(),
+export const notificationSchema = z.object({
+  notificationId: z.string(),
   userId: z.string(),
-  severity: alertSeveritySchema,
+  type: notificationTypeSchema,
   title: z.string(),
   message: z.string(),
   actionUrl: z.string().optional(),
-  actionLabel: z.string().optional(),
   isRead: z.boolean().default(false),
   createdAt: z.string(),
-  expiresAt: z.string().optional(),
 });
 
-export type UserAlert = z.infer<typeof userAlertSchema>;
+export type Notification = z.infer<typeof notificationSchema>;
 
 // ============================================================================
-// POPIA CONSENT TYPES
+// REFERRAL TYPES
 // ============================================================================
 
-export const consentPurposeSchema = z.enum([
-  'DATA_SHARING_DEBT_COUNSELLOR', // Share data with Debt Payoff SA
-  'MARKETING_COMMUNICATIONS', // Receive marketing emails
-  'ANALYTICS_TRACKING', // Allow usage analytics
-  'PARTNER_REFERRAL', // Allow referral to financial partners
-]);
-
-export type ConsentPurpose = z.infer<typeof consentPurposeSchema>;
-
-export const popiaConsentSchema = z.object({
-  consentId: z.string(),
-  userId: z.string(),
-  purpose: consentPurposeSchema,
-  granted: z.boolean(),
-  grantedAt: z.string().nullable(),
-  revokedAt: z.string().nullable().optional(),
-  ipAddress: z.string().optional(),
-  userAgent: z.string().optional(),
-  dataShared: z.array(z.string()).optional(), // List of data fields consented to share
+export const referralSchema = z.object({
+  referralId: z.string(),
+  referrerId: z.string(), // User who made the referral
+  referredEmail: z.string().email(),
+  referredUserId: z.string().optional(), // Set when user signs up
+  status: z.enum(['pending', 'signed_up', 'converted', 'expired']),
+  createdAt: z.string(),
+  convertedAt: z.string().optional(),
 });
 
-export type PopiaConsent = z.infer<typeof popiaConsentSchema>;
+export type Referral = z.infer<typeof referralSchema>;
 
 // ============================================================================
-// PARTNER LEAD TYPES (Debt Payoff SA Integration)
+// FEATURE FLAG TYPES
 // ============================================================================
 
-export const partnerLeadSchema = z.object({
-  leadId: z.string(),
-  userId: z.string(),
-  partnerCode: z.string().default('DEBT_PAYOFF_SA'),
-  status: z.enum(['PENDING', 'SUBMITTED', 'CONTACTED', 'CONVERTED', 'DECLINED']),
-  consentId: z.string(), // Reference to POPIA consent
-  sharedData: z.object({
-    fullName: z.string(),
-    email: z.string(),
-    phone: z.string().optional(),
-    totalDebtBalance: z.number(),
-    dtiRatio: z.number(),
-    debtCount: z.number(),
-  }),
-  submittedAt: z.string(),
-  updatedAt: z.string(),
+export const featureFlagSchema = z.object({
+  key: z.string(),
+  enabled: z.boolean(),
+  description: z.string().optional(),
+  rolloutPercentage: z.number().min(0).max(100).optional(),
+  enabledForRoles: z.array(userRoleSchema).optional(),
 });
 
-export type PartnerLead = z.infer<typeof partnerLeadSchema>;
-
-// ============================================================================
-// CREDITOR LIST (Pre-populated for debt entry)
-// ============================================================================
-
-export const SA_MAJOR_CREDITORS: Creditor[] = [
-  // Banks
-  { id: 'absa', name: 'Absa', type: 'bank' },
-  { id: 'capitec', name: 'Capitec Bank', type: 'bank' },
-  { id: 'fnb', name: 'FNB (First National Bank)', type: 'bank' },
-  { id: 'nedbank', name: 'Nedbank', type: 'bank' },
-  { id: 'standard_bank', name: 'Standard Bank', type: 'bank' },
-  { id: 'african_bank', name: 'African Bank', type: 'bank' },
-  { id: 'discovery_bank', name: 'Discovery Bank', type: 'bank' },
-  { id: 'tyme_bank', name: 'TymeBank', type: 'bank' },
-
-  // Retailers
-  { id: 'woolworths', name: 'Woolworths Store Card', type: 'retailer', commonFees: { monthlyServiceFee: 69 } },
-  { id: 'mr_price', name: 'Mr Price Store Card', type: 'retailer', commonFees: { monthlyServiceFee: 50 } },
-  { id: 'edgars', name: 'Edgars Store Card', type: 'retailer', commonFees: { monthlyServiceFee: 59 } },
-  { id: 'jet', name: 'Jet Store Card', type: 'retailer', commonFees: { monthlyServiceFee: 50 } },
-  { id: 'truworths', name: 'Truworths Store Card', type: 'retailer', commonFees: { monthlyServiceFee: 65 } },
-
-  // Microlenders
-  { id: 'bayport', name: 'Bayport', type: 'microlender' },
-  { id: 'mzansi', name: 'Mzansi Loans', type: 'microlender' },
-
-  // Other
-  { id: 'other', name: 'Other (Custom)', type: 'other' },
-];
+export type FeatureFlag = z.infer<typeof featureFlagSchema>;

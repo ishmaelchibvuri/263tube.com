@@ -14,6 +14,7 @@ import {
   getFeaturedCreators,
   searchCreators,
 } from "@/lib/creators";
+import { slugToValue, isValidNiche } from "@/constants/niches";
 
 // Force dynamic rendering (no caching)
 export const dynamic = "force-dynamic";
@@ -43,7 +44,22 @@ export async function GET(request: NextRequest) {
       creators = await getFeaturedCreators(parsedLimit || 8);
     } else if (category) {
       // Filter by category/niche
-      creators = await getCreatorsByCategory(category, parsedLimit);
+      // Support both slug format (from URL) and value format (from taxonomy)
+      const nicheValue = slugToValue(category) || category;
+
+      // Validate that it's a known niche
+      if (!isValidNiche(nicheValue)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid category: ${category}`,
+            message: "Please use a valid niche from the taxonomy",
+          },
+          { status: 400 }
+        );
+      }
+
+      creators = await getCreatorsByCategory(nicheValue, parsedLimit);
     } else {
       // Get all active creators
       creators = await getAllCreators("ACTIVE", parsedLimit);

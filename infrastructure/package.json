@@ -1,7 +1,7 @@
 {
-  "name": "quickbudget-infrastructure",
+  "name": "263tube-infrastructure",
   "version": "1.0.0",
-  "description": "AWS CDK infrastructure for Quick Budget",
+  "description": "AWS CDK infrastructure for 263Tube",
   "main": "bin/app.js",
   "scripts": {
     "build": "tsc",

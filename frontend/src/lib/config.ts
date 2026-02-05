@@ -22,12 +22,14 @@ export const ENVIRONMENT = (process.env.NEXT_PUBLIC_ENVIRONMENT || "dev") as
 function getDefaultApiUrl(env: string): string {
   switch (env) {
     case "prod":
-      return "https://hn98hhwfj5.execute-api.af-south-1.amazonaws.com/prod";
+      // TODO: Update with production API Gateway URL after deployment
+      return "https://263tube.com/api";
     case "qa":
-      return "https://924h174ifg.execute-api.af-south-1.amazonaws.com/qa";
+      // TODO: Update with QA API Gateway URL after deployment
+      return "https://qa.263tube.com/api";
     case "dev":
     default:
-      return "https://fsip035ubi.execute-api.af-south-1.amazonaws.com/dev";
+      return "https://2c2pwepzii.execute-api.af-south-1.amazonaws.com/dev";
   }
 }
 
@@ -35,9 +37,9 @@ function getDefaultApiUrl(env: string): string {
 function getDefaultAppUrl(env: string): string {
   switch (env) {
     case "prod":
-      return "https://quickbudget.co.za";
+      return "https://263tube.com";
     case "qa":
-      return "https://qa.quickbudget.co.za";
+      return "https://qa.263tube.com";
     case "dev":
     default:
       return "http://localhost:3000";

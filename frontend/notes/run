@@ -1,57 +1,40 @@
-Context: The backend logic (DAL) and the UI components for 263Tube.com are complete, but the main pages are currently "Client Components" using mock data. We need to refactor these into Async Server Components to fetch real data from DynamoDB and ensure the site is SEO-optimized and production-ready.
+Prompt for Claude: Admin Submission Management UI
+Context: The submission pipeline is now generating high-quality PENDING_REQUEST items. I need the Admin Approval Dashboard to manage these requests.
 
-Your Mission: Refactor the core pages to replace all mock data with real database calls from src/lib/creators.ts.
+Task 1: The Submissions Page (app/admin/submissions/page.tsx)
 
-1. Home Page Refactor (app/page.tsx)
+Access Control: Ensure this page uses the requireAdmin() server-side check.
 
-Action: Remove "use client" from the main page file.
+Data Fetching: Fetch all items with PK starting with PENDING_REQUEST#.
 
-Data Fetching:
+UI Layout: Create a "Review Queue" using a clean table or list.
 
-Make the component async.
+Show the Primary Profile Image fetched during validation.
 
-Fetch trendingCreators using getTopReferrers(3).
+Show the Verified Badges (YouTube, IG, etc.) so I can see at a glance if the data is real.
 
-Fetch allCreators using getAllCreators().
+List the Selected Niches from the new taxonomy.
 
-Component Split: \* The "Podium" and "Grid" should receive this real data as props.
+Task 2: The "Approval" Server Action (src/lib/actions/admin.ts) Create a processSubmission action that takes requestId and action ('APPROVE' or 'REJECT').
 
-Extract the interactive Search & Filter Bar into a separate client component (e.g., src/components/creators/SearchFilters.tsx) so it can still handle user input without making the whole page a client component.
+If APPROVE:
 
-2. Profile Page Refactor (app/creator/[slug]/page.tsx)
+Copy the data from the PENDING_REQUEST item.
 
-Action: Convert to an async Server Component.
+Create the official CREATOR#[slug] / METADATA record.
 
-Logic:
+Set the status to ACTIVE.
 
-Use params.slug to call getCreatorBySlug(slug).
+Important: Delete the PENDING_REQUEST item to clear the queue.
 
-If the creator is not found, return the Next.js notFound() function.
+If REJECT:
 
-Mapping: Pass the real creator object into the existing SocialLinkGroup, StatsBadge, and Header components.
+Delete the PENDING_REQUEST item.
 
-3. Directory & Trending Pages
+(Optional) Log the rejection for audit purposes.
 
-Action: Perform similar refactors for /creators and /trending pages.
+Task 3: Interactive Review Modal In the UI, when I click on a submission, open a modal that shows the Ecosystem Preview (the same one the user saw).
 
-Ensure they call getAllCreators() and getTopReferrers() respectively.
+Add an "Edit Before Approval" feature: Let me tweak the Bio or Niche selection if the user made a mistake, before I hit the final "Approve" button.
 
-4. Admin "Approval" Route (New Task)
-
-Requirement: I need a way to see the submissions created by the submitCreatorRequest action.
-
-Create Page: app/admin-portal-preview/page.tsx (Use a simple, un-styled list for now).
-
-Logic: Call getPendingRequests() and display the submitted data.
-
-Action: Add a simple "Approve" button that (conceptually or literally) triggers a Server Action to change the status of that creator to ACTIVE.
-
-5. Verification:
-
-Ensure revalidatePath("/") is working so that after a referral is tracked, the Server Component re-renders the home page with the updated count.
-
-Deliverables:
-
-Fully functional app/page.tsx and app/creator/[slug]/page.tsx with zero mock data.
-
-A working (private) Admin route to view submissions.
+Task 4: Post-Approval Revalidation Ensure the action calls revalidatePath('/') and revalidatePath('/creators') so the new creator appears on the homepage immediately.

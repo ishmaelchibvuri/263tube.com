@@ -1,7 +1,7 @@
 {
-  "name": "quickbudget-frontend",
+  "name": "263tube-frontend",
   "version": "1.0.0",
-  "description": "Quick Budget - Simple Budget Tracking",
+  "description": "263Tube - Zimbabwean Content Creators Directory",
   "private": true,
   "scripts": {
     "dev": "next dev",

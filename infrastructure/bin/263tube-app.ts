@@ -6,9 +6,8 @@
  *
  * Deploys:
  * - DynamoDB table with Single Table Design
- * - GSI1: Status-based queries (active/featured creators)
- * - GSI2: Category-based queries (niche filtering)
- * - GSI3: Referral leaderboard (weekly traffic drivers)
+ * - Cognito User Pool & Identity Pool for authentication
+ * - API Gateway with Lambda functions
  *
  * Environments: dev, qa, prod
  */
@@ -16,6 +15,8 @@
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { TubeDatabase263Stack } from "../lib/263tube-database-stack";
+import { Tube263AuthStack } from "../lib/263tube-auth-stack";
+import { Tube263ApiStack } from "../lib/263tube-api-stack";
 
 const app = new cdk.App();
 
@@ -30,10 +31,12 @@ console.log(`Region: ${region}`);
 console.log(`Account: ${account}`);
 console.log(`========================================\n`);
 
+// ============================================================================
 // 263Tube Database Stack
+// ============================================================================
 const databaseStack = new TubeDatabase263Stack(
   app,
-  `263tube-database-${environment}`,
+  `tube263-database-${environment}`,
   {
     env: { account, region },
     environment,
@@ -46,7 +49,45 @@ const databaseStack = new TubeDatabase263Stack(
   }
 );
 
-// Output important values
+// ============================================================================
+// 263Tube Auth Stack
+// ============================================================================
+const authStack = new Tube263AuthStack(app, `tube263-auth-${environment}`, {
+  env: { account, region },
+  environment,
+  description: `263Tube Cognito authentication (${environment})`,
+  tags: {
+    Project: "263Tube",
+    Environment: environment,
+    ManagedBy: "CDK",
+  },
+});
+
+// ============================================================================
+// 263Tube API Stack
+// ============================================================================
+const apiStack = new Tube263ApiStack(app, `tube263-api-${environment}`, {
+  env: { account, region },
+  environment,
+  table: databaseStack.table,
+  description: `263Tube API Gateway infrastructure (${environment})`,
+  tags: {
+    Project: "263Tube",
+    Environment: environment,
+    ManagedBy: "CDK",
+  },
+});
+
+// ============================================================================
+// Stack Dependencies
+// ============================================================================
+apiStack.addDependency(databaseStack);
+
+// ============================================================================
+// Stack Outputs
+// ============================================================================
+
+// Database outputs
 new cdk.CfnOutput(databaseStack, "TableName", {
   value: databaseStack.table.tableName,
   description: "DynamoDB table name",

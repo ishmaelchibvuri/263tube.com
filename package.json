@@ -1,7 +1,7 @@
 {
-  "name": "debt-payoff-planner",
+  "name": "263tube",
   "version": "1.0.0",
-  "description": "A South African debt management and payoff planning application",
+  "description": "263Tube - Zimbabwean Content Creators Directory",
   "private": true,
   "workspaces": [
     "infrastructure",

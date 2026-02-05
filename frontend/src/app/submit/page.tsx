@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -21,27 +21,15 @@ import {
   Plus,
   X,
   AlertCircle,
+  Loader2,
+  BadgeCheck,
+  RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
-import { submitCreatorRequest } from "@/lib/actions/creators";
-
-const NICHES = [
-  "Comedy",
-  "Music",
-  "Entertainment",
-  "Technology",
-  "Cooking",
-  "Farming",
-  "Lifestyle",
-  "Education",
-  "Sports",
-  "News",
-  "Commentary",
-  "Gaming",
-  "Beauty",
-  "Fashion",
-  "Travel",
-  "Other",
-];
+import { submitCreatorRequest, type VerifiedLinkData } from "@/lib/actions/creators";
+import { validatePlatformLink, type ValidationResult } from "@/lib/actions/validate-link";
+import { EcosystemPreview, NicheMultiSelect } from "@/components/submit";
+import { getNicheLabel } from "@/constants/niches";
 
 const PLATFORMS = [
   { name: "YouTube", icon: Youtube, color: "#FF0000" },
@@ -51,6 +39,17 @@ const PLATFORMS = [
   { name: "Twitter", icon: Twitter, color: "#1DA1F2" },
 ];
 
+// Extended platform link type with verification data
+interface ExtendedPlatformLink {
+  label: string;
+  url: string;
+  verified?: boolean;
+  verifiedAt?: string;
+  verifiedDisplayName?: string | null;
+  verifiedImage?: string | null;
+  verifiedFollowers?: number | null;
+}
+
 export default function SubmitCreatorPage() {
   const [submissionType, setSubmissionType] = useState<"self" | "other" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,8 +57,18 @@ export default function SubmitCreatorPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 
-  // Platform links state - allows multiple links per platform
-  const [platformLinks, setPlatformLinks] = useState<Record<string, { label: string; url: string }[]>>({
+  // Email verification states
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeExpiresAt, setCodeExpiresAt] = useState<Date | null>(null);
+
+  // Platform links state - allows multiple links per platform with verification data
+  const [platformLinks, setPlatformLinks] = useState<Record<string, ExtendedPlatformLink[]>>({
     YouTube: [],
     TikTok: [],
     Instagram: [],
@@ -67,15 +76,105 @@ export default function SubmitCreatorPage() {
     Twitter: [],
   });
 
+  // Verification states
+  const [verifyingLinks, setVerifyingLinks] = useState<Record<string, boolean>>({});
+  const [verificationErrors, setVerificationErrors] = useState<Record<string, string>>({});
+
   const [formData, setFormData] = useState({
     creatorName: "",
-    niche: "",
     website: "",
     about: "",
     submitterName: "",
     submitterEmail: "",
     submitterRelation: "",
   });
+
+  // Multi-select niches state
+  const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
+  const [customNiche, setCustomNiche] = useState("");
+
+  // Send verification code
+  const sendVerificationCode = async () => {
+    if (!formData.submitterEmail || !formData.submitterEmail.includes("@")) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    setSendingCode(true);
+    setEmailError(null);
+
+    try {
+      const response = await fetch("/api/verify-email/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.submitterEmail }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setEmailError(data.error || "Failed to send code");
+        return;
+      }
+
+      setCodeSent(true);
+      setCodeExpiresAt(new Date(Date.now() + (data.expiresIn || 600) * 1000));
+      setVerificationCode("");
+      setCodeError(null);
+    } catch (error) {
+      setEmailError("Failed to send verification code. Please try again.");
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  // Verify the code
+  const verifyCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      setCodeError("Please enter the 6-digit code");
+      return;
+    }
+
+    setVerifyingCode(true);
+    setCodeError(null);
+
+    try {
+      const response = await fetch("/api/verify-email/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.submitterEmail,
+          code: verificationCode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCodeError(data.error || "Invalid code");
+        return;
+      }
+
+      setEmailVerified(true);
+      setCodeSent(false);
+    } catch (error) {
+      setCodeError("Failed to verify code. Please try again.");
+    } finally {
+      setVerifyingCode(false);
+    }
+  };
+
+  // Reset verification when email changes
+  const handleEmailChange = (email: string) => {
+    setFormData({ ...formData, submitterEmail: email });
+    if (emailVerified || codeSent) {
+      setEmailVerified(false);
+      setCodeSent(false);
+      setVerificationCode("");
+      setCodeError(null);
+      setEmailError(null);
+    }
+  };
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms((prev) => {
@@ -95,13 +194,16 @@ export default function SubmitCreatorPage() {
   };
 
   const addPlatformLink = (platform: string) => {
-    setPlatformLinks((links) => ({
-      ...links,
-      [platform]: [
-        ...links[platform],
-        { label: `Channel ${links[platform].length + 1}`, url: "" },
-      ],
-    }));
+    setPlatformLinks((links) => {
+      const existing = links[platform] ?? [];
+      return {
+        ...links,
+        [platform]: [
+          ...existing,
+          { label: `Channel ${existing.length + 1}`, url: "" },
+        ],
+      };
+    });
   };
 
   const updatePlatformLink = (
@@ -112,7 +214,7 @@ export default function SubmitCreatorPage() {
   ) => {
     setPlatformLinks((links) => ({
       ...links,
-      [platform]: links[platform].map((link, i) =>
+      [platform]: (links[platform] ?? []).map((link, i) =>
         i === index ? { ...link, [field]: value } : link
       ),
     }));
@@ -121,9 +223,108 @@ export default function SubmitCreatorPage() {
   const removePlatformLink = (platform: string, index: number) => {
     setPlatformLinks((links) => ({
       ...links,
-      [platform]: links[platform].filter((_, i) => i !== index),
+      [platform]: (links[platform] ?? []).filter((_, i) => i !== index),
     }));
   };
+
+  // Verify a platform link
+  const verifyLink = async (platform: string, index: number) => {
+    const link = platformLinks[platform]?.[index];
+    if (!link || !link.url.trim()) return;
+
+    const verifyKey = `${platform}-${index}`;
+    setVerifyingLinks((prev) => ({ ...prev, [verifyKey]: true }));
+    setVerificationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[verifyKey];
+      return newErrors;
+    });
+
+    try {
+      const result = await validatePlatformLink(platform, link.url);
+
+      if (result.success) {
+        // Update the link with verification data
+        setPlatformLinks((links) => ({
+          ...links,
+          [platform]: (links[platform] ?? []).map((l, i) =>
+            i === index
+              ? {
+                  ...l,
+                  verified: true,
+                  verifiedAt: new Date().toISOString(),
+                  verifiedDisplayName: result.displayName,
+                  verifiedImage: result.image,
+                  verifiedFollowers: result.followers,
+                }
+              : l
+          ),
+        }));
+      } else {
+        setVerificationErrors((prev) => ({
+          ...prev,
+          [verifyKey]: result.error || "Verification failed",
+        }));
+      }
+    } catch (error) {
+      setVerificationErrors((prev) => ({
+        ...prev,
+        [verifyKey]: "Verification failed. Please try again.",
+      }));
+    } finally {
+      setVerifyingLinks((prev) => ({ ...prev, [verifyKey]: false }));
+    }
+  };
+
+  // Get all verified links for ecosystem preview
+  const getVerifiedLinks = useCallback((): VerifiedLinkData[] => {
+    const verifiedLinks: VerifiedLinkData[] = [];
+
+    for (const platform of selectedPlatforms) {
+      const links = platformLinks[platform];
+      if (!links) continue;
+      for (const link of links) {
+        if (link.verified) {
+          verifiedLinks.push({
+            platform,
+            displayName: link.verifiedDisplayName ?? null,
+            image: link.verifiedImage ?? null,
+            followers: link.verifiedFollowers ?? null,
+            verifiedAt: link.verifiedAt ?? new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    return verifiedLinks;
+  }, [selectedPlatforms, platformLinks]);
+
+  // Get primary profile image from verified links (YouTube preferred, then highest followers)
+  const getPrimaryProfileImage = useCallback((): string | null => {
+    const verified = getVerifiedLinks();
+    if (verified.length === 0) return null;
+
+    // Prefer YouTube image
+    const youtubeLink = verified.find(
+      (l) => l.platform.toLowerCase() === "youtube" && l.image
+    );
+    if (youtubeLink?.image) return youtubeLink.image;
+
+    // Fall back to link with highest followers
+    const withFollowers = verified.filter((l) => l.image && l.followers);
+    if (withFollowers.length > 0) {
+      withFollowers.sort((a, b) => (b.followers ?? 0) - (a.followers ?? 0));
+      return withFollowers[0]?.image ?? null;
+    }
+
+    // Any link with an image
+    const withImage = verified.find((l) => l.image);
+    return withImage?.image ?? null;
+  }, [getVerifiedLinks]);
+
+  // Check if at least one YouTube link is verified (primary requirement)
+  const hasVerifiedYouTube = selectedPlatforms.includes("YouTube") &&
+    (platformLinks.YouTube ?? []).some((link) => link.verified);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +334,8 @@ export default function SubmitCreatorPage() {
     try {
       const result = await submitCreatorRequest({
         creatorName: formData.creatorName,
-        niche: formData.niche,
+        niches: selectedNiches,
+        customNiche: customNiche || undefined,
         platforms: selectedPlatforms,
         platformLinks: platformLinks,
         website: formData.website || undefined,
@@ -142,6 +344,9 @@ export default function SubmitCreatorPage() {
         submitterEmail: formData.submitterEmail,
         submitterRelation: formData.submitterRelation || undefined,
         submissionType: submissionType as "self" | "other",
+        // Include verification data
+        verifiedLinks: getVerifiedLinks(),
+        primaryProfileImage: getPrimaryProfileImage(),
       });
 
       if (result.success) {
@@ -161,6 +366,12 @@ export default function SubmitCreatorPage() {
   const hasAtLeastOneLink = selectedPlatforms.some(
     (platform) => platformLinks[platform]?.some((link) => link.url.trim() !== "")
   );
+
+  // Check if form can be submitted
+  const canSubmit = emailVerified &&
+    hasAtLeastOneLink &&
+    selectedNiches.length > 0 &&
+    (!selectedPlatforms.includes("YouTube") || hasVerifiedYouTube);
 
   if (isSubmitted) {
     return (
@@ -301,20 +512,18 @@ export default function SubmitCreatorPage() {
                 />
               </div>
 
-              {/* Niche */}
+              {/* Niches - Multi-select */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Content Niche *</label>
-                <select
+                <label className="block text-sm text-slate-400 mb-2">Content Niches *</label>
+                <NicheMultiSelect
+                  selectedNiches={selectedNiches}
+                  onChange={setSelectedNiches}
+                  onOtherSelected={setCustomNiche}
+                  customNiche={customNiche}
+                  maxSelections={3}
+                  placeholder="Select up to 3 niches..."
                   required
-                  value={formData.niche}
-                  onChange={(e) => setFormData({ ...formData, niche: e.target.value })}
-                  className="w-full h-12 px-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:border-[#DE2010]/50 transition-colors appearance-none"
-                >
-                  <option value="" className="bg-[#09090b]">Select a niche</option>
-                  {NICHES.map((niche) => (
-                    <option key={niche} value={niche} className="bg-[#09090b]">{niche}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               {/* Platforms */}
@@ -345,7 +554,14 @@ export default function SubmitCreatorPage() {
 
               {/* Social Links - Multiple per platform */}
               <div className="space-y-4">
-                <label className="block text-sm text-slate-400">Social Media Links (at least one required)</label>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Social Media Links</label>
+                  <p className="text-xs text-slate-500">
+                    {selectedPlatforms.includes("YouTube")
+                      ? "YouTube verification is required. Other platforms are optional but help build your ecosystem."
+                      : "At least one link is required. YouTube is recommended as your primary platform."}
+                  </p>
+                </div>
 
                 {selectedPlatforms.map((platform) => {
                   const platformConfig = PLATFORMS.find((p) => p.name === platform);
@@ -361,35 +577,131 @@ export default function SubmitCreatorPage() {
                         <span className="text-xs text-slate-500">({links.length} link{links.length !== 1 ? "s" : ""})</span>
                       </div>
 
-                      {links.map((link, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <div className="flex-1 space-y-2">
-                            <input
-                              type="text"
-                              value={link.label}
-                              onChange={(e) => updatePlatformLink(platform, index, "label", e.target.value)}
-                              placeholder="Label (e.g., Main Channel, Vlog Channel)"
-                              className="w-full h-9 px-3 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#DE2010]/50"
-                            />
-                            <input
-                              type="url"
-                              value={link.url}
-                              onChange={(e) => updatePlatformLink(platform, index, "url", e.target.value)}
-                              placeholder={`https://${platform.toLowerCase()}.com/@channel`}
-                              className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#DE2010]/50"
-                            />
+                      {links.map((link, index) => {
+                        const verifyKey = `${platform}-${index}`;
+                        const isVerifying = verifyingLinks[verifyKey];
+                        const verifyError = verificationErrors[verifyKey];
+
+                        return (
+                          <div key={index} className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 space-y-2">
+                                <input
+                                  type="text"
+                                  value={link.label}
+                                  onChange={(e) => updatePlatformLink(platform, index, "label", e.target.value)}
+                                  placeholder="Label (e.g., Main Channel, Vlog Channel)"
+                                  className="w-full h-9 px-3 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#DE2010]/50"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="url"
+                                    value={link.url}
+                                    onChange={(e) => {
+                                      updatePlatformLink(platform, index, "url", e.target.value);
+                                      // Clear verification when URL changes
+                                      if (link.verified) {
+                                        setPlatformLinks((links) => ({
+                                          ...links,
+                                          [platform]: (links[platform] ?? []).map((l, i) =>
+                                            i === index
+                                              ? { ...l, verified: false, verifiedDisplayName: null, verifiedImage: null, verifiedFollowers: null }
+                                              : l
+                                          ),
+                                        }));
+                                      }
+                                    }}
+                                    placeholder={`https://${platform.toLowerCase()}.com/@channel`}
+                                    className={`flex-1 h-10 px-3 bg-white/[0.05] border rounded-lg text-white text-sm placeholder:text-slate-500 focus:outline-none transition-colors ${
+                                      link.verified
+                                        ? "border-[#319E31]/50 focus:border-[#319E31]"
+                                        : "border-white/[0.1] focus:border-[#DE2010]/50"
+                                    }`}
+                                  />
+                                  {/* Verify Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => verifyLink(platform, index)}
+                                    disabled={!link.url.trim() || isVerifying}
+                                    className={`h-10 px-3 rounded-lg font-medium text-xs transition-all flex items-center gap-1.5 ${
+                                      link.verified
+                                        ? "bg-[#319E31]/20 text-[#319E31] border border-[#319E31]/30"
+                                        : isVerifying
+                                        ? "bg-white/[0.05] text-slate-400 border border-white/[0.1] cursor-wait"
+                                        : link.url.trim()
+                                        ? "bg-[#FFD200]/10 text-[#FFD200] border border-[#FFD200]/30 hover:bg-[#FFD200]/20"
+                                        : "bg-white/[0.02] text-slate-500 border border-white/[0.05] cursor-not-allowed"
+                                    }`}
+                                  >
+                                    {isVerifying ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span className="hidden sm:inline">Verifying...</span>
+                                      </>
+                                    ) : link.verified ? (
+                                      <>
+                                        <BadgeCheck className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Verified</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RefreshCw className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Verify</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                              {links.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removePlatformLink(platform, index)}
+                                  className="mt-1 p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Verification Result */}
+                            {link.verified && (link.verifiedDisplayName || link.verifiedFollowers) && (
+                              <div className="ml-0 p-2 rounded-lg bg-[#319E31]/10 border border-[#319E31]/20 flex items-center gap-2">
+                                {link.verifiedImage && (
+                                  <Image
+                                    src={link.verifiedImage}
+                                    alt={link.verifiedDisplayName || platform}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-md"
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-[#319E31] font-medium truncate">
+                                    {link.verifiedDisplayName || "Verified"}
+                                  </p>
+                                  {link.verifiedFollowers && (
+                                    <p className="text-xs text-slate-400">
+                                      {link.verifiedFollowers >= 1000000
+                                        ? `${(link.verifiedFollowers / 1000000).toFixed(1)}M`
+                                        : link.verifiedFollowers >= 1000
+                                        ? `${(link.verifiedFollowers / 1000).toFixed(1)}K`
+                                        : link.verifiedFollowers} followers
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Verification Error */}
+                            {verifyError && (
+                              <p className="text-xs text-red-400 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                {verifyError}
+                              </p>
+                            )}
                           </div>
-                          {links.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removePlatformLink(platform, index)}
-                              className="mt-1 p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       <button
                         type="button"
@@ -438,10 +750,20 @@ export default function SubmitCreatorPage() {
               </div>
             </div>
 
-            {/* Submitter Information */}
+            {/* Ecosystem Preview - Shows as links are verified */}
+            {getVerifiedLinks().length > 0 && (
+              <EcosystemPreview
+                creatorName={formData.creatorName}
+                niche={selectedNiches.map(getNicheLabel).join(", ")}
+                verifiedLinks={getVerifiedLinks()}
+                primaryImage={getPrimaryProfileImage()}
+              />
+            )}
+
+            {/* Submitter Information with Email Verification */}
             <div className="space-y-4 pt-4 border-t border-white/[0.05]">
               <h2 className="text-lg font-semibold text-white">Your Contact Information</h2>
-              <p className="text-xs text-slate-500">We'll use this to follow up on your submission</p>
+              <p className="text-xs text-slate-500">Verify your email to submit. This helps us reduce spam.</p>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
@@ -456,17 +778,128 @@ export default function SubmitCreatorPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">Your Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.submitterEmail}
-                    onChange={(e) => setFormData({ ...formData, submitterEmail: e.target.value })}
-                    placeholder="john@example.com"
-                    className="w-full h-12 px-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#DE2010]/50"
-                  />
+                  <label className="block text-sm text-slate-400 mb-2">
+                    Your Email *
+                    {emailVerified && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-[#319E31]">
+                        <ShieldCheck className="w-3 h-3" />
+                        Verified
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      required
+                      value={formData.submitterEmail}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      placeholder="john@example.com"
+                      disabled={emailVerified}
+                      className={`flex-1 h-12 px-4 bg-white/[0.05] border rounded-xl text-white placeholder:text-slate-500 focus:outline-none transition-colors ${
+                        emailVerified
+                          ? "border-[#319E31]/50 bg-[#319E31]/5"
+                          : "border-white/[0.1] focus:border-[#DE2010]/50"
+                      } disabled:opacity-75`}
+                    />
+                    {!emailVerified && !codeSent && (
+                      <button
+                        type="button"
+                        onClick={sendVerificationCode}
+                        disabled={sendingCode || !formData.submitterEmail.includes("@")}
+                        className="h-12 px-4 bg-[#FFD200]/10 text-[#FFD200] border border-[#FFD200]/30 rounded-xl font-medium text-sm hover:bg-[#FFD200]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                      >
+                        {sendingCode ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="hidden sm:inline">Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4" />
+                            <span className="hidden sm:inline">Verify</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {emailVerified && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmailVerified(false);
+                          setFormData({ ...formData, submitterEmail: "" });
+                        }}
+                        className="h-12 px-4 text-slate-400 hover:text-white border border-white/[0.1] rounded-xl text-sm transition-colors"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </div>
+                  {emailError && (
+                    <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {emailError}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {/* Verification Code Input */}
+              {codeSent && !emailVerified && (
+                <div className="p-4 rounded-xl bg-[#FFD200]/5 border border-[#FFD200]/20">
+                  <p className="text-sm text-[#FFD200] mb-3 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    We've sent a 6-digit code to {formData.submitterEmail}
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setVerificationCode(value);
+                        setCodeError(null);
+                      }}
+                      placeholder="000000"
+                      maxLength={6}
+                      className="flex-1 h-12 px-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white text-center text-xl font-mono tracking-[0.5em] placeholder:text-slate-500 placeholder:tracking-[0.5em] focus:outline-none focus:border-[#FFD200]/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={verifyCode}
+                      disabled={verifyingCode || verificationCode.length !== 6}
+                      className="h-12 px-6 bg-[#FFD200] text-black font-semibold rounded-xl hover:bg-[#FFD200]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      {verifyingCode ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">Verify</span>
+                    </button>
+                  </div>
+                  {codeError && (
+                    <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {codeError}
+                    </p>
+                  )}
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={sendVerificationCode}
+                      disabled={sendingCode}
+                      className="text-[#FFD200] hover:underline disabled:opacity-50"
+                    >
+                      {sendingCode ? "Sending..." : "Resend code"}
+                    </button>
+                    {codeExpiresAt && (
+                      <span className="text-slate-500">
+                        Code expires at {codeExpiresAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {submissionType === "other" && (
                 <div>
@@ -495,9 +928,29 @@ export default function SubmitCreatorPage() {
 
             {/* Submit Button */}
             <div className="pt-4">
+              {/* Email verification requirement notice */}
+              {!emailVerified && formData.submitterEmail && (
+                <div className="mb-4 p-3 rounded-lg bg-[#FFD200]/10 border border-[#FFD200]/20">
+                  <p className="text-xs text-[#FFD200] flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                    Please verify your email address to enable submission.
+                  </p>
+                </div>
+              )}
+
+              {/* YouTube verification requirement notice */}
+              {selectedPlatforms.includes("YouTube") && !hasVerifiedYouTube && hasAtLeastOneLink && emailVerified && (
+                <div className="mb-4 p-3 rounded-lg bg-[#FFD200]/10 border border-[#FFD200]/20">
+                  <p className="text-xs text-[#FFD200] flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    Please verify your YouTube channel before submitting. This helps us confirm your profile.
+                  </p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting || !hasAtLeastOneLink}
+                disabled={isSubmitting || !canSubmit}
                 className="w-full h-12 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] disabled:from-slate-700 disabled:to-slate-800 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
@@ -513,7 +966,11 @@ export default function SubmitCreatorPage() {
                 )}
               </button>
               <p className="text-xs text-slate-500 text-center mt-3">
-                Submissions are reviewed within 48 hours
+                {!emailVerified
+                  ? "Verify your email to enable submission"
+                  : selectedPlatforms.includes("YouTube") && !hasVerifiedYouTube
+                  ? "Verify your YouTube channel to enable submission"
+                  : "Submissions are reviewed within 48 hours"}
               </p>
             </div>
           </form>

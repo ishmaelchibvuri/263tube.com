@@ -1,12 +1,21 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
+import { Users, Eye, Heart, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type IconName = "users" | "eye" | "heart" | "play";
+
+const iconMap = {
+  users: Users,
+  eye: Eye,
+  heart: Heart,
+  play: Play,
+};
 
 interface StatsBadgeProps {
   label: string;
   value: number | string;
-  icon?: LucideIcon;
+  icon?: IconName;
   className?: string;
   size?: "sm" | "md" | "lg";
 }
@@ -25,10 +34,11 @@ function formatNumber(num: number): string {
 export function StatsBadge({
   label,
   value,
-  icon: Icon,
+  icon,
   className,
   size = "md",
 }: StatsBadgeProps) {
+  const Icon = icon ? iconMap[icon] : null;
   const sizeClasses = {
     sm: "px-3 py-2",
     md: "px-4 py-3",

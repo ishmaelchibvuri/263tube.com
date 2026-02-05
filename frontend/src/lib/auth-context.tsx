@@ -103,9 +103,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const attributes = await fetchUserAttributes();
       console.log("Auth Context - User attributes:", attributes);
 
-      // DEBT PAYOFF: Use Cognito groups for role (no backend profile needed)
-      let role: "user" | "admin" = "user";
-      console.log("Auth Context - Using Cognito-only auth, defaulting role to user");
+      // Get role from Cognito custom:role attribute or default to user
+      let role: "user" | "admin" | "creator" | "sponsor" = "user";
+      const customRole = attributes["custom:role"]?.toLowerCase();
+      if (customRole === "admin") {
+        role = "admin";
+      } else if (customRole === "creator") {
+        role = "creator";
+      } else if (customRole === "sponsor") {
+        role = "sponsor";
+      }
+      console.log("Auth Context - User role from Cognito:", role);
 
       // Map Cognito attributes to our User type
       const userData = {
@@ -155,8 +163,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Fetch real user attributes from Cognito
     const attributes = await fetchUserAttributes();
 
-    // DEBT PAYOFF: Use Cognito-only auth (no backend profile)
-    let role: "user" | "admin" = "user";
+    // Get role from Cognito custom:role attribute
+    let role: "user" | "admin" | "creator" | "sponsor" = "user";
+    const customRole = attributes["custom:role"]?.toLowerCase();
+    if (customRole === "admin") {
+      role = "admin";
+    } else if (customRole === "creator") {
+      role = "creator";
+    } else if (customRole === "sponsor") {
+      role = "sponsor";
+    }
 
     return {
       userId,
