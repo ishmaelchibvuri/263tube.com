@@ -1,48 +1,10 @@
-intercept-console-error.js:57  Server  Only plain objects can be passed to Client Components from Server Components. Classes or other objects with methods are not supported.
-  <... label=... value={4500000} icon={{$$typeof: ..., render: ...}} size=...>
-                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-error @ intercept-console-error.js:57
-intercept-console-error.js:57  Server  Only plain objects can be passed to Client Components from Server Components. Classes or other objects with methods are not supported.
-  <... label=... value={2100000} icon={{$$typeof: ..., render: ...}} size=...>
-                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-error @ intercept-console-error.js:57
-intercept-console-error.js:57  Server  Only plain objects can be passed to Client Components from Server Components. Classes or other objects with methods are not supported.
-  <... label=... value="8.5%" icon={{$$typeof: ..., render: ...}} size=...>
-                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-error @ intercept-console-error.js:57
-intercept-console-error.js:57  Server  Only plain objects can be passed to Client Components from Server Components. Classes or other objects with methods are not supported.
-  <... label=... value={450} icon={{$$typeof: ..., render: ...}} size=...>
-                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-error @ intercept-console-error.js:57
-error-boundary-callbacks.js:68 Error: Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with "use server". Or maybe you meant to call this function rather than return it.
-  {$$typeof: ..., render: function Users}
-                          ^^^^^^^^^^^^^^
-    at stringify (<anonymous>:1:18)
-    at resolveErrorDev (react-server-dom-webpack-client.browser.development.js:2335:46)
-    at processFullStringRow (react-server-dom-webpack-client.browser.development.js:2821:23)
-    at processFullBinaryRow (react-server-dom-webpack-client.browser.development.js:2764:7)
-    at processBinaryChunk (react-server-dom-webpack-client.browser.development.js:2967:15)
-    at progress (react-server-dom-webpack-client.browser.development.js:3231:13)
-
-The above error occurred in the <Unknown> component. It was handled by the <ErrorBoundaryHandler> error boundary.
-onCaughtError @ error-boundary-callbacks.js:68
-intercept-console-error.js:57 Error boundary caught: Error: Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with "use server". Or maybe you meant to call this function rather than return it.
-  {$$typeof: ..., render: function Users}
-                          ^^^^^^^^^^^^^^
-    at stringify (<anonymous>:1:18)
-    at resolveErrorDev (react-server-dom-webpack-client.browser.development.js:2335:46)
-    at processFullStringRow (react-server-dom-webpack-client.browser.development.js:2821:23)
-    at processFullBinaryRow (react-server-dom-webpack-client.browser.development.js:2764:7)
-    at processBinaryChunk (react-server-dom-webpack-client.browser.development.js:2967:15)
-    at progress (react-server-dom-webpack-client.browser.development.js:3231:13)
-error @ intercept-console-error.js:57
-intercept-console-error.js:57 Error boundary caught: Error: Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with "use server". Or maybe you meant to call this function rather than return it.
-  {$$typeof: ..., render: function Users}
-                          ^^^^^^^^^^^^^^
-    at stringify (<anonymous>:1:18)
-    at resolveErrorDev (react-server-dom-webpack-client.browser.development.js:2335:46)
-    at processFullStringRow (react-server-dom-webpack-client.browser.development.js:2821:23)
-    at processFullBinaryRow (react-server-dom-webpack-client.browser.development.js:2764:7)
-    at processBinaryChunk (react-server-dom-webpack-client.browser.development.js:2967:15)
-    at progress (react-server-dom-webpack-client.browser.development.js:3231:13)
-error @ intercept-console-error.js:57
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Cloning github.com/ishmaelchibvuri/263tube.com (Branch: dev, Commit: a7840d1)
+Previous build caches not available.
+Cloning completed: 801.000ms
+Running "vercel build"
+Vercel CLI 50.11.0
+Running "install" command: `cd frontend && yarn install`...
+sh: line 1: cd: frontend: No such file or directory
+Error: Command "cd frontend && yarn install" exited with 1
