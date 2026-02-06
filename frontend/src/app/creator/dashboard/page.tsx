@@ -37,8 +37,12 @@ import {
   ChevronRight,
   Inbox,
   LogOut,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getMyActivity, type ActivityItem } from "@/lib/actions/activity";
+import { ActivityCard } from "@/components/activity/ActivityCard";
+import { CreatorSearchAutocomplete } from "@/components/creators/CreatorSearchAutocomplete";
 
 // Mock data - replace with actual API calls
 interface CreatorProfile {
@@ -121,9 +125,11 @@ export default function CreatorDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [claimingProfile, setClaimingProfile] = useState(false);
+
   const [inquiries, setInquiries] = useState<SponsorshipInquiry[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(false);
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -138,6 +144,7 @@ export default function CreatorDashboardPage() {
 
     if (user) {
       loadCreatorProfile();
+      loadActivity();
     }
   }, [user, isLoading, router]);
 
@@ -177,6 +184,18 @@ export default function CreatorDashboardPage() {
     }
   };
 
+  const loadActivity = async () => {
+    setLoadingActivity(true);
+    try {
+      const items = await getMyActivity();
+      setActivityItems(items);
+    } catch (error) {
+      console.error("Error loading activity:", error);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
   const markInquiryAsRead = async (inquiryId: string) => {
     try {
       await fetch(`/api/inquiries/${inquiryId}/read`, { method: "POST" });
@@ -209,12 +228,13 @@ export default function CreatorDashboardPage() {
 
   const unreadCount = inquiries.filter((inq) => inq.status === "unread").length;
 
-  const searchProfiles = async () => {
-    if (!searchQuery.trim()) return;
+  const searchProfiles = async (query?: string) => {
+    const q = query || searchQuery;
+    if (!q.trim()) return;
 
     setSearching(true);
     try {
-      const response = await fetch(`/api/creators?search=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`/api/creators?search=${encodeURIComponent(q)}`);
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data.creators || []);
@@ -226,24 +246,6 @@ export default function CreatorDashboardPage() {
     }
   };
 
-  const claimProfile = async (creatorSlug: string) => {
-    setClaimingProfile(true);
-    try {
-      const response = await fetch(`/api/creators/${creatorSlug}/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        // Refresh the page to load the claimed profile
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Claim error:", error);
-    } finally {
-      setClaimingProfile(false);
-    }
-  };
 
   if (isLoading || loadingProfile) {
     return (
@@ -303,23 +305,16 @@ export default function CreatorDashboardPage() {
               </p>
 
               <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && searchProfiles()}
-                    placeholder="Search your name or channel..."
-                    className="flex-1 h-10 px-3 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#FFD200]/50"
-                  />
-                  <button
-                    onClick={searchProfiles}
-                    disabled={searching || !searchQuery.trim()}
-                    className="h-10 px-4 bg-[#FFD200] text-black font-medium rounded-lg hover:bg-[#FFD200]/90 disabled:opacity-50 transition-colors"
-                  >
-                    {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-                  </button>
-                </div>
+                <CreatorSearchAutocomplete
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSubmit={searchProfiles}
+                  onSelect={(suggestion) => router.push(`/claim?creator=${suggestion.slug}`)}
+                  placeholder="Search your name or channel..."
+                  navigateOnSelect={false}
+                  inputClassName="h-10"
+                  showIcon={true}
+                />
 
                 {searchResults.length > 0 && (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -341,13 +336,12 @@ export default function CreatorDashboardPage() {
                           <p className="text-sm font-medium text-white truncate">{creator.name}</p>
                           <p className="text-xs text-slate-500">{creator.niche}</p>
                         </div>
-                        <button
-                          onClick={() => claimProfile(creator.slug)}
-                          disabled={claimingProfile}
-                          className="px-3 py-1.5 text-xs font-medium bg-[#319E31] text-white rounded-lg hover:bg-[#319E31]/90 disabled:opacity-50"
+                        <Link
+                          href={`/claim?creator=${creator.slug}`}
+                          className="px-3 py-1.5 text-xs font-medium bg-[#319E31] text-white rounded-lg hover:bg-[#319E31]/90"
                         >
-                          {claimingProfile ? "Claiming..." : "Claim"}
-                        </button>
+                          Claim
+                        </Link>
                       </div>
                     ))}
                   </div>
@@ -398,6 +392,45 @@ export default function CreatorDashboardPage() {
                 <span>Receive sponsorship inquiries directly</span>
               </li>
             </ul>
+          </div>
+
+          {/* Activity Section */}
+          <div className="mt-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-[#DE2010]" />
+                Activity
+              </h2>
+              <Link
+                href="/dashboard/activity"
+                className="text-sm text-[#FFD200] hover:underline flex items-center gap-1"
+              >
+                View All
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {loadingActivity ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-[#DE2010] animate-spin" />
+              </div>
+            ) : activityItems.length > 0 ? (
+              <div className="space-y-3">
+                {activityItems.slice(0, 3).map((item) => (
+                  <ActivityCard key={item.requestId} item={item} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-8 text-center">
+                <div className="w-12 h-12 rounded-xl bg-[#DE2010]/10 flex items-center justify-center mx-auto mb-3">
+                  <ClipboardList className="w-6 h-6 text-[#DE2010]" />
+                </div>
+                <h3 className="text-sm font-medium text-white mb-1">No activity yet</h3>
+                <p className="text-xs text-slate-500">
+                  Submit or claim a creator profile to see your activity here.
+                </p>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -700,6 +733,45 @@ export default function CreatorDashboardPage() {
               </p>
               <p className="text-xs text-slate-400">
                 Tip: Complete your profile and add verified channels to attract more sponsors!
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Activity Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-[#DE2010]" />
+              Activity
+            </h2>
+            <Link
+              href="/dashboard/activity"
+              className="text-sm text-[#FFD200] hover:underline flex items-center gap-1"
+            >
+              View All
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loadingActivity ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 text-[#DE2010] animate-spin" />
+            </div>
+          ) : activityItems.length > 0 ? (
+            <div className="space-y-3">
+              {activityItems.slice(0, 3).map((item) => (
+                <ActivityCard key={item.requestId} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-8 text-center">
+              <div className="w-12 h-12 rounded-xl bg-[#DE2010]/10 flex items-center justify-center mx-auto mb-3">
+                <ClipboardList className="w-6 h-6 text-[#DE2010]" />
+              </div>
+              <h3 className="text-sm font-medium text-white mb-1">No activity yet</h3>
+              <p className="text-xs text-slate-500">
+                Submit or claim a creator profile to see your activity here.
               </p>
             </div>
           )}

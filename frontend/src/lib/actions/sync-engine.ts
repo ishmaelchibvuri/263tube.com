@@ -314,6 +314,103 @@ export async function syncAllCreatorStats(): Promise<SyncResult> {
 }
 
 // ============================================================================
+// Single Creator Sync
+// ============================================================================
+
+/**
+ * Sync stats for a single creator by slug.
+ * Recalculates totalReach from subscriber data and updates the DB.
+ * Used by the "Sync Now" button on the profile page.
+ */
+export async function syncSingleCreator(slug: string): Promise<SyncResult> {
+  try {
+    await requireAdmin();
+
+    const tableName = getTableName();
+
+    // Fetch the creator record
+    const result = await docClient.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "pk = :pk AND sk = :sk",
+        ExpressionAttributeValues: {
+          ":pk": `CREATOR#${slug}`,
+          ":sk": "METADATA",
+        },
+      })
+    );
+
+    const creator = result.Items?.[0];
+    if (!creator) {
+      return { success: false, message: `Creator "${slug}" not found.` };
+    }
+
+    // Recalculate total reach from subscriber data
+    let totalReach = 0;
+    const subscribers = creator.metrics?.subscribers || {};
+
+    for (const platform of Object.keys(subscribers)) {
+      totalReach += subscribers[platform] || 0;
+    }
+
+    // If no subscriber data, keep existing reach
+    if (totalReach === 0) {
+      totalReach = creator.metrics?.totalReach || 0;
+    }
+
+    const now = new Date().toISOString();
+    const reachSortKey = `${String(totalReach).padStart(12, "0")}#${slug}`;
+
+    // Update the creator's metrics
+    await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: {
+          pk: `CREATOR#${slug}`,
+          sk: "METADATA",
+        },
+        UpdateExpression:
+          "SET metrics.totalReach = :reach, gsi1sk = :gsi1sk, gsi2sk = :gsi2sk, updatedAt = :now",
+        ExpressionAttributeValues: {
+          ":reach": totalReach,
+          ":gsi1sk": reachSortKey,
+          ":gsi2sk": reachSortKey,
+          ":now": now,
+        },
+      })
+    );
+
+    // Revalidate relevant paths
+    revalidatePath(`/creator/${slug}`);
+    revalidatePath("/creators");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `Synced "${slug}" successfully. Total reach: ${totalReach.toLocaleString()}.`,
+      synced: 1,
+    };
+  } catch (error: any) {
+    console.error(`Error syncing creator ${slug}:`, error);
+
+    if (
+      error.message?.includes("UNAUTHORIZED") ||
+      error.message?.includes("FORBIDDEN")
+    ) {
+      return {
+        success: false,
+        message: "You are not authorized to perform this action.",
+      };
+    }
+
+    return {
+      success: false,
+      message: `Failed to sync "${slug}". Please try again.`,
+    };
+  }
+}
+
+// ============================================================================
 // Verified Badge Management
 // ============================================================================
 

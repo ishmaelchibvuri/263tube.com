@@ -13,7 +13,7 @@ import type { NextRequest } from "next/server";
 // Route configuration
 const PROTECTED_ROUTES = {
   admin: "/admin",
-  submit: "/submit",
+  dashboard: "/dashboard",
   creatorDashboard: "/creator/dashboard",
   creatorEdit: "/creator/*/edit",
   sponsorDashboard: "/sponsor/dashboard",
@@ -119,6 +119,19 @@ export function middleware(request: NextRequest) {
   }
 
   // ============================================================================
+  // User Dashboard Protection (any authenticated user)
+  // ============================================================================
+  if (pathname.startsWith(PROTECTED_ROUTES.dashboard)) {
+    if (!isAuthenticated) {
+      const loginUrl = new URL(REDIRECT_PATHS.login, request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
+
+  // ============================================================================
   // Creator Dashboard Protection (Creators only)
   // ============================================================================
   if (pathname.startsWith(PROTECTED_ROUTES.creatorDashboard)) {
@@ -130,28 +143,6 @@ export function middleware(request: NextRequest) {
     }
 
     // Only creators and admins can access creator dashboard
-    if (role !== "creator" && role !== "admin") {
-      return NextResponse.redirect(
-        new URL(REDIRECT_PATHS.unauthorized, request.url)
-      );
-    }
-
-    // Creator or Admin user -> allow access
-    return NextResponse.next();
-  }
-
-  // ============================================================================
-  // Submit Page Protection (Creators only)
-  // ============================================================================
-  if (pathname.startsWith(PROTECTED_ROUTES.submit)) {
-    // Not authenticated -> redirect to login
-    if (!isAuthenticated) {
-      const loginUrl = new URL(REDIRECT_PATHS.login, request.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Only creators and admins can access submit page
     if (role !== "creator" && role !== "admin") {
       return NextResponse.redirect(
         new URL(REDIRECT_PATHS.unauthorized, request.url)
@@ -216,13 +207,13 @@ export const config = {
   matcher: [
     // Match admin routes
     "/admin/:path*",
+    // Match user dashboard (any authenticated user)
+    "/dashboard/:path*",
     // Match creator dashboard (creator-only)
     "/creator/dashboard/:path*",
     // Match creator edit pages (creator-only)
     "/creator/:slug/edit/:path*",
     // Match sponsor dashboard (sponsor-only)
     "/sponsor/dashboard/:path*",
-    // Match submit page (creator-only)
-    "/submit/:path*",
   ],
 };

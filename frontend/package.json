@@ -17,7 +17,9 @@
     "cap:sync:android": "npx cap sync android"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.985.0",
     "@aws-sdk/client-ses": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.985.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^3.3.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",

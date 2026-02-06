@@ -29,12 +29,15 @@ export function CreatorsGrid({ creators }: CreatorsGridProps) {
   const searchParams = useSearchParams();
 
   // Initial filters from URL params
+  const platformParam = searchParams.get("platform");
+  const PLATFORM_NAMES = ["YouTube", "TikTok", "Instagram", "Facebook", "X"];
+  const matchedPlatform = platformParam
+    ? PLATFORM_NAMES.find((p) => p.toLowerCase() === platformParam.toLowerCase()) || "All"
+    : "All";
   const initialFilters: Partial<FilterState> = {
     searchQuery: searchParams.get("search") || "",
     selectedNiche: searchParams.get("niche") || "All",
-    selectedPlatform:
-      searchParams.get("platform")?.charAt(0).toUpperCase() +
-        (searchParams.get("platform")?.slice(1) || "") || "All",
+    selectedPlatform: matchedPlatform,
     sortBy: searchParams.get("sort") || "reach",
   };
 

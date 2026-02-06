@@ -49,8 +49,12 @@ export interface CreatorPlatforms {
 export interface CreatorMetrics {
   totalReach: number;
   monthlyViews?: number;
+  rollingMonthlyViews?: number;
   engagement?: number;
+  engagementRate?: string;
   totalVideos?: number;
+  videoCount?: number;
+  postCount?: number;
   subscribers?: {
     youtube?: number;
     instagram?: number;
@@ -65,6 +69,14 @@ export interface ReferralStats {
   lastReferralAt?: string;
 }
 
+export interface VerifiedLink {
+  platform: string;
+  displayName: string | null;
+  image: string | null;
+  followers: number | null;
+  verifiedAt: string;
+}
+
 export interface Creator {
   // Primary identifiers
   slug: string;
@@ -73,6 +85,7 @@ export interface Creator {
   // Profile information
   bio: string;
   profilePicUrl?: string;
+  primaryProfileImage?: string | null;
   bannerUrl?: string;
   coverImageUrl?: string;
 
@@ -85,6 +98,9 @@ export interface Creator {
   status: "ACTIVE" | "PENDING" | "FEATURED" | "INACTIVE";
   verified: boolean;
 
+  // Ownership — userId of the account that claimed this profile
+  claimedBy?: string | null;
+
   // Social platforms
   platforms: CreatorPlatforms;
 
@@ -93,6 +109,9 @@ export interface Creator {
 
   // Referral stats for gamification
   referralStats?: ReferralStats;
+
+  // Verified links from platform verification
+  verifiedLinks?: VerifiedLink[];
 
   // Featured content
   topVideo?: {
@@ -662,6 +681,7 @@ function mapDynamoItemToCreator(item: Record<string, any>): Creator {
     name: item.name,
     bio: item.bio,
     profilePicUrl: item.profilePicUrl,
+    primaryProfileImage: item.primaryProfileImage || null,
     bannerUrl: item.bannerUrl,
     coverImageUrl: item.coverImageUrl,
     niche: item.niche,
@@ -669,9 +689,11 @@ function mapDynamoItemToCreator(item: Record<string, any>): Creator {
     location: item.location,
     status: item.status,
     verified: item.verified || false,
+    claimedBy: item.claimedBy || null,
     platforms: item.platforms || {},
     metrics: item.metrics || { totalReach: 0 },
     referralStats: item.referralStats || { currentWeek: 0, allTime: 0 },
+    verifiedLinks: item.verifiedLinks || [],
     topVideo: item.topVideo,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,

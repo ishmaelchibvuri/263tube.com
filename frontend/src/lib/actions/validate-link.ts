@@ -10,9 +10,20 @@
  * Includes rate limiting to prevent IP blocks from platforms.
  */
 
+import { writeFileSync, mkdirSync } from "fs";
+import { resolve } from "path";
+
 // ============================================================================
 // Types
 // ============================================================================
+
+export interface YouTubeEnrichment {
+  totalVideos: number | null;
+  monthlyViews: number | null;
+  engagementRate: number | null; // avg((likes+comments)/views) * 100
+  channelId: string | null;
+  dataFetchedAt: string;
+}
 
 export interface ValidationResult {
   success: boolean;
@@ -21,6 +32,7 @@ export interface ValidationResult {
   image: string | null;
   followers: number | null;
   error?: string;
+  youtubeEnrichment?: YouTubeEnrichment;
 }
 
 export interface PlatformValidationRequest {
@@ -115,7 +127,139 @@ function normalizeFacebookUrl(handleOrUrl: string): string {
 // ============================================================================
 
 /**
- * Validate YouTube channel using YouTube Data API
+ * Fetch enrichment data (recent video stats) for a YouTube channel.
+ * Returns enrichment with monthly views & engagement, or a basic fallback.
+ */
+async function enrichYouTubeData(
+  uploadsPlaylistId: string,
+  videoCountFromStats: number | null,
+  channelId: string,
+  apiKey: string
+): Promise<YouTubeEnrichment> {
+  const fallback: YouTubeEnrichment = {
+    totalVideos: videoCountFromStats,
+    monthlyViews: null,
+    engagementRate: null,
+    channelId,
+    dataFetchedAt: new Date().toISOString(),
+  };
+
+  try {
+    // 1. Fetch 10 recent videos from uploads playlist (1 quota unit)
+    const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=10&key=${apiKey}`;
+    const playlistRes = await fetch(playlistUrl);
+    if (!playlistRes.ok) return fallback;
+    const playlistData = await playlistRes.json();
+
+    const videoIds: string[] = (playlistData.items || []).map(
+      (item: any) => item.contentDetails.videoId
+    );
+    if (videoIds.length === 0) return fallback;
+
+    // 2. Batch fetch video stats (1 quota unit)
+    const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(",")}&key=${apiKey}`;
+    const videosRes = await fetch(videosUrl);
+    if (!videosRes.ok) return fallback;
+    const videosData = await videosRes.json();
+
+    const videos: any[] = videosData.items || [];
+    if (videos.length === 0) return fallback;
+
+    // 3. Calculate monthly views (videos published in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    let monthlyViews = 0;
+    let hasRecentVideos = false;
+
+    for (const video of videos) {
+      const publishedAt = new Date(video.snippet.publishedAt);
+      if (publishedAt >= thirtyDaysAgo) {
+        hasRecentVideos = true;
+        monthlyViews += parseInt(video.statistics.viewCount) || 0;
+      }
+    }
+
+    // 4. Calculate engagement: avg((likes + comments) / views) * 100
+    let totalEngagement = 0;
+    let engagementSamples = 0;
+
+    for (const video of videos) {
+      const views = parseInt(video.statistics.viewCount) || 0;
+      if (views === 0) continue;
+      const likes = parseInt(video.statistics.likeCount) || 0;
+      const comments = parseInt(video.statistics.commentCount) || 0;
+      totalEngagement += (likes + comments) / views;
+      engagementSamples++;
+    }
+
+    const engagementRate =
+      engagementSamples > 0
+        ? Math.round((totalEngagement / engagementSamples) * 100 * 100) / 100
+        : null;
+
+    return {
+      totalVideos: videoCountFromStats,
+      monthlyViews: hasRecentVideos ? monthlyViews : null,
+      engagementRate,
+      channelId,
+      dataFetchedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("YouTube enrichment error:", error);
+    return fallback;
+  }
+}
+
+/**
+ * Make a YouTube API call with abort timeout and standard error handling.
+ * Returns parsed JSON on success or null on failure.
+ */
+async function youtubeApiFetch(url: string): Promise<any | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    clearTimeout(timeoutId);
+    return null;
+  }
+}
+
+/**
+ * Download a YouTube profile image locally to avoid CDN anti-hotlinking.
+ * Returns the local public path on success, or the original URL as fallback.
+ */
+async function downloadYouTubeImage(
+  imageUrl: string,
+  channelId: string
+): Promise<string> {
+  try {
+    const imagesDir = resolve(process.cwd(), "public/images/creators");
+    mkdirSync(imagesDir, { recursive: true });
+
+    const res = await fetch(imageUrl);
+    if (!res.ok) return imageUrl;
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const filename = `${channelId}-profile.jpg`;
+    writeFileSync(resolve(imagesDir, filename), buffer);
+
+    return `/images/creators/${filename}`;
+  } catch (error) {
+    console.warn("Failed to download YouTube image, using CDN URL:", error);
+    return imageUrl;
+  }
+}
+
+/**
+ * Validate YouTube channel using YouTube Data API.
+ *
+ * Handle-based lookups use channels.list?forHandle (1 unit) instead of
+ * search.list (100 units). search.list is kept as fallback for /c/ and /user/ URLs.
  */
 async function validateYouTube(handleOrUrl: string): Promise<ValidationResult> {
   const url = normalizeYouTubeUrl(handleOrUrl);
@@ -134,7 +278,6 @@ async function validateYouTube(handleOrUrl: string): Promise<ValidationResult> {
   }
 
   try {
-    // Extract channel handle or ID from URL
     const channelMatch = url.match(
       /youtube\.com\/(channel\/([^/?]+)|c\/([^/?]+)|@([^/?]+)|user\/([^/?]+))/
     );
@@ -143,52 +286,46 @@ async function validateYouTube(handleOrUrl: string): Promise<ValidationResult> {
       return validateViaOpenGraph(url, "YouTube");
     }
 
-    const channelId = channelMatch[2]; // Direct channel ID
-    const handle = channelMatch[4] || channelMatch[3] || channelMatch[5];
+    const channelId = channelMatch[2];
+    const atHandle = channelMatch[4]; // @handle format
+    const legacyHandle = channelMatch[3] || channelMatch[5]; // /c/ or /user/
 
-    let apiUrl: string;
+    let channelData: any = null;
 
     if (channelId) {
-      apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`;
-    } else if (handle) {
-      // Need to search for the channel by handle
-      apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${handle}&type=channel&key=${apiKey}`;
-    } else {
+      // Direct channel ID lookup (1 unit)
+      channelData = await youtubeApiFetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${channelId}&key=${apiKey}`
+      );
+    } else if (atHandle) {
+      // Optimized: forHandle lookup (1 unit) instead of search.list (100 units)
+      channelData = await youtubeApiFetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&forHandle=${atHandle}&key=${apiKey}`
+      );
+    } else if (legacyHandle) {
+      // Fallback: search.list for legacy /c/ and /user/ URLs (100 units)
+      const searchData = await youtubeApiFetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${legacyHandle}&type=channel&key=${apiKey}`
+      );
+      if (searchData?.items?.[0]?.id?.channelId) {
+        channelData = await youtubeApiFetch(
+          `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${searchData.items[0].id.channelId}&key=${apiKey}`
+        );
+      }
+    }
+
+    if (!channelData) {
       return {
         success: false,
         platform: "YouTube",
         displayName: null,
         image: null,
         followers: null,
-        error: "Could not extract channel ID from URL. Please use a valid YouTube channel URL.",
+        error: "Failed to fetch channel data. Please try again.",
       };
     }
 
-    // Add timeout for API call
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
-    const response = await fetch(apiUrl, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("YouTube API error:", response.status, errorText);
-      return {
-        success: false,
-        platform: "YouTube",
-        displayName: null,
-        image: null,
-        followers: null,
-        error: response.status === 403
-          ? "YouTube API quota exceeded. Please try again later."
-          : `YouTube API error (${response.status}). Please try again.`,
-      };
-    }
-
-    const data = await response.json();
-
-    if (!data.items || data.items.length === 0) {
+    if (!channelData.items || channelData.items.length === 0) {
       return {
         success: false,
         platform: "YouTube",
@@ -199,39 +336,49 @@ async function validateYouTube(handleOrUrl: string): Promise<ValidationResult> {
       };
     }
 
-    const channel = data.items[0];
+    const channel = channelData.items[0];
+    const displayName = channel.snippet.title;
+    const rawImage =
+      channel.snippet.thumbnails?.high?.url ||
+      channel.snippet.thumbnails?.default?.url ||
+      null;
+    // Download profile image locally to avoid YouTube CDN anti-hotlinking
+    const image = rawImage
+      ? await downloadYouTubeImage(rawImage, channel.id)
+      : null;
+    const followers = parseInt(channel.statistics?.subscriberCount) || null;
+    const videoCount = parseInt(channel.statistics?.videoCount) || null;
+    const resolvedChannelId = channel.id;
+    const uploadsPlaylistId =
+      channel.contentDetails?.relatedPlaylists?.uploads;
 
-    // If we got search results, we need to fetch full channel data
-    if (!channel.statistics) {
-      const channelResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channel.id.channelId}&key=${apiKey}`
+    // Enrich with video-level stats if uploads playlist is available
+    let youtubeEnrichment: YouTubeEnrichment;
+
+    if (uploadsPlaylistId) {
+      youtubeEnrichment = await enrichYouTubeData(
+        uploadsPlaylistId,
+        videoCount,
+        resolvedChannelId,
+        apiKey
       );
-      const channelData = await channelResponse.json();
-
-      if (channelData.items && channelData.items.length > 0) {
-        const fullChannel = channelData.items[0];
-        return {
-          success: true,
-          platform: "YouTube",
-          displayName: fullChannel.snippet.title,
-          image: fullChannel.snippet.thumbnails?.high?.url ||
-            fullChannel.snippet.thumbnails?.default?.url ||
-            null,
-          followers: parseInt(fullChannel.statistics.subscriberCount) || null,
-        };
-      }
+    } else {
+      youtubeEnrichment = {
+        totalVideos: videoCount,
+        monthlyViews: null,
+        engagementRate: null,
+        channelId: resolvedChannelId,
+        dataFetchedAt: new Date().toISOString(),
+      };
     }
 
     return {
       success: true,
       platform: "YouTube",
-      displayName: channel.snippet.title,
-      image: channel.snippet.thumbnails?.high?.url ||
-        channel.snippet.thumbnails?.default?.url ||
-        null,
-      followers: channel.statistics
-        ? parseInt(channel.statistics.subscriberCount) || null
-        : null,
+      displayName,
+      image,
+      followers,
+      youtubeEnrichment,
     };
   } catch (error: any) {
     console.error("YouTube validation error:", error);

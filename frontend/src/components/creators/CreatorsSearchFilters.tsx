@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  Search,
   X,
   Youtube,
   Instagram,
@@ -11,6 +10,7 @@ import {
   Music2,
   SlidersHorizontal,
 } from "lucide-react";
+import { CreatorSearchAutocomplete } from "./CreatorSearchAutocomplete";
 
 const NICHES = [
   "All",
@@ -98,16 +98,14 @@ export function CreatorsSearchFilters({
       <div className="max-w-7xl mx-auto">
         {/* Search Bar */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search creators..."
-              value={filters.searchQuery}
-              onChange={(e) => updateFilter("searchQuery", e.target.value)}
-              className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#DE2010]/50 transition-colors"
-            />
-          </div>
+          <CreatorSearchAutocomplete
+            value={filters.searchQuery}
+            onChange={(val) => updateFilter("searchQuery", val)}
+            placeholder="Search creators..."
+            showIcon={true}
+            navigateOnSelect={true}
+            className="flex-1"
+          />
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center justify-center gap-2 h-12 px-4 rounded-xl border transition-all ${

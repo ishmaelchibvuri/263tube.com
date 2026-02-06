@@ -1,42 +1,34 @@
-Prompt for Claude: Admin Dashboard & Auto-Sync Engine
-Context: We need to build the full Admin functionality for 263Tube. The Admin needs a centralized dashboard to manage the platform and an automated system to keep creator stats fresh.
+Final Consolidated Prompt (The "All-In-One" Refactor)
+Context: We are moving the entire platform's niche/category system from static code to a dynamic, database-driven model. This must affect the Creator Submission form, the filtering system, and all category-specific pages.
 
-Task 1: The Admin Dashboard Layout (app/admin/dashboard/page.tsx)
+Task 1: The Global Category Fetcher (src/lib/actions/categories.ts)
 
-Create a grid-based dashboard with the following "Quick Stats":
+Create an async function getAllCategories().
 
-Total Creators (Active vs. Pending).
+Logic: Query the DynamoDB CATEGORIES table (or the unique attributes from the CREATORS table).
 
-Total Platform Reach (Sum of all creator reach).
+Caching: Use Next.js unstable_cache or revalidatePath to ensure this isn't hitting the database on every single hover/click, but refreshes whenever a new niche is added.
 
-Inquiry Volume (Total business leads generated).
+Task 2: Dynamic Submission Form (app/submit/page.tsx)
 
-Add a "System Actions" sidebar with buttons for:
+Replace the hard-coded NICHES import with the result of await getAllCategories().
 
-Trigger Global Sync (Manual override for stats update).
+Ensure that when a user is creating a profile, the dropdown/multi-select reflects every category currently in the database.
 
-Manage Submissions (Link to the approval queue).
+Task 3: Dynamic Navigation & Filtering (app/categories/page.tsx & components/FilterBar.tsx)
 
-Task 2: The Auto-Sync Service (src/lib/actions/sync-engine.ts)
+Refactor the "Categories" landing page and the search filter sidebar to be Server Components.
 
-Create a server action syncAllCreatorStats().
+They must dynamically map the list of categories from the database into <Link> and <Button> components.
 
-Logic:
+Filter Logic: Ensure that clicking a category triggers a search query that matches the new dynamic niche values.
 
-Fetch all STATUS#ACTIVE creators.
+Task 4: Missing Category Auto-Injection
 
-For each creator, iterate through their verifiedLinks.
+Update the Sync Engine (src/lib/actions/sync-engine.ts) so that when a new YouTube category is found (e.g., "Nonprofits"):
 
-Call the relevant validatePlatformLink logic (from our previous module) to get the latest follower/sub counts.
+It is added to the CATEGORIES table.
 
-Update the metrics.totalReach and referralStats in DynamoDB.
+revalidatePath('/') is called.
 
-Efficiency: Use Promise.all() to fetch data in batches so the sync doesn't take forever.
-
-Task 3: The "Verified" Badge Management
-
-In the Admin UI, add a toggle for "Manual Verification Override." This allows the Admin to manually mark a creator as verified even if the API scraper had trouble with their specific Instagram/TikTok profile.
-
-Task 4: Admin Search & Filter
-
-Provide a searchable table of all registered users so the Admin can quickly find a creator and impersonate/edit their profile if they report a bug.
+Result: The moment you sync a new creator, their category immediately appears in the filters and navigation for all users without you writing a single line of code.

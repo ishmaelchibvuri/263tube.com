@@ -16,10 +16,12 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   DeleteCommand,
+  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { revalidatePath } from "next/cache";
 import { createCreator, type Creator } from "@/lib/creators";
 import { requireAdmin } from "@/lib/auth-server";
+import { verifyChannelOwnership } from "@/lib/actions/verify-owner";
 
 // Initialize DynamoDB client
 const dynamoClient = new DynamoDBClient({
@@ -53,12 +55,31 @@ export interface RejectCreatorResult {
   message: string;
 }
 
+export interface VerificationProofResult {
+  success: boolean;
+  message: string;
+  verificationCode?: string;
+}
+
+export interface ReverifyResult {
+  success: boolean;
+  message: string;
+  riskLevel?: string;
+}
+
 interface VerifiedLinkData {
   platform: string;
   displayName: string | null;
   image: string | null;
   followers: number | null;
   verifiedAt: string;
+  youtubeEnrichment?: {
+    totalVideos: number | null;
+    monthlyViews: number | null;
+    engagementRate: number | null;
+    channelId: string | null;
+    dataFetchedAt: string;
+  };
 }
 
 interface PlatformLinkWithVerification {
@@ -68,6 +89,17 @@ interface PlatformLinkWithVerification {
   verifiedDisplayName?: string | null;
   verifiedImage?: string | null;
   verifiedFollowers?: number | null;
+}
+
+export interface OwnershipVerification {
+  isVerified: boolean;
+  channelTitle: string | null;
+  channelId: string | null;
+  riskLevel: "verified" | "unverified" | "suspicious";
+  emailFound: string | null;
+  emailChecked: string | null;
+  message: string;
+  verifiedAt: string;
 }
 
 export interface PendingRequest {
@@ -99,6 +131,9 @@ export interface PendingRequest {
   verifiedLinks?: VerifiedLinkData[];
   primaryProfileImage?: string | null;
   verifiedLinkCount?: number;
+  // Ownership verification
+  ownershipVerification?: OwnershipVerification;
+  verificationCode?: string | null;
 }
 
 // ============================================================================
@@ -106,33 +141,23 @@ export interface PendingRequest {
 // ============================================================================
 
 /**
- * Approve a pending creator submission
- *
- * Steps:
- * 1. Verify admin authorization
- * 2. Fetch the pending request from DynamoDB
- * 3. Transform to Creator object
- * 4. Create the creator in DynamoDB
- * 5. Delete the pending request
- * 6. Revalidate relevant paths
+ * Internal helper: approve a creator with optional forced verification badge
  */
-export async function approveCreator(requestPk: string): Promise<ApproveCreatorResult> {
+async function approveCreatorInternal(
+  requestPk: string,
+  forceVerified: boolean
+): Promise<ApproveCreatorResult> {
   try {
-    // Verify admin authorization
     await requireAdmin();
 
     const tableName = getTableName();
 
-    // Fetch the pending request
-    const getCommand = new GetCommand({
+    const getCmd = new GetCommand({
       TableName: tableName,
-      Key: {
-        pk: requestPk,
-        sk: "METADATA",
-      },
+      Key: { pk: requestPk, sk: "METADATA" },
     });
 
-    const response = await docClient.send(getCommand);
+    const response = await docClient.send(getCmd);
 
     if (!response.Item) {
       return { success: false, message: "Pending request not found" };
@@ -140,10 +165,8 @@ export async function approveCreator(requestPk: string): Promise<ApproveCreatorR
 
     const request = response.Item as PendingRequest;
 
-    // Determine the primary niche (support both old single niche and new niches array)
     const primaryNiche = request.primaryNiche || request.niches?.[0] || request.niche || "entertainment";
 
-    // Calculate total reach from verified links
     let totalReach = 0;
     const subscriberCounts: Creator["metrics"]["subscribers"] = {};
 
@@ -159,7 +182,32 @@ export async function approveCreator(requestPk: string): Promise<ApproveCreatorR
       }
     }
 
-    // Transform pending request to Creator object
+    // Extract YouTube enrichment data from verified links
+    let totalVideos = 0;
+    let monthlyViews = 0;
+    let primaryEngagementRate: number | null = null;
+    let hasVideoData = false;
+    let hasMonthlyViewData = false;
+
+    if (request.verifiedLinks && request.verifiedLinks.length > 0) {
+      for (const link of request.verifiedLinks) {
+        const enrichment = link.youtubeEnrichment;
+        if (!enrichment) continue;
+
+        if (enrichment.totalVideos != null) {
+          totalVideos += enrichment.totalVideos;
+          hasVideoData = true;
+        }
+        if (enrichment.monthlyViews != null) {
+          monthlyViews += enrichment.monthlyViews;
+          hasMonthlyViewData = true;
+        }
+        if (primaryEngagementRate == null && enrichment.engagementRate != null) {
+          primaryEngagementRate = enrichment.engagementRate;
+        }
+      }
+    }
+
     const now = new Date().toISOString();
     const creator: Creator = {
       slug: request.slug,
@@ -167,11 +215,14 @@ export async function approveCreator(requestPk: string): Promise<ApproveCreatorR
       bio: request.about || `${request.creatorName} is a ${primaryNiche} creator.`,
       niche: primaryNiche,
       status: "ACTIVE",
-      verified: (request.verifiedLinkCount || 0) > 0,
+      verified: forceVerified || (request.verifiedLinkCount || 0) > 0,
       platforms: transformPlatformLinks(request.platformLinks),
       metrics: {
         totalReach,
         subscribers: Object.keys(subscriberCounts).length > 0 ? subscriberCounts : undefined,
+        ...(hasVideoData ? { totalVideos } : {}),
+        ...(hasMonthlyViewData ? { monthlyViews } : {}),
+        ...(primaryEngagementRate != null ? { engagement: primaryEngagementRate } : {}),
       },
       referralStats: {
         currentWeek: 0,
@@ -181,51 +232,43 @@ export async function approveCreator(requestPk: string): Promise<ApproveCreatorR
       updatedAt: now,
     };
 
-    // Add profile picture from verified data
     if (request.primaryProfileImage) {
       creator.profilePicUrl = request.primaryProfileImage;
     }
 
-    // Add website if provided
     if (request.website) {
       creator.platforms.website = [
         { label: "Website", url: request.website },
       ];
     }
 
-    // Store additional niches as tags for future multi-niche support
     if (request.niches && request.niches.length > 1) {
       creator.tags = request.niches.slice(1);
     }
 
-    // Add custom niche to tags if provided
     if (request.customNiche) {
       creator.tags = [...(creator.tags || []), request.customNiche];
     }
 
-    // Create the creator in DynamoDB
     await createCreator(creator);
 
-    // Delete the pending request
     const deleteCommand = new DeleteCommand({
       TableName: tableName,
-      Key: {
-        pk: requestPk,
-        sk: "METADATA",
-      },
+      Key: { pk: requestPk, sk: "METADATA" },
     });
 
     await docClient.send(deleteCommand);
 
-    // Revalidate paths
     revalidatePath("/admin/submissions");
     revalidatePath("/admin");
     revalidatePath("/creators");
     revalidatePath("/");
+    revalidatePath("/dashboard/activity");
+    revalidatePath("/track", "layout");
 
     return {
       success: true,
-      message: `Creator "${request.creatorName}" has been approved and is now live!`,
+      message: `Creator "${request.creatorName}" has been approved${forceVerified ? " with verified badge" : ""} and is now live!`,
       creatorSlug: request.slug,
     };
   } catch (error: any) {
@@ -240,6 +283,193 @@ export async function approveCreator(requestPk: string): Promise<ApproveCreatorR
     }
 
     return { success: false, message: "Failed to approve creator. Please try again." };
+  }
+}
+
+/**
+ * Approve a pending creator submission (standard)
+ */
+export async function approveCreator(requestPk: string): Promise<ApproveCreatorResult> {
+  return approveCreatorInternal(requestPk, false);
+}
+
+/**
+ * Approve a pending creator with forced verified badge
+ */
+export async function approveWithBadge(requestPk: string): Promise<ApproveCreatorResult> {
+  return approveCreatorInternal(requestPk, true);
+}
+
+/**
+ * Request verification proof from a creator
+ * Generates a unique code and sets status to PENDING_VERIFICATION
+ */
+export async function requestVerificationProof(
+  requestPk: string
+): Promise<VerificationProofResult> {
+  try {
+    await requireAdmin();
+
+    const tableName = getTableName();
+
+    const getCmd = new GetCommand({
+      TableName: tableName,
+      Key: { pk: requestPk, sk: "METADATA" },
+    });
+
+    const response = await docClient.send(getCmd);
+
+    if (!response.Item) {
+      return { success: false, message: "Pending request not found" };
+    }
+
+    // Generate verification code: 263TUBE-XXXX-XXXX
+    const hex = () => Math.random().toString(16).substring(2, 6).toUpperCase();
+    const code = `263TUBE-${hex()}-${hex()}`;
+
+    const updateCmd = new UpdateCommand({
+      TableName: tableName,
+      Key: { pk: requestPk, sk: "METADATA" },
+      UpdateExpression: "SET #s = :status, verificationCode = :code, updatedAt = :now",
+      ExpressionAttributeNames: { "#s": "status" },
+      ExpressionAttributeValues: {
+        ":status": "PENDING_VERIFICATION",
+        ":code": code,
+        ":now": new Date().toISOString(),
+      },
+    });
+
+    await docClient.send(updateCmd);
+
+    revalidatePath("/admin/submissions");
+    revalidatePath("/dashboard/activity");
+    revalidatePath("/track", "layout");
+
+    return {
+      success: true,
+      message: `Verification code generated. Share this with the creator to place in their YouTube channel description.`,
+      verificationCode: code,
+    };
+  } catch (error: any) {
+    console.error("Error requesting verification proof:", error);
+
+    if (error.message?.includes("UNAUTHORIZED") || error.message?.includes("FORBIDDEN")) {
+      return { success: false, message: "You are not authorized to perform this action" };
+    }
+
+    return { success: false, message: "Failed to generate verification code. Please try again." };
+  }
+}
+
+/**
+ * Re-run ownership verification for a pending request
+ * Also checks for verificationCode in channel description
+ */
+export async function reverifyOwnership(
+  requestPk: string
+): Promise<ReverifyResult> {
+  try {
+    await requireAdmin();
+
+    const tableName = getTableName();
+
+    const getCmd = new GetCommand({
+      TableName: tableName,
+      Key: { pk: requestPk, sk: "METADATA" },
+    });
+
+    const response = await docClient.send(getCmd);
+
+    if (!response.Item) {
+      return { success: false, message: "Pending request not found" };
+    }
+
+    const request = response.Item as PendingRequest;
+
+    // Find the first YouTube URL
+    const youtubeLinks = request.platformLinks?.YouTube || request.platformLinks?.youtube || [];
+    const firstYouTubeUrl = youtubeLinks.find((l) => l.url.trim())?.url;
+
+    if (!firstYouTubeUrl) {
+      return { success: false, message: "No YouTube link found on this submission." };
+    }
+
+    // Re-run verification
+    const result = await verifyChannelOwnership(firstYouTubeUrl, request.submitterEmail);
+
+    // Also check for verification code in the description if one was issued
+    let codeVerified = false;
+    if (
+      !result.isVerified &&
+      request.verificationCode &&
+      result.channelId
+    ) {
+      // The channel description is already checked in verifyChannelOwnership,
+      // but we need to specifically look for the verification code
+      // We can use the YouTube API to fetch the description and check
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      if (apiKey) {
+        try {
+          const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${result.channelId}&key=${apiKey}`;
+          const apiResponse = await fetch(apiUrl);
+          if (apiResponse.ok) {
+            const data = await apiResponse.json();
+            const description = data.items?.[0]?.snippet?.description || "";
+            if (description.includes(request.verificationCode)) {
+              codeVerified = true;
+            }
+          }
+        } catch {
+          // Non-critical
+        }
+      }
+    }
+
+    const ownershipVerification: OwnershipVerification = {
+      isVerified: result.isVerified || codeVerified,
+      channelTitle: result.channelTitle,
+      channelId: result.channelId,
+      riskLevel: result.isVerified || codeVerified ? "verified" : result.riskLevel,
+      emailFound: result.emailFound,
+      emailChecked: result.emailChecked,
+      message: codeVerified
+        ? "Verified via verification code in channel description."
+        : result.message,
+      verifiedAt: new Date().toISOString(),
+    };
+
+    // Update the record
+    const updateCmd = new UpdateCommand({
+      TableName: tableName,
+      Key: { pk: requestPk, sk: "METADATA" },
+      UpdateExpression: "SET ownershipVerification = :ov, updatedAt = :now",
+      ExpressionAttributeValues: {
+        ":ov": ownershipVerification,
+        ":now": new Date().toISOString(),
+      },
+    });
+
+    await docClient.send(updateCmd);
+
+    revalidatePath("/admin/submissions");
+    revalidatePath("/dashboard/activity");
+    revalidatePath("/track", "layout");
+
+    return {
+      success: true,
+      message: ownershipVerification.isVerified
+        ? `Ownership verified for "${request.creatorName}"!`
+        : `Re-verification complete. Risk level: ${ownershipVerification.riskLevel}`,
+      riskLevel: ownershipVerification.riskLevel,
+    };
+  } catch (error: any) {
+    console.error("Error re-verifying ownership:", error);
+
+    if (error.message?.includes("UNAUTHORIZED") || error.message?.includes("FORBIDDEN")) {
+      return { success: false, message: "You are not authorized to perform this action" };
+    }
+
+    return { success: false, message: "Failed to re-verify ownership. Please try again." };
   }
 }
 
@@ -288,6 +518,8 @@ export async function rejectCreator(requestPk: string): Promise<RejectCreatorRes
 
     // Revalidate paths
     revalidatePath("/admin/submissions");
+    revalidatePath("/dashboard/activity");
+    revalidatePath("/track", "layout");
 
     return {
       success: true,

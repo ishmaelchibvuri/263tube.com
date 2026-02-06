@@ -9,13 +9,15 @@ import {
   Eye,
   Heart,
   Briefcase,
-  ExternalLink,
 } from "lucide-react";
-import { fetchCreatorBySlug } from "@/lib/api-client";
-import { SocialLinkGroup, StatsBadge, ContactCreatorForm } from "@/components/creators";
+import { getCreatorBySlug } from "@/lib/creators";
+import { getServerSession, isAdmin } from "@/lib/auth-server";
+import { SocialLinkGroup, StatsBadge, ContactCreatorForm, ClaimButton } from "@/components/creators";
 import { ReferralTracker } from "@/components/creators/ReferralTracker";
 import { ShareButton } from "@/components/creators/ShareButton";
 import { AuthButton } from "@/components/home/AuthButton";
+import { SyncButton } from "@/components/creators/SyncButton";
+import type { Creator } from "@/lib/creators";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,44 +25,115 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Generate metadata for SEO
+// ============================================================================
+// Source of Truth: Profile Image Resolution
+// ============================================================================
+
+/**
+ * Resolve the profile image using the Source of Truth chain:
+ * 1. creator.primaryProfileImage (set during verification)
+ * 2. verifiedImage from the YouTube link record
+ * 3. Generic avatar fallback (null - handled in JSX)
+ */
+function resolveProfileImage(creator: Creator): string | null {
+  // 1. Primary profile image (populated during verification phase)
+  if (creator.primaryProfileImage) {
+    return creator.primaryProfileImage;
+  }
+
+  // 2. Fallback: verifiedImage from YouTube link
+  if (creator.verifiedLinks && creator.verifiedLinks.length > 0) {
+    const youtubeLink = creator.verifiedLinks.find(
+      (link) => link.platform.toLowerCase() === "youtube" && link.image
+    );
+    if (youtubeLink?.image) {
+      return youtubeLink.image;
+    }
+
+    // Try any verified link with an image
+    const anyWithImage = creator.verifiedLinks.find((link) => link.image);
+    if (anyWithImage?.image) {
+      return anyWithImage.image;
+    }
+  }
+
+  // 3. Fall back to existing profilePicUrl if present
+  if (creator.profilePicUrl) {
+    return creator.profilePicUrl;
+  }
+
+  // Final fallback: null (rendered as initial avatar in JSX)
+  return null;
+}
+
+// ============================================================================
+// SEO Metadata
+// ============================================================================
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const creator = await fetchCreatorBySlug(slug);
+  const creator = await getCreatorBySlug(slug);
 
   if (!creator) {
     return {
-      title: "Creator Not Found - 263Tube",
+      title: "Creator Not Found | 263Tube",
     };
   }
 
+  const profileImage = resolveProfileImage(creator);
+
   return {
-    title: `${creator.name} - 263Tube`,
+    title: `${creator.name} | 263Tube`,
     description: creator.bio || `Check out ${creator.name} on 263Tube - Zimbabwe's creator directory`,
     openGraph: {
-      title: `${creator.name} - 263Tube`,
+      title: `${creator.name} | 263Tube`,
       description: creator.bio || `Check out ${creator.name} on 263Tube`,
-      images: creator.profilePicUrl ? [creator.profilePicUrl] : [],
+      images: profileImage ? [profileImage] : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${creator.name} - 263Tube`,
+      title: `${creator.name} | 263Tube`,
       description: creator.bio || `Check out ${creator.name} on 263Tube`,
-      images: creator.profilePicUrl ? [creator.profilePicUrl] : [],
+      images: profileImage ? [profileImage] : [],
     },
   };
 }
 
+// ============================================================================
+// Page Component
+// ============================================================================
+
 export default async function CreatorProfilePage({ params }: PageProps) {
   const { slug } = await params;
 
-  // Fetch creator data from DynamoDB
-  const creator = await fetchCreatorBySlug(slug);
+  // Get session for ClaimButton auth awareness
+  const { isAuthenticated } = await getServerSession();
+
+  // Check if user is admin (for Sync Now button)
+  const userIsAdmin = await isAdmin();
+
+  // Fetch creator data directly from DynamoDB
+  const creator = await getCreatorBySlug(slug);
 
   // Return 404 if creator doesn't exist
   if (!creator) {
     notFound();
   }
+
+  // Resolve profile image using Source of Truth chain
+  const profileImage = resolveProfileImage(creator);
+
+  // Live Metric Calculations
+  const totalReach = creator.metrics.totalReach;
+  const totalContent =
+    (creator.metrics.videoCount || 0) + (creator.metrics.postCount || 0) ||
+    creator.metrics.totalVideos ||
+    0;
+  const engagementRate = creator.metrics.engagementRate
+    || (creator.metrics.engagement ? `${creator.metrics.engagement}%` : null);
+  const monthlyViews = creator.metrics.rollingMonthlyViews
+    ?? creator.metrics.monthlyViews
+    ?? null;
 
   return (
     <div className="min-h-screen bg-[#09090b]">
@@ -122,14 +195,15 @@ export default async function CreatorProfilePage({ params }: PageProps) {
       <div className="container mx-auto px-4">
         <div className="relative -mt-16 sm:-mt-20 mb-8">
           <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-start">
-            {/* Avatar */}
+            {/* Avatar - Source of Truth Image */}
             <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[#09090b] overflow-hidden bg-slate-800 flex-shrink-0 shadow-xl">
-              {creator.profilePicUrl ? (
+              {profileImage ? (
                 <Image
-                  src={creator.profilePicUrl}
+                  src={profileImage}
                   alt={creator.name}
                   width={128}
                   height={128}
+                  unoptimized
                   className="object-cover w-full h-full"
                 />
               ) : (
@@ -184,7 +258,7 @@ export default async function CreatorProfilePage({ params }: PageProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 md:pt-4">
+            <div className="flex flex-wrap gap-3 md:pt-4">
               <a
                 href="#work-together"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-[#DE2010]/20"
@@ -196,6 +270,11 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                 <Heart className="w-4 h-4" />
                 Follow
               </button>
+              {!creator.claimedBy && (
+                <ClaimButton slug={slug} isAuthenticated={isAuthenticated} />
+              )}
+              {/* Admin Sync Button */}
+              {userIsAdmin && <SyncButton slug={slug} />}
             </div>
           </div>
         </div>
@@ -210,11 +289,11 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                 About
               </h2>
               <p className="text-sm text-slate-400 leading-relaxed">
-                {creator.bio || `${creator.name} is a ${creator.niche} creator from Zimbabwe.`}
+                {creator.bio || "No bio yet."}
               </p>
             </div>
 
-            {/* Stats */}
+            {/* Stats - Live Metric Calculations */}
             <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
               <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
                 Stats
@@ -222,34 +301,28 @@ export default async function CreatorProfilePage({ params }: PageProps) {
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <StatsBadge
                   label="Total Reach"
-                  value={creator.metrics.totalReach}
+                  value={totalReach}
                   icon="users"
                   size="sm"
                 />
-                {creator.metrics.monthlyViews && (
-                  <StatsBadge
-                    label="Monthly Views"
-                    value={creator.metrics.monthlyViews}
-                    icon="eye"
-                    size="sm"
-                  />
-                )}
-                {creator.metrics.engagement && (
-                  <StatsBadge
-                    label="Engagement"
-                    value={`${creator.metrics.engagement}%`}
-                    icon="heart"
-                    size="sm"
-                  />
-                )}
-                {creator.metrics.totalVideos && (
-                  <StatsBadge
-                    label="Total Videos"
-                    value={creator.metrics.totalVideos}
-                    icon="play"
-                    size="sm"
-                  />
-                )}
+                <StatsBadge
+                  label="Total Content"
+                  value={totalContent || "--"}
+                  icon="play"
+                  size="sm"
+                />
+                <StatsBadge
+                  label="Engagement"
+                  value={engagementRate || "--"}
+                  icon="heart"
+                  size="sm"
+                />
+                <StatsBadge
+                  label="Monthly Views"
+                  value={monthlyViews ?? "--"}
+                  icon="eye"
+                  size="sm"
+                />
               </div>
             </div>
           </div>
@@ -331,7 +404,11 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                     </h3>
                     <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-500">
                       <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      {(creator.topVideo.views / 1000000).toFixed(1)}M views
+                      {creator.topVideo.views >= 1000000
+                        ? `${(creator.topVideo.views / 1000000).toFixed(1)}M views`
+                        : creator.topVideo.views >= 1000
+                          ? `${(creator.topVideo.views / 1000).toFixed(1)}K views`
+                          : `${creator.topVideo.views.toLocaleString()} views`}
                     </div>
                   </div>
                 </div>
@@ -366,7 +443,7 @@ export default async function CreatorProfilePage({ params }: PageProps) {
             </span>
           </div>
           <p className="text-xs text-slate-500">
-            &copy; 2025 263Tube. All rights reserved.
+            &copy; {new Date().getFullYear()} 263Tube. All rights reserved.
           </p>
         </div>
       </footer>

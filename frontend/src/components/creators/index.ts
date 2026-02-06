@@ -6,4 +6,6 @@ export { ShareButton } from "./ShareButton";
 export { CreatorsGrid } from "./CreatorsGrid";
 export { CreatorsSearchFilters } from "./CreatorsSearchFilters";
 export { ContactCreatorForm } from "./ContactCreatorForm";
+export { ClaimButton } from "./ClaimButton";
+export { CreatorSearchAutocomplete } from "./CreatorSearchAutocomplete";
 export type { FilterState } from "./CreatorsSearchFilters";
