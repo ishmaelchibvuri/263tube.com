@@ -2,8 +2,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
 import { Flame } from "lucide-react";
-import { getTopReferrers, getAllCreators } from "@/lib/creators";
+import { fetchTopReferrers, fetchAllCreators } from "@/lib/api-client";
 import { TrendingPageClient } from "@/components/trending/TrendingPageClient";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "Trending Creators - 263Tube",
@@ -14,8 +16,8 @@ export const metadata: Metadata = {
 export default async function TrendingPage() {
   // Fetch trending creators (by referrals) and all active creators as fallback
   const [trendingCreators, allCreators] = await Promise.all([
-    getTopReferrers(15),
-    getAllCreators("ACTIVE", 15),
+    fetchTopReferrers(15),
+    fetchAllCreators(15),
   ]);
 
   // Use trending creators if available, otherwise fallback to top creators by reach

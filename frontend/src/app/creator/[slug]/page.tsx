@@ -10,10 +10,12 @@ import {
   Heart,
   ExternalLink,
 } from "lucide-react";
-import { getCreatorBySlug } from "@/lib/creators";
+import { fetchCreatorBySlug } from "@/lib/api-client";
 import { SocialLinkGroup, StatsBadge, ContactCreatorForm } from "@/components/creators";
 import { ReferralTracker } from "@/components/creators/ReferralTracker";
 import { ShareButton } from "@/components/creators/ShareButton";
+
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -22,7 +24,7 @@ interface PageProps {
 // Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const creator = await getCreatorBySlug(slug);
+  const creator = await fetchCreatorBySlug(slug);
 
   if (!creator) {
     return {
@@ -51,7 +53,7 @@ export default async function CreatorProfilePage({ params }: PageProps) {
   const { slug } = await params;
 
   // Fetch creator data from DynamoDB
-  const creator = await getCreatorBySlug(slug);
+  const creator = await fetchCreatorBySlug(slug);
 
   // Return 404 if creator doesn't exist
   if (!creator) {

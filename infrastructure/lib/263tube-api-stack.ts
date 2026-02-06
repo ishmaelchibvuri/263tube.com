@@ -8,6 +8,7 @@
  * - GET /creators/{slug} - Get single creator by slug
  * - GET /creators/category/{category} - Get creators by category
  * - GET /creators/featured - Get featured creators
+ * - GET /creators/trending - Get top referrers (trending this week)
  * - POST /referrals/{slug} - Track a referral
  */
 
@@ -160,12 +161,37 @@ export class Tube263ApiStack extends cdk.Stack {
       }
     );
 
+    // Get Top Referrers Lambda
+    const getTopReferrersLambda = new NodejsFunction(
+      this,
+      "GetTopReferrersFunction",
+      {
+        functionName: `263tube-get-top-referrers-${environment}`,
+        runtime: lambda.Runtime.NODEJS_20_X,
+        entry: path.join(__dirname, "lambdas/263tube/get-top-referrers.ts"),
+        handler: "handler",
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
+        environment: {
+          TABLE_NAME: table.tableName,
+          ENVIRONMENT: environment,
+        },
+        logRetention: logs.RetentionDays.ONE_WEEK,
+        bundling: {
+          minify: true,
+          sourceMap: false,
+          externalModules: ["@aws-sdk/*"],
+        },
+      }
+    );
+
     // =========================================================================
     // Grant DynamoDB Permissions
     // =========================================================================
     table.grantReadData(getCreatorsLambda);
     table.grantReadData(getCreatorBySlugLambda);
     table.grantReadData(getCreatorsByCategoryLambda);
+    table.grantReadData(getTopReferrersLambda);
     table.grantReadWriteData(trackReferralLambda);
 
     // =========================================================================
@@ -186,6 +212,13 @@ export class Tube263ApiStack extends cdk.Stack {
     featuredResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(getCreatorsLambda)
+    );
+
+    // /creators/trending resource
+    const trendingResource = creatorsResource.addResource("trending");
+    trendingResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(getTopReferrersLambda)
     );
 
     // /creators/category/{category} resource

@@ -2,8 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
-import { getAllCreators } from "@/lib/creators";
+import { fetchAllCreators } from "@/lib/api-client";
 import { CreatorsGrid } from "@/components/creators/CreatorsGrid";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "Discover Creators - 263Tube",
@@ -36,8 +38,8 @@ function CreatorsGridSkeleton() {
 }
 
 export default async function CreatorsPage() {
-  // Fetch all active creators from DynamoDB
-  const creators = await getAllCreators("ACTIVE");
+  // Fetch all active creators from API Gateway
+  const creators = await fetchAllCreators();
 
   return (
     <div className="min-h-screen bg-[#09090b]">

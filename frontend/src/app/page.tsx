@@ -16,10 +16,13 @@ import {
   Facebook,
   Music2,
 } from "lucide-react";
-import { getAllCreators, getTopReferrers, type Creator } from "@/lib/creators";
+import { fetchAllCreators, fetchTopReferrers } from "@/lib/api-client";
+import type { Creator } from "@/lib/creators";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { FeaturedCarousel } from "@/components/home/FeaturedCarousel";
 import { AuthButton } from "@/components/home/AuthButton";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "263Tube - Discover Zimbabwean Creators",
@@ -218,10 +221,10 @@ function CategoryCard({ category }: { category: (typeof CATEGORIES)[0] }) {
 }
 
 export default async function HomePage() {
-  // Fetch real data from DynamoDB
+  // Fetch data from API Gateway
   const [allCreators, trendingCreators] = await Promise.all([
-    getAllCreators("ACTIVE", 50),
-    getTopReferrers(10),
+    fetchAllCreators(50),
+    fetchTopReferrers(10),
   ]);
 
   // Get featured creators for carousel (top 10 by referrals)

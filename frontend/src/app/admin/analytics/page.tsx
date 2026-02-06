@@ -1,6 +1,8 @@
 import { BarChart3 } from "lucide-react";
-import { getAllCreators } from "@/lib/creators";
+import { fetchAllCreators } from "@/lib/api-client";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: "Analytics - Admin | 263Tube",
@@ -9,7 +11,7 @@ export const metadata = {
 
 export default async function AnalyticsPage() {
   // Fetch all active creators for analytics
-  const creators = await getAllCreators("ACTIVE");
+  const creators = await fetchAllCreators();
 
   return (
     <div className="p-6 lg:p-8">
