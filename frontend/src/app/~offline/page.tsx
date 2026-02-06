@@ -49,7 +49,7 @@ export default function OfflinePage() {
         {/* Logo */}
         <div className="mb-6">
           <Image
-            src="/images/LOGO-Transparent.png"
+            src="/images/logo-transparent.png"
             alt="QuickBudget"
             width={120}
             height={120}
