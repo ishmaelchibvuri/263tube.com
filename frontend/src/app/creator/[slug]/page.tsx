@@ -8,12 +8,14 @@ import {
   Calendar,
   Eye,
   Heart,
+  Briefcase,
   ExternalLink,
 } from "lucide-react";
 import { fetchCreatorBySlug } from "@/lib/api-client";
 import { SocialLinkGroup, StatsBadge, ContactCreatorForm } from "@/components/creators";
 import { ReferralTracker } from "@/components/creators/ReferralTracker";
 import { ShareButton } from "@/components/creators/ShareButton";
+import { AuthButton } from "@/components/home/AuthButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +94,10 @@ export default async function CreatorProfilePage({ params }: PageProps) {
               </span>
             </Link>
           </div>
-          <ShareButton creatorName={creator.name} slug={slug} />
+          <div className="flex items-center gap-2">
+            <ShareButton creatorName={creator.name} slug={slug} />
+            <AuthButton />
+          </div>
         </div>
       </nav>
 
@@ -180,7 +185,14 @@ export default async function CreatorProfilePage({ params }: PageProps) {
 
             {/* Action Buttons */}
             <div className="flex gap-3 md:pt-4">
-              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-[#DE2010]/20">
+              <a
+                href="#work-together"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#DE2010] to-[#b01a0d] hover:from-[#ff2a17] hover:to-[#DE2010] text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-[#DE2010]/20"
+              >
+                <Briefcase className="w-4 h-4" />
+                Work Together
+              </a>
+              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-sm font-semibold rounded-xl transition-all">
                 <Heart className="w-4 h-4" />
                 Follow
               </button>
@@ -327,7 +339,9 @@ export default async function CreatorProfilePage({ params }: PageProps) {
             )}
 
             {/* Contact for Collaborations */}
-            <ContactCreatorForm creatorSlug={slug} creatorName={creator.name} />
+            <div id="work-together">
+              <ContactCreatorForm creatorSlug={slug} creatorName={creator.name} />
+            </div>
           </div>
         </div>
       </div>

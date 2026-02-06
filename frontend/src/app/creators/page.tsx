@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Metadata } from "next";
 import { fetchAllCreators } from "@/lib/api-client";
 import { CreatorsGrid } from "@/components/creators/CreatorsGrid";
+import { AuthButton } from "@/components/home/AuthButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -74,12 +75,7 @@ export default async function CreatorsPage() {
               >
                 Submit Creator
               </Link>
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium bg-[#DE2010] text-white rounded-lg hover:bg-[#ff2a17] transition-colors"
-              >
-                Sign In
-              </Link>
+              <AuthButton />
             </div>
           </div>
         </div>

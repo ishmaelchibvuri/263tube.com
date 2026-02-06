@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { AuthButton } from "@/components/home/AuthButton";
 import {
   ArrowLeft,
   Shield,
@@ -118,12 +119,15 @@ export default function ClaimProfilePage() {
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back</span>
           </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <Image src="/images/logo.png" alt="263Tube" width={32} height={32} className="w-full h-full object-contain" />
-            </div>
-            <span className="text-base font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg overflow-hidden">
+                <Image src="/images/logo.png" alt="263Tube" width={32} height={32} className="w-full h-full object-contain" />
+              </div>
+              <span className="text-base font-bold text-white">263<span className="text-[#DE2010]">Tube</span></span>
+            </Link>
+            <AuthButton />
+          </div>
         </div>
       </header>
 

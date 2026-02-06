@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import { Flame } from "lucide-react";
 import { fetchTopReferrers, fetchAllCreators } from "@/lib/api-client";
 import { TrendingPageClient } from "@/components/trending/TrendingPageClient";
+import { AuthButton } from "@/components/home/AuthButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -56,12 +57,7 @@ export default async function TrendingPage() {
               >
                 All Creators
               </Link>
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium bg-[#DE2010] text-white rounded-lg hover:bg-[#ff2a17] transition-colors"
-              >
-                Sign In
-              </Link>
+              <AuthButton />
             </div>
           </div>
         </div>

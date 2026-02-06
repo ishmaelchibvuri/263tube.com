@@ -14,8 +14,8 @@ import {
   fetchAuthSession,
 } from 'aws-amplify/auth';
 
-// Import the shared AWS configuration
-import awsConfig from './aws-config';
+// Import to ensure Amplify is configured at module level
+import './aws-config';
 
 import { User, userSchema } from "@/types";
 
@@ -43,32 +43,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-let isAmplifyConfigured = false;
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAmplifyConfigured) {
-      // --- FIX: Add this validation block ---
-      if (
-        !awsConfig.Auth.Cognito.userPoolId ||
-        !awsConfig.Auth.Cognito.userPoolClientId ||
-        !awsConfig.Auth.Cognito.identityPoolId ||
-        !awsConfig.Auth.Cognito.region
-      ) {
-        throw new Error(
-          'Missing required Amplify Auth configuration in environment variables.'
-        );
-      }
-      // --- End of fix ---
-      console.log('=== FORCING AMPLIFY RECONFIGURATION ===');
-      console.log('Configuring Amplify with:', JSON.stringify(awsConfig, null, 2));
-      Amplify.configure(awsConfig as any, { ssr: true });
-      console.log('=== AMPLIFY RECONFIGURATION COMPLETE ===');
-      isAmplifyConfigured = true;
-    }
+    // Amplify is configured at module level via aws-config.ts import
     checkAuthState();
   }, []);
 
@@ -189,13 +169,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("=== SIGN IN DEBUG ===");
       console.log("Attempting sign in for:", email);
 
-      // Ensure Amplify is configured before sign-in
-      if (!isAmplifyConfigured) {
-        console.log("Amplify not configured, configuring now...");
-        Amplify.configure(awsConfig as any, { ssr: true });
-        isAmplifyConfigured = true;
-      }
-
       // Check if there's already a user signed in
       try {
         const currentUser = await getCurrentUser();
@@ -228,27 +201,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("=== END SIGN IN DEBUG ===");
     } catch (error: any) {
       console.error("Sign in error:", error);
-
-      // Handle UserPool not configured error
-      if (error.message?.includes("UserPool") || error.message?.includes("not configured")) {
-        console.log("UserPool configuration error detected, reconfiguring Amplify...");
-        isAmplifyConfigured = false;
-        Amplify.configure(awsConfig as any, { ssr: true });
-        isAmplifyConfigured = true;
-        console.log("Amplify reconfigured, retrying sign in...");
-
-        // Retry sign-in once after reconfiguration
-        try {
-          const { isSignedIn } = await amplifySignIn({ username: email, password });
-          if (isSignedIn) {
-            await checkAuthState();
-          }
-          return;
-        } catch (retryError) {
-          console.error("Sign in retry failed:", retryError);
-          throw retryError;
-        }
-      }
 
       throw error;
     }
@@ -348,19 +300,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("All cookies cleared successfully");
         }
 
-        // Reset Amplify configuration flag to allow fresh configuration on next login
-        isAmplifyConfigured = false;
-
-        // Reconfigure Amplify after logout
-        try {
-          // Force reconfigure with correct settings
-          console.log("Reconfiguring Amplify with fresh settings...");
-          Amplify.configure(awsConfig as any, { ssr: true });
-          isAmplifyConfigured = true;
-          console.log("Reconfigured Amplify after logout");
-        } catch (e) {
-          console.log("Error reconfiguring Amplify:", e);
-        }
       }
 
       console.log("=== AGGRESSIVE LOGOUT COMPLETE ===");

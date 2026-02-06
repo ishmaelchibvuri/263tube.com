@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Users, TrendingUp, Sparkles } from "lucide-react";
+import { AuthButton } from "@/components/home/AuthButton";
 
 // Categories with their metadata
 const CATEGORIES = [
@@ -187,9 +188,7 @@ export default function CategoriesPage() {
               <Link href="/trending" className="hidden sm:block text-sm text-slate-400 hover:text-white transition-colors">
                 Trending
               </Link>
-              <Link href="/login" className="px-4 py-2 text-sm font-medium bg-[#DE2010] text-white rounded-lg hover:bg-[#ff2a17] transition-colors">
-                Sign In
-              </Link>
+              <AuthButton />
             </div>
           </div>
         </div>

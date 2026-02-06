@@ -1,30 +1,42 @@
-/bug Role: Senior React Architect. Task: Refactor the QuickBudget SA app to be "Offline-First" using Dexie.js and the specific synchronization pattern provided below.
+Prompt for Claude: Admin Dashboard & Auto-Sync Engine
+Context: We need to build the full Admin functionality for 263Tube. The Admin needs a centralized dashboard to manage the platform and an automated system to keep creator stats fresh.
 
-Context: Currently, the app fetches data directly from the backend (DynamoDB). We want to change this so the UI only talks to a local IndexedDB (via Dexie), and a background hook handles the syncing with the cloud.
+Task 1: The Admin Dashboard Layout (app/admin/dashboard/page.tsx)
 
-Reference Pattern (Use this logic structure):javascript import { useState, useEffect } from 'react'; import { useLiveQuery } from 'dexie-react-hooks'; import { db } from './db';
+Create a grid-based dashboard with the following "Quick Stats":
 
-export function useBudgetStream(userId) { const [isOnline, setIsOnline] = useState(true);
+Total Creators (Active vs. Pending).
 
-// 1. Monitor Network useEffect(() => { setIsOnline(navigator.onLine); const handleOnline = () => { setIsOnline(true); // TODO: Trigger sync function here }; const handleOffline = () => setIsOnline(false); window.addEventListener('online', handleOnline); window.addEventListener('offline', handleOffline); return () => { window.removeEventListener('online', handleOnline); window.removeEventListener('offline', handleOffline); }; },);
+Total Platform Reach (Sum of all creator reach).
 
-// 2. Query Local DB (The "Single Source of Truth" for UI) const transactions = useLiveQuery( () => db.transactions.where('userId').equals(userId).reverse().sortBy('date'), [userId] );
+Inquiry Volume (Total business leads generated).
 
-// 3. Sync Strategy (Read-Through) useEffect(() => { if (isOnline) { // Fetch latest from API and update local DB // Note: In a real implementation, we would also push pending local writes here fetch(/api/budget/transactions?userId=${userId}) .then(res => res.json()) .then(data => { db.transactions.bulkPut(data); }); } }, [isOnline, userId]);
+Add a "System Actions" sidebar with buttons for:
 
-return { transactions, isOnline }; }
+Trigger Global Sync (Manual override for stats update).
 
-**Execution Plan:**
+Manage Submissions (Link to the approval queue).
 
-1.  **Dependencies:** Install `dexie` and `dexie-react-hooks`.
-2.  **Database Config (`src/lib/db.ts`):**
-    *   Create a Dexie database instance named `QuickBudgetDB`.
-    *   Define a schema for `transactions`: `++id, userId, date, amount, category, merchant, syncStatus`.
-3.  **The Hook (`src/hooks/useBudgetStream.ts`):**
-    *   Implement the reference code above, adapted for our Transaction data model.
-    *   Add a function `addTransaction(data)` that writes to Dexie immediately with `syncStatus: 'pending'`.
-4.  **UI Integration:**
-    *   Modify the main Dashboard component to consume `useBudgetStream`.
-    *   Replace the current `fetch` calls in the UI with the `addTransaction` method returned by the hook.
+Task 2: The Auto-Sync Service (src/lib/actions/sync-engine.ts)
 
-**Constraint:** ensure the solution handles the case where the user is offline (visual indicator) but allows them to continue adding expenses.
+Create a server action syncAllCreatorStats().
+
+Logic:
+
+Fetch all STATUS#ACTIVE creators.
+
+For each creator, iterate through their verifiedLinks.
+
+Call the relevant validatePlatformLink logic (from our previous module) to get the latest follower/sub counts.
+
+Update the metrics.totalReach and referralStats in DynamoDB.
+
+Efficiency: Use Promise.all() to fetch data in batches so the sync doesn't take forever.
+
+Task 3: The "Verified" Badge Management
+
+In the Admin UI, add a toggle for "Manual Verification Override." This allows the Admin to manually mark a creator as verified even if the API scraper had trouble with their specific Instagram/TikTok profile.
+
+Task 4: Admin Search & Filter
+
+Provide a searchable table of all registered users so the Admin can quickly find a creator and impersonate/edit their profile if they report a bug.

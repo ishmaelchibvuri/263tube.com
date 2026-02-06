@@ -1,20 +1,28 @@
-14:28:35.827 Error fetching creators: Error [CredentialsProviderError]: Could not load credentials from any providers
-14:28:35.827     at <unknown> (.next/server/chunks/3507.js:9:1194)
-14:28:35.828     at V.g (.next/server/chunks/3507.js:1:83875)
-14:28:35.828     at async h (.next/server/chunks/3507.js:1:84055)
-14:28:35.828     at async (.next/server/chunks/3507.js:1:45615)
-14:28:35.828     at async (.next/server/chunks/3507.js:1:72640)
-14:28:35.828     at async i (.next/server/chunks/7445.js:1:5068)
-14:28:35.828     at async m (.next/server/app/creators/page.js:2:9692) {
-14:28:35.828   tryNextLink: false
-14:28:35.829 }
-14:28:35.829 Error occurred prerendering page "/creators". Read more: https://nextjs.org/docs/messages/prerender-error
-14:28:35.829 Error: Failed to fetch creators
-14:28:35.829     at i (.next/server/chunks/7445.js:1:5186)
-14:28:35.829     at async m (.next/server/app/creators/page.js:2:9692) {
-14:28:35.829   digest: '3806895416'
-14:28:35.829 }
-14:28:35.829 Export encountered an error on /creators/page: /creators, exiting the build.
-14:28:35.856  ⨯ Next.js build worker exited with code: 1 and signal: null
-14:28:35.912 error Command failed with exit code 1.
-14:28:35.932 Error: Command "yarn build" exited with 1
+intercept-console-error.js:57 Registration error: AuthUserPoolException: Auth UserPool not configured.
+    at eval (createAssertionFunction.mjs:13:15)
+    at assertTokenProviderConfig (index.mjs:26:62)
+    at signUp (signUp.mjs:55:97)
+    at handleRegister (C:\Temp\apps\263tube.com\frontend\src\app\(auth)\register\page.tsx:67:66)
+    at executeDispatch (react-dom-client.development.js:16971:9)
+    at runWithFiberInDEV (react-dom-client.development.js:872:30)
+    at processDispatchQueue (react-dom-client.development.js:17021:19)
+    at eval (react-dom-client.development.js:17622:9)
+    at batchedUpdates$1 (react-dom-client.development.js:3312:40)
+    at dispatchEventForPluginEventSystem (react-dom-client.development.js:17175:7)
+    at dispatchEvent (react-dom-client.development.js:21358:11)
+    at dispatchDiscreteEvent (react-dom-client.development.js:21326:11)
+error @ intercept-console-error.js:57
+intercept-console-error.js:57 Registration error: AuthUserPoolException: Auth UserPool not configured.
+    at eval (createAssertionFunction.mjs:13:15)
+    at assertTokenProviderConfig (index.mjs:26:62)
+    at signUp (signUp.mjs:55:97)
+    at handleRegister (C:\Temp\apps\263tube.com\frontend\src\app\(auth)\register\page.tsx:67:66)
+    at executeDispatch (react-dom-client.development.js:16971:9)
+    at runWithFiberInDEV (react-dom-client.development.js:872:30)
+    at processDispatchQueue (react-dom-client.development.js:17021:19)
+    at eval (react-dom-client.development.js:17622:9)
+    at batchedUpdates$1 (react-dom-client.development.js:3312:40)
+    at dispatchEventForPluginEventSystem (react-dom-client.development.js:17175:7)
+    at dispatchEvent (react-dom-client.development.js:21358:11)
+    at dispatchDiscreteEvent (react-dom-client.development.js:21326:11)
+error @ intercept-console-error.js:57

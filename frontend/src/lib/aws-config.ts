@@ -72,4 +72,7 @@ SOLUTION:
   }
 }
 
+// Configure Amplify at module level so it's ready before any component renders
+Amplify.configure(awsConfig as any, { ssr: true });
+
 export default awsConfig;

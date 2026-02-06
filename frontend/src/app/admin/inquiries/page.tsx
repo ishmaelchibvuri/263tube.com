@@ -1,15 +1,15 @@
-import { FileText } from "lucide-react";
+import { Mail } from "lucide-react";
 import { redirect } from "next/navigation";
-import { getPendingRequests } from "@/lib/actions/creators";
-import { SubmissionsTable, type Submission } from "@/components/admin/SubmissionsTable";
+import { getAllInquiries } from "@/lib/actions/inquiries";
+import { InquiriesTable } from "@/components/admin/InquiriesTable";
 import { requireAdmin } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Creator Submissions - Admin | 263Tube",
-  description: "Review and approve pending creator submissions",
+  title: "Business Inquiries - Admin | 263Tube",
+  description: "View and manage business inquiries from brands and sponsors",
 };
 
-export default async function SubmissionsPage() {
+export default async function InquiriesPage() {
   // Require admin access
   try {
     await requireAdmin();
@@ -17,9 +17,9 @@ export default async function SubmissionsPage() {
     redirect("/unauthorized");
   }
 
-  // Fetch pending submissions
-  const result = await getPendingRequests(50);
-  const submissions = (result.success ? result.data : []) as Submission[];
+  // Fetch inquiries
+  const result = await getAllInquiries(50);
+  const inquiries = result.success ? result.data : [];
 
   return (
     <div>
@@ -28,26 +28,26 @@ export default async function SubmissionsPage() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-[#DE2010]/10 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#DE2010]" />
+              <Mail className="w-5 h-5 text-[#DE2010]" />
             </div>
             <h1 className="text-2xl font-bold text-white">
-              Creator Submissions
+              Business Inquiries
             </h1>
           </div>
           <p className="text-slate-400">
-            Review and approve pending creator profile submissions
+            Manage incoming business inquiries from brands and sponsors
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="px-3 py-1.5 rounded-full bg-white/[0.05] text-sm text-slate-400">
-            {submissions.length} pending
+            {inquiries.length} total
           </span>
         </div>
       </div>
 
-      {/* Submissions Table */}
-      <SubmissionsTable submissions={submissions} />
+      {/* Inquiries Table */}
+      <InquiriesTable inquiries={inquiries} />
     </div>
   );
 }

@@ -1,40 +1,41 @@
-Prompt for Claude: Admin Submission Management UI
-Context: The submission pipeline is now generating high-quality PENDING_REQUEST items. I need the Admin Approval Dashboard to manage these requests.
+Context: We are pivoting 263Tube from a directory to a Business Engine. We need to implement a "Business Inquiry" system that allows brands to contact creators directly through their profile pages.
 
-Task 1: The Submissions Page (app/admin/submissions/page.tsx)
+Task 1: The Inquiry Server Action (src/lib/actions/inquiries.ts)
 
-Access Control: Ensure this page uses the requireAdmin() server-side check.
+Create a server action submitBusinessInquiry(creatorSlug: string, formData: FormData).
 
-Data Fetching: Fetch all items with PK starting with PENDING_REQUEST#.
+Logic: \* Validate the input (Company Name, Email, Budget Range, Message).
 
-UI Layout: Create a "Review Queue" using a clean table or list.
+Write the data to DynamoDB with PK: INQUIRY#slug and SK: INQUIRY#[timestamp].
 
-Show the Primary Profile Image fetched during validation.
+Include a status: "PENDING" attribute.
 
-Show the Verified Badges (YouTube, IG, etc.) so I can see at a glance if the data is real.
+Security: Implement a simple Honeypot or Rate Limiting to prevent spam bots from flooding creators.
 
-List the Selected Niches from the new taxonomy.
+Task 2: The "Work With Me" UI (app/creator/[slug]/page.tsx)
 
-Task 2: The "Approval" Server Action (src/lib/actions/admin.ts) Create a processSubmission action that takes requestId and action ('APPROVE' or 'REJECT').
+Add a prominent "Work With This Creator" button (High contrast, "Business" style).
 
-If APPROVE:
+This button should open a clean, professional Modal.
 
-Copy the data from the PENDING_REQUEST item.
+Form Fields:
 
-Create the official CREATOR#[slug] / METADATA record.
+Company Name / Name
 
-Set the status to ACTIVE.
+Contact Email
 
-Important: Delete the PENDING_REQUEST item to clear the queue.
+Type of Collaboration (e.g., Video Shoutout, Event Hosting, Long-term Partnership)
 
-If REJECT:
+Estimated Budget (Optional dropdown: $100-500, $500-2000, $2000+)
 
-Delete the PENDING_REQUEST item.
+Message details.
 
-(Optional) Log the rejection for audit purposes.
+Task 3: The Admin Inquiry Feed (app/admin/inquiries/page.tsx)
 
-Task 3: Interactive Review Modal In the UI, when I click on a submission, open a modal that shows the Ecosystem Preview (the same one the user saw).
+Create a view for the Admin to see all incoming inquiries across the whole platform.
 
-Add an "Edit Before Approval" feature: Let me tweak the Bio or Niche selection if the user made a mistake, before I hit the final "Approve" button.
+This allows the Admin (Ishmael) to act as the "Agent" or moderator to ensure quality.
 
-Task 4: Post-Approval Revalidation Ensure the action calls revalidatePath('/') and revalidatePath('/creators') so the new creator appears on the homepage immediately.
+Task 4: Success State
+
+After submission, show the brand a "Professional Confirmation" message: "Your inquiry has been sent to [Creator Name]. 263Tube helps facilitate these connections to ensure professional delivery."
