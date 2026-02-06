@@ -36,7 +36,9 @@ import {
   DollarSign,
   ChevronRight,
   Inbox,
+  LogOut,
 } from "lucide-react";
+import { toast } from "sonner";
 
 // Mock data - replace with actual API calls
 interface CreatorProfile {
@@ -102,8 +104,18 @@ function formatNumber(num: number): string {
 }
 
 export default function CreatorDashboardPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      router.push("/");
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -258,6 +270,13 @@ export default function CreatorDashboardPage() {
               <span className="text-sm text-slate-400">
                 Welcome, {user?.firstName}
               </span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
             </div>
           </div>
         </header>
@@ -412,6 +431,13 @@ export default function CreatorDashboardPage() {
               <Edit className="w-4 h-4" />
               Edit Profile
             </Link>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

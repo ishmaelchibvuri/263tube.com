@@ -3,7 +3,8 @@
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Loader2, LayoutDashboard, Users, CreditCard, BookOpen, BarChart3, Newspaper, Settings, Menu, X } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, BookOpen, BarChart3, Newspaper, Settings, Menu, X, LogOut } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -12,9 +13,19 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      router.push("/");
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -38,8 +49,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/submissions", icon: BookOpen, label: "Submissions" },
     { href: "/admin/users", icon: Users, label: "Users" },
-    { href: "/admin/subscriptions", icon: CreditCard, label: "Subscriptions" },
-    { href: "/admin/questions", icon: BookOpen, label: "Questions" },
     { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
     { href: "/admin/blog", icon: Newspaper, label: "Blog" },
     { href: "/admin/features", icon: Settings, label: "Features" },
@@ -112,6 +121,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               onClick={() => router.push("/")}
             >
               Back to Site
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full mt-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
             </Button>
           </div>
         </div>

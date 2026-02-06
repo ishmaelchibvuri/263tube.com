@@ -67,7 +67,7 @@ export function ContactCreatorForm({ creatorSlug, creatorName }: ContactCreatorF
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          senderUserId: user?.id || null,
+          senderUserId: user?.userId || null,
         }),
       });
 

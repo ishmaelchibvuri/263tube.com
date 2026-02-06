@@ -133,5 +133,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Export for use by other routes
-export { verifiedEmails };

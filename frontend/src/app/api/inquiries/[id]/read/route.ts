@@ -24,9 +24,9 @@ const INQUIRIES_TABLE = process.env.DYNAMODB_INQUIRIES_TABLE || "263tube-inquiri
 /**
  * Extract user info from Cognito ID token in cookies
  */
-function getUserFromCookies(): { isAuthenticated: boolean; role: string | null; creatorSlug: string | null } {
+async function getUserFromCookies(): Promise<{ isAuthenticated: boolean; role: string | null; creatorSlug: string | null }> {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
 
     const idTokenCookie = allCookies.find(
@@ -88,7 +88,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { isAuthenticated, role, creatorSlug } = getUserFromCookies();
+    const { isAuthenticated, role, creatorSlug } = await getUserFromCookies();
 
     // Check authentication
     if (!isAuthenticated) {

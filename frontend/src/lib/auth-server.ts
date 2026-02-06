@@ -26,7 +26,7 @@ export interface AuthResult {
 // Role hierarchy for permission checks
 const ROLE_HIERARCHY: Record<UserRole, number> = {
   user: 0,
-  client: 1,
+  sponsor: 1,
   creator: 2,
   admin: 3,
 };
@@ -105,15 +105,15 @@ function parseIdToken(token: string): User | null {
         role = "admin";
       } else if (groups.includes("creator") || groups.includes("creators")) {
         role = "creator";
-      } else if (groups.includes("client") || groups.includes("clients")) {
-        role = "client";
+      } else if (groups.includes("sponsor") || groups.includes("sponsors")) {
+        role = "sponsor";
       }
     }
 
     // Also check custom:role attribute if groups not set
     if (role === "user" && payload["custom:role"]) {
       const customRole = payload["custom:role"].toLowerCase();
-      if (["admin", "creator", "client"].includes(customRole)) {
+      if (["admin", "creator", "sponsor"].includes(customRole)) {
         role = customRole as UserRole;
       }
     }

@@ -254,18 +254,6 @@ export default function AdminDashboardPage() {
                   color="bg-primary"
                 />
                 <QuickActionButton
-                  href="/admin/subscriptions"
-                  icon={CreditCard}
-                  label="Subscriptions"
-                  color="bg-green-600"
-                />
-                <QuickActionButton
-                  href="/admin/questions"
-                  icon={BookOpen}
-                  label="Question Bank"
-                  color="bg-purple-600"
-                />
-                <QuickActionButton
                   href="/admin/analytics"
                   icon={TrendingUp}
                   label="View Analytics"

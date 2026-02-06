@@ -1,6 +1,0 @@
-export { handler } from '../profile';
-
-
-
-
-

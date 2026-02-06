@@ -26,7 +26,9 @@ import {
   Music2,
   Crown,
   Star,
+  LogOut,
 } from "lucide-react";
+import { toast } from "sonner";
 
 // Mock data - replace with actual API calls
 interface Creator {
@@ -61,8 +63,18 @@ function formatNumber(num: number): string {
 }
 
 export default function SponsorDashboardPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      router.push("/");
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
   const [stats, setStats] = useState<Stats>({
     totalInquiries: 0,
     activeConversations: 0,
@@ -145,6 +157,13 @@ export default function SponsorDashboardPage() {
               <Search className="w-4 h-4" />
               Find Creators
             </Link>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

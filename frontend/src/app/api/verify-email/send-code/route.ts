@@ -166,5 +166,3 @@ If you didn't request this code, you can safely ignore this email.
   }
 }
 
-// Export for use by verify route
-export { verificationCodes };
