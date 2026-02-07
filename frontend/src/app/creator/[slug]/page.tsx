@@ -28,6 +28,7 @@ import { deriveYouTubeInsights } from "@/lib/utils/youtube-insights";
 import { SocialLinkGroup, ContactCreatorForm, ClaimButton, FollowButton } from "@/components/creators";
 import { ReferralTracker } from "@/components/creators/ReferralTracker";
 import { ShareButton } from "@/components/creators/ShareButton";
+import { NavCreatorSearch } from "@/components/creators/NavCreatorSearch";
 import { AuthButton } from "@/components/home/AuthButton";
 import { SyncButton } from "@/components/creators/SyncButton";
 import type { Creator, VideoHighlight } from "@/lib/creators";
@@ -158,8 +159,8 @@ export default async function CreatorProfilePage({ params }: PageProps) {
 
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-[#09090b]/95 backdrop-blur-xl border-b border-white/[0.05] z-50">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-3 flex items-center gap-3">
+          <div className="flex items-center gap-4 flex-shrink-0">
             <Link
               href="/"
               className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
@@ -178,12 +179,16 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-base font-bold text-white">
+              <span className="text-base font-bold text-white hidden sm:inline">
                 263<span className="text-[#DE2010]">Tube</span>
               </span>
             </Link>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Creator Search */}
+          <div className="flex-1 flex justify-center">
+            <NavCreatorSearch />
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <ShareButton creatorName={creator.name} slug={slug} />
             <AuthButton />
           </div>
@@ -469,9 +474,13 @@ export default async function CreatorProfilePage({ params }: PageProps) {
 
             {/* Featured Videos: Latest & Most Viewed */}
             {(() => {
-              // videoHighlights order: [0]=most viewed, [1]=most liked, [2]=latest, [3]=oldest
-              const latest = videoHighlights[2] ?? null;
-              const mostViewed = videoHighlights[0] ?? null;
+              // Find latest by publishedAt date, most viewed by view count
+              const latest = videoHighlights.length > 0
+                ? [...videoHighlights].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())[0]
+                : null;
+              const mostViewed = videoHighlights.length > 0
+                ? [...videoHighlights].sort((a, b) => b.views - a.views)[0]
+                : null;
               // Also support legacy topVideo as fallback
               const fallbackTop = !latest && !mostViewed && creator.topVideo ? creator.topVideo : null;
               const hasVideos = latest || mostViewed || fallbackTop;
