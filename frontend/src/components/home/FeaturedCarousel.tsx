@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Flame, ArrowRight } from "lucide-react";
 import type { Creator } from "@/lib/creators";
+import { calculateEngagementScore } from "@/lib/utils/engagement";
 
 interface FeaturedCarouselProps {
   creators: Creator[];
@@ -22,11 +23,8 @@ function FeaturedCard({
   creator: Creator;
   rank: number;
 }) {
-  const engagementRate = creator.metrics.engagementRate
-    ? parseFloat(creator.metrics.engagementRate).toFixed(1) + "%"
-    : creator.metrics.engagement
-    ? creator.metrics.engagement.toFixed(1) + "%"
-    : "N/A";
+  const engagement = calculateEngagementScore(creator.metrics, creator.platforms);
+  const engagementRate = `${engagement.score}/10`;
 
   return (
     <Link
@@ -104,7 +102,7 @@ function FeaturedCard({
         {/* Engagement Rate */}
         <div className="mt-2 pt-2 border-t border-white/[0.05] flex items-center justify-between">
           <span className="text-[10px] sm:text-xs text-slate-500">Engagement</span>
-          <span className="text-xs sm:text-sm font-bold text-[#DE2010]">
+          <span className={`text-xs sm:text-sm font-bold ${engagement.color}`}>
             {engagementRate}
           </span>
         </div>
