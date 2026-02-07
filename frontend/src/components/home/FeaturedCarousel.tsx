@@ -36,6 +36,7 @@ function FeaturedCard({
             src={creator.coverImageUrl || creator.bannerUrl || ""}
             alt={creator.name}
             fill
+            loading="lazy"
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
@@ -77,6 +78,7 @@ function FeaturedCard({
                 alt={creator.name}
                 width={40}
                 height={40}
+                loading="lazy"
                 className="object-cover w-full h-full"
               />
             ) : (

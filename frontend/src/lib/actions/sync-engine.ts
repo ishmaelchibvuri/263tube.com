@@ -19,6 +19,8 @@ import {
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth-server";
 import type { Creator } from "@/lib/creators";
+import { mapYouTubeTopicsToNiche } from "@/lib/utils/youtube-topic-map";
+import { ensureCategoryExists, revalidateCategories } from "@/lib/actions/categories";
 
 // Initialize DynamoDB client
 const dynamoClient = new DynamoDBClient({
@@ -61,6 +63,284 @@ export interface SyncResult {
 export interface ToggleVerifiedResult {
   success: boolean;
   message: string;
+}
+
+// ============================================================================
+// YouTube Topic Detection & Category Auto-Update
+// ============================================================================
+
+/**
+ * Fetch YouTube topic details for a channel.
+ * Uses the YouTube Data API v3 with part=topicDetails.
+ */
+async function fetchYouTubeTopicDetails(
+  channelId: string
+): Promise<string[] | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=topicDetails&id=${encodeURIComponent(channelId)}&key=${apiKey}`;
+    const response = await fetch(url, { next: { revalidate: 86400 } });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const channel = data.items?.[0];
+    if (!channel?.topicDetails?.topicCategories) return null;
+
+    return channel.topicDetails.topicCategories as string[];
+  } catch (error) {
+    console.error(`Error fetching YouTube topics for ${channelId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Extract YouTube channel ID from a creator's platform data.
+ * Looks for YouTube URLs in the platforms object and verifiedLinks.
+ */
+function extractYouTubeChannelId(
+  creator: Record<string, any>
+): string | null {
+  // Check platforms.youtube for channel URLs
+  const youtubeLinks = creator.platforms?.youtube;
+  if (Array.isArray(youtubeLinks)) {
+    for (const link of youtubeLinks) {
+      const url = typeof link === "string" ? link : link?.url;
+      if (!url) continue;
+      // Extract channel ID from URL patterns
+      const channelMatch = url.match(
+        /youtube\.com\/channel\/(UC[\w-]+)/
+      );
+      if (channelMatch) return channelMatch[1];
+    }
+  }
+
+  // Check verifiedLinks
+  if (Array.isArray(creator.verifiedLinks)) {
+    for (const link of creator.verifiedLinks) {
+      if (link.platform?.toLowerCase() === "youtube" && link.channelId) {
+        return link.channelId;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract YouTube @handle from a creator's platform URLs.
+ */
+function extractYouTubeHandle(creator: Record<string, any>): string | null {
+  const youtubeLinks = creator.platforms?.youtube;
+  if (Array.isArray(youtubeLinks)) {
+    for (const link of youtubeLinks) {
+      const url = typeof link === "string" ? link : link?.url;
+      if (!url) continue;
+      const handleMatch = url.match(/youtube\.com\/@([^/?]+)/);
+      if (handleMatch) return handleMatch[1];
+    }
+  }
+  return null;
+}
+
+/**
+ * Get the YouTube display name from verifiedLinks (for search fallback).
+ */
+function getYouTubeDisplayName(creator: Record<string, any>): string | null {
+  if (!Array.isArray(creator.verifiedLinks)) return null;
+  for (const link of creator.verifiedLinks) {
+    if (link.platform?.toLowerCase() === "youtube" && link.displayName) {
+      return link.displayName;
+    }
+  }
+  return null;
+}
+
+// ============================================================================
+// YouTube Data Sync
+// ============================================================================
+
+interface VideoHighlightData {
+  videoId: string;
+  title: string;
+  thumbnail: string | null;
+  views: number;
+  likes: number;
+  publishedAt: string;
+}
+
+interface YouTubeSyncData {
+  channelId: string;
+  totalViews: number;
+  channelStartDate: string;
+  totalVideos: number;
+  subscribers: number;
+  videoHighlights: VideoHighlightData[];
+}
+
+/**
+ * Fetch YouTube channel data + video highlights for a creator.
+ * Resolves channel via ID, handle, or displayName (search fallback).
+ * Returns null if no YouTube data can be resolved.
+ */
+async function fetchYouTubeSyncData(
+  creator: Record<string, any>
+): Promise<YouTubeSyncData | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return null;
+
+  let channelId = extractYouTubeChannelId(creator);
+  let channelData: any = null;
+
+  const ytFetch = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 1. Direct channel ID lookup
+  if (channelId) {
+    channelData = await ytFetch(
+      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${channelId}&key=${apiKey}`
+    );
+  }
+
+  // 2. Handle lookup
+  if (!channelData?.items?.length) {
+    const handle = extractYouTubeHandle(creator);
+    if (handle) {
+      channelData = await ytFetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&forHandle=${handle}&key=${apiKey}`
+      );
+    }
+  }
+
+  // 3. Display name search fallback
+  if (!channelData?.items?.length) {
+    const displayName = getYouTubeDisplayName(creator);
+    if (displayName) {
+      const safeName = encodeURIComponent(displayName);
+      // Try forHandle first (cheap)
+      channelData = await ytFetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&forHandle=${safeName}&key=${apiKey}`
+      );
+      // Fall back to search (more expensive)
+      if (!channelData?.items?.length) {
+        const searchData = await ytFetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${safeName}&type=channel&maxResults=1&key=${apiKey}`
+        );
+        if (searchData?.items?.[0]?.id?.channelId) {
+          channelData = await ytFetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${searchData.items[0].id.channelId}&key=${apiKey}`
+          );
+        }
+      }
+    }
+  }
+
+  if (!channelData?.items?.[0]) return null;
+
+  const channel = channelData.items[0];
+  const resolvedChannelId: string = channel.id;
+
+  // Fetch video highlights
+  const uploadsPlaylistId = channel.contentDetails?.relatedPlaylists?.uploads;
+  let videoHighlights: VideoHighlightData[] = [];
+
+  if (uploadsPlaylistId) {
+    const plData = await ytFetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=10&key=${apiKey}`
+    );
+    const videoIds: string[] = (plData?.items || []).map(
+      (item: any) => item.contentDetails.videoId
+    );
+    if (videoIds.length > 0) {
+      const vData = await ytFetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(",")}&key=${apiKey}`
+      );
+      const mapped: VideoHighlightData[] = (vData?.items || []).map((v: any) => ({
+        videoId: v.id,
+        title: v.snippet.title || "",
+        thumbnail: v.snippet.thumbnails?.medium?.url || v.snippet.thumbnails?.default?.url || null,
+        views: parseInt(v.statistics.viewCount) || 0,
+        likes: parseInt(v.statistics.likeCount) || 0,
+        publishedAt: v.snippet.publishedAt,
+      }));
+
+      if (mapped.length > 0) {
+        const mostViewed = [...mapped].sort((a, b) => b.views - a.views)[0];
+        if (mostViewed) videoHighlights.push(mostViewed);
+        const mostLiked = [...mapped].sort((a, b) => b.likes - a.likes)[0];
+        if (mostLiked && mostLiked.videoId !== mostViewed?.videoId) videoHighlights.push(mostLiked);
+        const latest = [...mapped].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())[0];
+        if (latest && !videoHighlights.some((v) => v.videoId === latest.videoId)) videoHighlights.push(latest);
+        const oldest = [...mapped].sort((a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime())[0];
+        if (oldest && !videoHighlights.some((v) => v.videoId === oldest.videoId)) videoHighlights.push(oldest);
+      }
+    }
+  }
+
+  return {
+    channelId: resolvedChannelId,
+    totalViews: parseInt(channel.statistics?.viewCount) || 0,
+    channelStartDate: channel.snippet?.publishedAt || "",
+    totalVideos: parseInt(channel.statistics?.videoCount) || 0,
+    subscribers: parseInt(channel.statistics?.subscriberCount) || 0,
+    videoHighlights,
+  };
+}
+
+/**
+ * Detect a creator's YouTube category and update their niche if changed.
+ * Non-blocking: errors are caught and logged but don't break the sync.
+ */
+async function detectAndUpdateCategory(
+  creator: Record<string, any>,
+  tableName: string
+): Promise<void> {
+  const channelId = extractYouTubeChannelId(creator);
+  if (!channelId) return;
+
+  const topicUrls = await fetchYouTubeTopicDetails(channelId);
+  if (!topicUrls || topicUrls.length === 0) return;
+
+  const detectedNiche = mapYouTubeTopicsToNiche(topicUrls);
+  if (!detectedNiche) return;
+
+  // Only update if niche has changed
+  const currentNiche = creator.niche?.toLowerCase();
+  if (currentNiche === detectedNiche) return;
+
+  const now = new Date().toISOString();
+  const totalReach = creator.metrics?.totalReach || 0;
+  const reachSortKey = `${String(totalReach).padStart(12, "0")}#${creator.slug}`;
+
+  // Update creator's niche and GSI2 partition key
+  await docClient.send(
+    new UpdateCommand({
+      TableName: tableName,
+      Key: {
+        pk: creator.pk || `CREATOR#${creator.slug}`,
+        sk: creator.sk || "METADATA",
+      },
+      UpdateExpression:
+        "SET niche = :niche, gsi2pk = :gsi2pk, gsi2sk = :gsi2sk, updatedAt = :now",
+      ExpressionAttributeValues: {
+        ":niche": detectedNiche,
+        ":gsi2pk": `CATEGORY#${detectedNiche}`,
+        ":gsi2sk": reachSortKey,
+        ":now": now,
+      },
+    })
+  );
+
+  // Ensure the category exists in the categories table
+  await ensureCategoryExists(detectedNiche);
 }
 
 // ============================================================================
@@ -226,8 +506,8 @@ export async function syncAllCreatorStats(): Promise<SyncResult> {
       return { success: true, message: "No creators to sync.", synced: 0 };
     }
 
-    // Process in batches of 10 for efficiency
-    const BATCH_SIZE = 10;
+    // Process in batches of 5 (smaller batch for YouTube API rate limits)
+    const BATCH_SIZE = 5;
     for (let i = 0; i < allCreators.length; i += BATCH_SIZE) {
       const batch = allCreators.slice(i, i + BATCH_SIZE);
 
@@ -248,9 +528,49 @@ export async function syncAllCreatorStats(): Promise<SyncResult> {
             }
 
             const now = new Date().toISOString();
+
+            // Fetch YouTube data
+            let ytData: YouTubeSyncData | null = null;
+            try {
+              ytData = await fetchYouTubeSyncData(creator);
+              if (ytData && ytData.subscribers > 0) {
+                totalReach = ytData.subscribers;
+              }
+            } catch (err) {
+              console.error(`YouTube fetch failed for ${creator.slug}:`, err);
+            }
+
             const reachSortKey = `${String(totalReach).padStart(12, "0")}#${creator.slug}`;
 
-            // Update the creator's metrics
+            // Build dynamic update
+            const exprParts = [
+              "metrics.totalReach = :reach",
+              "gsi1sk = :gsi1sk",
+              "gsi2sk = :gsi2sk",
+              "updatedAt = :now",
+            ];
+            const exprValues: Record<string, any> = {
+              ":reach": totalReach,
+              ":gsi1sk": reachSortKey,
+              ":gsi2sk": reachSortKey,
+              ":now": now,
+            };
+
+            if (ytData) {
+              exprParts.push("metrics.totalViews = :totalViews");
+              exprValues[":totalViews"] = ytData.totalViews;
+              exprParts.push("metrics.channelStartDate = :channelStartDate");
+              exprValues[":channelStartDate"] = ytData.channelStartDate;
+              if (ytData.totalVideos > 0) {
+                exprParts.push("metrics.totalVideos = :totalVideos");
+                exprValues[":totalVideos"] = ytData.totalVideos;
+              }
+              if (ytData.videoHighlights.length > 0) {
+                exprParts.push("videoHighlights = :videoHighlights");
+                exprValues[":videoHighlights"] = ytData.videoHighlights;
+              }
+            }
+
             await docClient.send(
               new UpdateCommand({
                 TableName: tableName,
@@ -258,16 +578,17 @@ export async function syncAllCreatorStats(): Promise<SyncResult> {
                   pk: creator.pk,
                   sk: creator.sk || "METADATA",
                 },
-                UpdateExpression:
-                  "SET metrics.totalReach = :reach, gsi1sk = :gsi1sk, gsi2sk = :gsi2sk, updatedAt = :now",
-                ExpressionAttributeValues: {
-                  ":reach": totalReach,
-                  ":gsi1sk": reachSortKey,
-                  ":gsi2sk": reachSortKey,
-                  ":now": now,
-                },
+                UpdateExpression: `SET ${exprParts.join(", ")}`,
+                ExpressionAttributeValues: exprValues,
               })
             );
+
+            // Detect and update category from YouTube topics (non-blocking)
+            try {
+              await detectAndUpdateCategory(creator, tableName);
+            } catch (err) {
+              console.error(`Category detection failed for ${creator.slug}:`, err);
+            }
 
             return true;
           } catch (err) {
@@ -285,7 +606,11 @@ export async function syncAllCreatorStats(): Promise<SyncResult> {
     revalidatePath("/admin/dashboard");
     revalidatePath("/admin/creators");
     revalidatePath("/creators");
+    revalidatePath("/categories");
     revalidatePath("/");
+
+    // Revalidate category caches (creator counts may have changed)
+    await revalidateCategories();
 
     return {
       success: true,
@@ -359,9 +684,53 @@ export async function syncSingleCreator(slug: string): Promise<SyncResult> {
     }
 
     const now = new Date().toISOString();
+
+    // Fetch YouTube data (totalViews, channelStartDate, videoHighlights)
+    let ytData: YouTubeSyncData | null = null;
+    try {
+      ytData = await fetchYouTubeSyncData(creator);
+      // If YouTube returned subscriber data, update totalReach
+      if (ytData && ytData.subscribers > 0) {
+        totalReach = ytData.subscribers;
+      }
+    } catch (err) {
+      console.error(`YouTube data fetch failed for ${slug}:`, err);
+    }
+
     const reachSortKey = `${String(totalReach).padStart(12, "0")}#${slug}`;
 
-    // Update the creator's metrics
+    // Build update expression dynamically
+    const exprParts = [
+      "metrics.totalReach = :reach",
+      "gsi1sk = :gsi1sk",
+      "gsi2sk = :gsi2sk",
+      "updatedAt = :now",
+    ];
+    const exprValues: Record<string, any> = {
+      ":reach": totalReach,
+      ":gsi1sk": reachSortKey,
+      ":gsi2sk": reachSortKey,
+      ":now": now,
+    };
+
+    if (ytData) {
+      exprParts.push("metrics.totalViews = :totalViews");
+      exprValues[":totalViews"] = ytData.totalViews;
+
+      exprParts.push("metrics.channelStartDate = :channelStartDate");
+      exprValues[":channelStartDate"] = ytData.channelStartDate;
+
+      if (ytData.totalVideos > 0) {
+        exprParts.push("metrics.totalVideos = :totalVideos");
+        exprValues[":totalVideos"] = ytData.totalVideos;
+      }
+
+      if (ytData.videoHighlights.length > 0) {
+        exprParts.push("videoHighlights = :videoHighlights");
+        exprValues[":videoHighlights"] = ytData.videoHighlights;
+      }
+    }
+
     await docClient.send(
       new UpdateCommand({
         TableName: tableName,
@@ -369,16 +738,17 @@ export async function syncSingleCreator(slug: string): Promise<SyncResult> {
           pk: `CREATOR#${slug}`,
           sk: "METADATA",
         },
-        UpdateExpression:
-          "SET metrics.totalReach = :reach, gsi1sk = :gsi1sk, gsi2sk = :gsi2sk, updatedAt = :now",
-        ExpressionAttributeValues: {
-          ":reach": totalReach,
-          ":gsi1sk": reachSortKey,
-          ":gsi2sk": reachSortKey,
-          ":now": now,
-        },
+        UpdateExpression: `SET ${exprParts.join(", ")}`,
+        ExpressionAttributeValues: exprValues,
       })
     );
+
+    // Detect and update category from YouTube topics (non-blocking)
+    try {
+      await detectAndUpdateCategory(creator, tableName);
+    } catch (err) {
+      console.error(`Category detection failed for ${slug}:`, err);
+    }
 
     // Revalidate relevant paths
     revalidatePath(`/creator/${slug}`);
@@ -387,7 +757,7 @@ export async function syncSingleCreator(slug: string): Promise<SyncResult> {
 
     return {
       success: true,
-      message: `Synced "${slug}" successfully. Total reach: ${totalReach.toLocaleString()}.`,
+      message: `Synced "${slug}" successfully. Total reach: ${totalReach.toLocaleString()}.${ytData ? ` YouTube: ${ytData.totalViews.toLocaleString()} views, ${ytData.videoHighlights.length} highlights.` : ""}`,
       synced: 1,
     };
   } catch (error: any) {
@@ -536,6 +906,7 @@ export async function getAllCreatorsForAdmin(): Promise<Creator[]> {
       metrics: item.metrics || { totalReach: 0 },
       referralStats: item.referralStats || { currentWeek: 0, allTime: 0 },
       topVideo: item.topVideo,
+      videoHighlights: item.videoHighlights,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
       joinedDate: item.joinedDate,

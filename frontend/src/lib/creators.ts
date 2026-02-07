@@ -53,6 +53,8 @@ export interface CreatorMetrics {
   engagement?: number;
   engagementRate?: string;
   totalVideos?: number;
+  totalViews?: number;
+  channelStartDate?: string;
   videoCount?: number;
   postCount?: number;
   subscribers?: {
@@ -61,6 +63,15 @@ export interface CreatorMetrics {
     tiktok?: number;
     twitter?: number;
   };
+}
+
+export interface VideoHighlight {
+  videoId: string;
+  title: string;
+  thumbnail: string | null;
+  views: number;
+  likes: number;
+  publishedAt: string;
 }
 
 export interface ReferralStats {
@@ -120,6 +131,9 @@ export interface Creator {
     views: number;
     embedUrl: string;
   };
+
+  // Video highlights snapshot (most viewed, most liked, latest, first)
+  videoHighlights?: VideoHighlight[];
 
   // Timestamps
   createdAt: string;
@@ -195,25 +209,38 @@ export async function getAllCreators(
   const tableName = getTableName();
 
   try {
-    const command = new QueryCommand({
-      TableName: tableName,
-      IndexName: "GSI1",
-      KeyConditionExpression: "gsi1pk = :pk",
-      ExpressionAttributeValues: {
-        ":pk": `STATUS#${status}`,
-      },
-      ScanIndexForward: false, // Sort by reach descending
-      Limit: limit,
-    });
+    const allItems: Record<string, unknown>[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
 
-    const response = await docClient.send(command);
+    do {
+      const command = new QueryCommand({
+        TableName: tableName,
+        IndexName: "GSI1",
+        KeyConditionExpression: "gsi1pk = :pk",
+        ExpressionAttributeValues: {
+          ":pk": `STATUS#${status}`,
+        },
+        ScanIndexForward: false, // Sort by reach descending
+        ...(limit ? { Limit: limit - allItems.length } : {}),
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      });
 
-    if (!response.Items) {
-      return [];
-    }
+      const response = await docClient.send(command);
+
+      if (response.Items) {
+        allItems.push(...response.Items);
+      }
+
+      exclusiveStartKey = response.LastEvaluatedKey as Record<string, unknown> | undefined;
+
+      // If a limit was requested and we've reached it, stop
+      if (limit && allItems.length >= limit) {
+        break;
+      }
+    } while (exclusiveStartKey);
 
     // Map DynamoDB items to Creator objects
-    return response.Items.map(mapDynamoItemToCreator);
+    return allItems.map(mapDynamoItemToCreator);
   } catch (error) {
     console.error("Error fetching creators:", error);
     throw new Error("Failed to fetch creators");
@@ -695,6 +722,7 @@ function mapDynamoItemToCreator(item: Record<string, any>): Creator {
     referralStats: item.referralStats || { currentWeek: 0, allTime: 0 },
     verifiedLinks: item.verifiedLinks || [],
     topVideo: item.topVideo,
+    videoHighlights: item.videoHighlights,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     joinedDate: item.joinedDate,

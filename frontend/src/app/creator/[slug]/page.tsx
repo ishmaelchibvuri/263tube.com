@@ -9,15 +9,30 @@ import {
   Eye,
   Heart,
   Briefcase,
+  Zap,
+  Users,
+  Play,
+  TrendingUp,
+  Upload,
+  Clock,
+  Trophy,
+  Star,
+  Rocket,
+  Youtube,
+  ThumbsUp,
+  Flame,
+  History,
 } from "lucide-react";
 import { getCreatorBySlug } from "@/lib/creators";
 import { getServerSession, isAdmin } from "@/lib/auth-server";
-import { SocialLinkGroup, StatsBadge, ContactCreatorForm, ClaimButton } from "@/components/creators";
+import { calculateEngagementScore } from "@/lib/utils/engagement";
+import { deriveYouTubeInsights } from "@/lib/utils/youtube-insights";
+import { SocialLinkGroup, ContactCreatorForm, ClaimButton } from "@/components/creators";
 import { ReferralTracker } from "@/components/creators/ReferralTracker";
 import { ShareButton } from "@/components/creators/ShareButton";
 import { AuthButton } from "@/components/home/AuthButton";
 import { SyncButton } from "@/components/creators/SyncButton";
-import type { Creator } from "@/lib/creators";
+import type { Creator, VideoHighlight } from "@/lib/creators";
 
 export const dynamic = 'force-dynamic';
 
@@ -129,11 +144,14 @@ export default async function CreatorProfilePage({ params }: PageProps) {
     (creator.metrics.videoCount || 0) + (creator.metrics.postCount || 0) ||
     creator.metrics.totalVideos ||
     0;
-  const engagementRate = creator.metrics.engagementRate
-    || (creator.metrics.engagement ? `${creator.metrics.engagement}%` : null);
+  const engagement = calculateEngagementScore(creator.metrics, creator.platforms);
   const monthlyViews = creator.metrics.rollingMonthlyViews
     ?? creator.metrics.monthlyViews
     ?? null;
+
+  // YouTube Insights (derived from DB-stored metrics — no live API calls)
+  const videoHighlights: VideoHighlight[] = creator.videoHighlights ?? [];
+  const ytInsights = deriveYouTubeInsights(creator.metrics, creator.platforms, creator.verifiedLinks);
 
   return (
     <div className="min-h-screen bg-[#09090b]">
@@ -293,36 +311,112 @@ export default async function CreatorProfilePage({ params }: PageProps) {
               </p>
             </div>
 
-            {/* Stats - Live Metric Calculations */}
+            {/* Engagement Score */}
             <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-4">
+                Engagement Score
+              </h2>
+              <div className="flex items-center gap-4">
+                {/* Score Ring */}
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    {/* Background ring */}
+                    <circle
+                      cx="50" cy="50" r="42"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.06)"
+                      strokeWidth="8"
+                    />
+                    {/* Score ring */}
+                    <circle
+                      cx="50" cy="50" r="42"
+                      fill="none"
+                      stroke={
+                        engagement.score >= 7 ? "#319E31"
+                        : engagement.score >= 5 ? "#FFD200"
+                        : engagement.score >= 3 ? "#f97316"
+                        : "#64748b"
+                      }
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(engagement.score / 10) * 264} 264`}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl sm:text-2xl font-bold text-white leading-none">
+                      {engagement.score}
+                    </span>
+                    <span className="text-[10px] text-slate-500 leading-none mt-0.5">/10</span>
+                  </div>
+                </div>
+                {/* Label & breakdown hint */}
+                <div className="flex-1 min-w-0">
+                  <span className={`text-sm font-semibold ${engagement.color}`}>
+                    {engagement.label}
+                  </span>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Based on audience reach, content volume, views, and platform presence.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-4">
                 Stats
               </h2>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <StatsBadge
-                  label="Total Reach"
-                  value={totalReach}
-                  icon="users"
-                  size="sm"
-                />
-                <StatsBadge
-                  label="Total Content"
-                  value={totalContent || "--"}
-                  icon="play"
-                  size="sm"
-                />
-                <StatsBadge
-                  label="Engagement"
-                  value={engagementRate || "--"}
-                  icon="heart"
-                  size="sm"
-                />
-                <StatsBadge
-                  label="Monthly Views"
-                  value={monthlyViews ?? "--"}
-                  icon="eye"
-                  size="sm"
-                />
+              <div className="space-y-3">
+                {/* Total Reach */}
+                <div className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-2.5 text-slate-400">
+                    <Users className="w-4 h-4 text-[#DE2010]" />
+                    <span className="text-sm">Total Reach</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white">
+                    {totalReach >= 1000000
+                      ? `${(totalReach / 1000000).toFixed(1).replace(/\.0$/, "")}M`
+                      : totalReach >= 1000
+                        ? `${(totalReach / 1000).toFixed(1).replace(/\.0$/, "")}K`
+                        : totalReach.toLocaleString()}
+                  </span>
+                </div>
+                {/* Total Content */}
+                <div className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-2.5 text-slate-400">
+                    <Play className="w-4 h-4 text-[#DE2010]" />
+                    <span className="text-sm">Total Content</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white">
+                    {totalContent > 0 ? totalContent.toLocaleString() : "--"}
+                  </span>
+                </div>
+                {/* Monthly Views */}
+                <div className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-2.5 text-slate-400">
+                    <Eye className="w-4 h-4 text-[#DE2010]" />
+                    <span className="text-sm">Monthly Views</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white">
+                    {monthlyViews != null && monthlyViews > 0
+                      ? monthlyViews >= 1000000
+                        ? `${(monthlyViews / 1000000).toFixed(1).replace(/\.0$/, "")}M`
+                        : monthlyViews >= 1000
+                          ? `${(monthlyViews / 1000).toFixed(1).replace(/\.0$/, "")}K`
+                          : monthlyViews.toLocaleString()
+                      : "--"}
+                  </span>
+                </div>
+                {/* Engagement */}
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-2.5 text-slate-400">
+                    <Zap className="w-4 h-4 text-[#DE2010]" />
+                    <span className="text-sm">Engagement</span>
+                  </div>
+                  <span className={`text-sm font-semibold ${engagement.color}`}>
+                    {engagement.score}/10 &middot; {engagement.label}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -378,47 +472,292 @@ export default async function CreatorProfilePage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Top Video */}
-            {creator.topVideo && (
-              <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
-                  Featured Video
-                </h2>
+            {/* Highest Viewed & Latest Video */}
+            {(() => {
+              const mostViewed = videoHighlights[0] ?? null;   // idx 0 = most viewed
+              const latest = videoHighlights.find((v, i) => i >= 1 && videoHighlights.slice(0, i).every((h) => h.videoId !== v.videoId))
+                ?? videoHighlights[1] ?? null;  // next unique entry = latest
+              // Also support legacy topVideo as fallback for most viewed
+              const fallbackTop = !mostViewed && creator.topVideo ? creator.topVideo : null;
+              const hasVideos = mostViewed || fallbackTop || latest;
+              if (!hasVideos) return null;
 
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Video Embed */}
-                  <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800">
-                    <iframe
-                      src={creator.topVideo.embedUrl}
-                      title={creator.topVideo.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full"
-                    />
+              const fmtViews = (n: number) =>
+                n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+                : n >= 1_000 ? `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`
+                : n.toLocaleString();
+
+              const fmtLikes = fmtViews;
+
+              return (
+                <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Play className="w-4 h-4 text-[#FF0000]" />
+                    <h2 className="text-base sm:text-lg font-semibold text-white">
+                      Featured Videos
+                    </h2>
                   </div>
 
-                  {/* Video Info */}
-                  <div>
-                    <h3 className="text-sm sm:text-base font-semibold text-white">
-                      {creator.topVideo.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-500">
-                      <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      {creator.topVideo.views >= 1000000
-                        ? `${(creator.topVideo.views / 1000000).toFixed(1)}M views`
-                        : creator.topVideo.views >= 1000
-                          ? `${(creator.topVideo.views / 1000).toFixed(1)}K views`
-                          : `${creator.topVideo.views.toLocaleString()} views`}
-                    </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {/* Highest Viewed */}
+                    {(mostViewed || fallbackTop) && (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Flame className="w-3.5 h-3.5 text-orange-400" />
+                          <span className="text-xs font-semibold text-orange-400">Highest Viewed</span>
+                        </div>
+                        {mostViewed ? (
+                          <a
+                            href={`https://www.youtube.com/watch?v=${mostViewed.videoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group block"
+                          >
+                            <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
+                              {mostViewed.thumbnail ? (
+                                <Image
+                                  src={mostViewed.thumbnail}
+                                  alt={mostViewed.title}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Play className="w-8 h-8 text-slate-600" />
+                                </div>
+                              )}
+                            </div>
+                            <h3 className="text-sm font-medium text-white line-clamp-2 group-hover:text-[#FF0000] transition-colors">
+                              {mostViewed.title}
+                            </h3>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" /> {fmtViews(mostViewed.views)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <ThumbsUp className="w-3 h-3" /> {fmtLikes(mostViewed.likes)}
+                              </span>
+                            </div>
+                          </a>
+                        ) : fallbackTop ? (
+                          <div>
+                            <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
+                              <iframe
+                                src={fallbackTop.embedUrl}
+                                title={fallbackTop.title}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0 w-full h-full"
+                              />
+                            </div>
+                            <h3 className="text-sm font-medium text-white line-clamp-2">{fallbackTop.title}</h3>
+                            <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                              <Eye className="w-3 h-3" /> {fmtViews(fallbackTop.views)}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Latest Video */}
+                    {latest && (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-xs font-semibold text-emerald-400">Latest</span>
+                        </div>
+                        <a
+                          href={`https://www.youtube.com/watch?v=${latest.videoId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group block"
+                        >
+                          <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
+                            {latest.thumbnail ? (
+                              <Image
+                                src={latest.thumbnail}
+                                alt={latest.title}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Play className="w-8 h-8 text-slate-600" />
+                              </div>
+                            )}
+                          </div>
+                          <h3 className="text-sm font-medium text-white line-clamp-2 group-hover:text-[#FF0000] transition-colors">
+                            {latest.title}
+                          </h3>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3 h-3" /> {fmtViews(latest.views)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <ThumbsUp className="w-3 h-3" /> {fmtLikes(latest.likes)}
+                            </span>
+                          </div>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Contact for Collaborations */}
             <div id="work-together">
               <ContactCreatorForm creatorSlug={slug} creatorName={creator.name} />
             </div>
+
+            {/* YouTube Insights — Snapshot */}
+            {ytInsights && (
+              <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Youtube className="w-5 h-5 text-[#FF0000]" />
+                  <h2 className="text-base sm:text-lg font-semibold text-white">
+                    YouTube Insights
+                  </h2>
+                  {ytInsights.channelAgeLabel && (
+                    <span className="ml-auto text-xs text-slate-500">{ytInsights.channelAgeLabel}</span>
+                  )}
+                </div>
+
+                {/* Stats Strip — compact horizontal row */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.totalViews ?? "--"}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">views</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.avgViewsPerVideo ?? "--"}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">per video</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.uploadPace ?? "--"}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">uploads</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.viewsPerSub ?? "--"}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{ytInsights.viewsPerSubLabel ?? "views/sub"}</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.estWatchTimeHours ?? "--"}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">watched</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.channelAge ?? "--"}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">on YouTube</p>
+                  </div>
+                </div>
+
+                {/* Content Milestone */}
+                {ytInsights.contentMilestone && (
+                  <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    {ytInsights.contentMilestoneIcon === "trophy" && <Trophy className="w-4 h-4 text-amber-400" />}
+                    {ytInsights.contentMilestoneIcon === "star" && <Star className="w-4 h-4 text-amber-400" />}
+                    {ytInsights.contentMilestoneIcon === "rocket" && <Rocket className="w-4 h-4 text-blue-400" />}
+                    <span className="text-sm font-medium text-white">
+                      {ytInsights.contentMilestone} Creator
+                    </span>
+                    <span className="text-xs text-slate-500 ml-auto">
+                      {(creator.metrics.totalVideos ?? 0).toLocaleString()} videos
+                    </span>
+                  </div>
+                )}
+
+                {/* Video Highlights */}
+                {videoHighlights.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-400 mb-3">Video Highlights</h3>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {videoHighlights.map((video, idx) => {
+                        // Creative labels for each highlight slot
+                        const labels = ["Most Viewed", "Most Liked", "Latest", "Throwback"];
+                        const icons = [
+                          <Flame key="flame" className="w-3 h-3" />,
+                          <ThumbsUp key="like" className="w-3 h-3" />,
+                          <TrendingUp key="trend" className="w-3 h-3" />,
+                          <History key="history" className="w-3 h-3" />,
+                        ];
+                        const colors = [
+                          "text-orange-400 bg-orange-400/10 border-orange-400/20",
+                          "text-pink-400 bg-pink-400/10 border-pink-400/20",
+                          "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+                          "text-blue-400 bg-blue-400/10 border-blue-400/20",
+                        ];
+                        const label = labels[idx] ?? "Featured";
+                        const icon = icons[idx] ?? icons[0];
+                        const color = colors[idx] ?? colors[0];
+
+                        const viewsStr = video.views >= 1_000_000
+                          ? `${(video.views / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+                          : video.views >= 1_000
+                            ? `${(video.views / 1_000).toFixed(1).replace(/\.0$/, "")}K`
+                            : video.views.toLocaleString();
+
+                        const likesStr = video.likes >= 1_000_000
+                          ? `${(video.likes / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+                          : video.likes >= 1_000
+                            ? `${(video.likes / 1_000).toFixed(1).replace(/\.0$/, "")}K`
+                            : video.likes.toLocaleString();
+
+                        return (
+                          <a
+                            key={video.videoId}
+                            href={`https://www.youtube.com/watch?v=${video.videoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex gap-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-colors"
+                          >
+                            {/* Thumbnail */}
+                            <div className="relative w-28 h-16 flex-shrink-0 rounded-md overflow-hidden bg-slate-800">
+                              {video.thumbnail ? (
+                                <Image
+                                  src={video.thumbnail}
+                                  alt={video.title}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Play className="w-5 h-5 text-slate-600" />
+                                </div>
+                              )}
+                              {/* Badge overlay */}
+                              <span className={`absolute top-1 left-1 flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold border ${color}`}>
+                                {icon}
+                                {label}
+                              </span>
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <p className="text-xs font-medium text-white line-clamp-2 leading-tight group-hover:text-[#FF0000] transition-colors">
+                                {video.title}
+                              </p>
+                              <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
+                                <span className="flex items-center gap-0.5">
+                                  <Eye className="w-3 h-3" />
+                                  {viewsStr}
+                                </span>
+                                <span className="flex items-center gap-0.5">
+                                  <ThumbsUp className="w-3 h-3" />
+                                  {likesStr}
+                                </span>
+                              </div>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

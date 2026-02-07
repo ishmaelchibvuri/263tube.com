@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { CreatorCard } from "./CreatorCard";
@@ -8,10 +8,16 @@ import {
   CreatorsSearchFilters,
   FilterState,
 } from "./CreatorsSearchFilters";
+import { Pagination } from "./Pagination";
+import { calculateEngagementScore } from "@/lib/utils/engagement";
 import type { Creator } from "@/lib/creators";
+import type { CategoryItem } from "@/lib/categories-shared";
+
+const ITEMS_PER_PAGE = 24;
 
 interface CreatorsGridProps {
   creators: Creator[];
+  categories?: CategoryItem[];
 }
 
 // Map Creator platforms object to array of platform names
@@ -25,7 +31,7 @@ function getCreatorPlatforms(creator: Creator): string[] {
   return platforms;
 }
 
-export function CreatorsGrid({ creators }: CreatorsGridProps) {
+export function CreatorsGrid({ creators, categories }: CreatorsGridProps) {
   const searchParams = useSearchParams();
 
   // Initial filters from URL params
@@ -48,6 +54,8 @@ export function CreatorsGrid({ creators }: CreatorsGridProps) {
     sortBy: initialFilters.sortBy || "reach",
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+
   const filteredCreators = useMemo(() => {
     let result = [...creators];
 
@@ -62,9 +70,12 @@ export function CreatorsGrid({ creators }: CreatorsGridProps) {
       );
     }
 
-    // Filter by niche
+    // Filter by niche (case-insensitive to handle DB value mismatches)
     if (filters.selectedNiche !== "All") {
-      result = result.filter((creator) => creator.niche === filters.selectedNiche);
+      result = result.filter(
+        (creator) =>
+          creator.niche?.toLowerCase() === filters.selectedNiche.toLowerCase()
+      );
     }
 
     // Filter by platform
@@ -90,10 +101,28 @@ export function CreatorsGrid({ creators }: CreatorsGridProps) {
             (a.referralStats?.currentWeek || 0)
         );
         break;
+      case "engagement":
+        result.sort((a, b) => {
+          const scoreA = calculateEngagementScore(a.metrics, a.platforms).score;
+          const scoreB = calculateEngagementScore(b.metrics, b.platforms).score;
+          return scoreB - scoreA;
+        });
+        break;
     }
 
     return result;
   }, [creators, filters]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  const totalPages = Math.ceil(filteredCreators.length / ITEMS_PER_PAGE);
+  const paginatedCreators = filteredCreators.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const clearFilters = () => {
     setFilters({
@@ -111,24 +140,38 @@ export function CreatorsGrid({ creators }: CreatorsGridProps) {
         onFilterChange={setFilters}
         totalCount={creators.length}
         filteredCount={filteredCreators.length}
+        categories={categories}
       />
 
       <main className="relative px-4 sm:px-6 pb-16">
         <div className="max-w-7xl mx-auto">
           {filteredCreators.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filteredCreators.map((creator) => (
-                <CreatorCard
-                  key={creator.slug}
-                  name={creator.name}
-                  slug={creator.slug}
-                  profilePicUrl={creator.profilePicUrl || ""}
-                  coverImageUrl={creator.coverImageUrl || creator.bannerUrl || ""}
-                  niche={creator.niche}
-                  totalReach={creator.metrics.totalReach}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {paginatedCreators.map((creator) => {
+                  const engagement = calculateEngagementScore(creator.metrics, creator.platforms);
+                  return (
+                    <CreatorCard
+                      key={creator.slug}
+                      name={creator.name}
+                      slug={creator.slug}
+                      profilePicUrl={creator.profilePicUrl || ""}
+                      coverImageUrl={creator.coverImageUrl || creator.bannerUrl || ""}
+                      niche={creator.niche}
+                      totalReach={creator.metrics.totalReach}
+                      engagementScore={engagement.score}
+                      engagementLabel={engagement.label}
+                      engagementColor={engagement.color}
+                    />
+                  );
+                })}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </>
           ) : (
             <div className="text-center py-16">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/[0.05] flex items-center justify-center">

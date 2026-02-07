@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth-server";
 import { getDashboardStats } from "@/lib/actions/sync-engine";
+import { getCategoryStats } from "@/lib/actions/categories";
 import { DashboardContent } from "./DashboardContent";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,10 @@ export default async function AdminDashboardPage() {
     redirect("/unauthorized");
   }
 
-  const stats = await getDashboardStats();
+  const [stats, categoryStats] = await Promise.all([
+    getDashboardStats(),
+    getCategoryStats(),
+  ]);
 
-  return <DashboardContent stats={stats} />;
+  return <DashboardContent stats={stats} categoryStats={categoryStats} />;
 }

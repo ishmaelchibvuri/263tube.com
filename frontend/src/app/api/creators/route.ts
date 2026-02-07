@@ -14,7 +14,8 @@ import {
   getFeaturedCreators,
   searchCreators,
 } from "@/lib/creators";
-import { slugToValue, isValidNiche } from "@/constants/niches";
+import { slugToValue } from "@/constants/niches";
+import { getAllCategories } from "@/lib/actions/categories";
 
 // Force dynamic rendering (no caching)
 export const dynamic = "force-dynamic";
@@ -47,8 +48,13 @@ export async function GET(request: NextRequest) {
       // Support both slug format (from URL) and value format (from taxonomy)
       const nicheValue = slugToValue(category) || category;
 
-      // Validate that it's a known niche
-      if (!isValidNiche(nicheValue)) {
+      // Validate against dynamic categories from DB
+      const categories = await getAllCategories();
+      const isValid = categories.some(
+        (c) => c.value === nicheValue || c.slug === nicheValue
+      );
+
+      if (!isValid) {
         return NextResponse.json(
           {
             success: false,

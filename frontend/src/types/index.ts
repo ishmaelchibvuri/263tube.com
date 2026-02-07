@@ -56,28 +56,9 @@ export type PlatformLink = z.infer<typeof platformLinkSchema>;
 // NICHE TYPES
 // ============================================================================
 
-export const nicheSchema = z.enum([
-  'comedy',
-  'music',
-  'education',
-  'lifestyle',
-  'tech',
-  'gaming',
-  'sports',
-  'news',
-  'food',
-  'travel',
-  'fashion',
-  'beauty',
-  'fitness',
-  'business',
-  'entertainment',
-  'vlogs',
-  'documentary',
-  'kids',
-  'religion',
-  'other',
-]);
+// Niches are now dynamic (database-driven), so we use z.string() instead of a hardcoded z.enum.
+// Valid niche values are managed in DynamoDB via src/lib/actions/categories.ts
+export const nicheSchema = z.string();
 export type Niche = z.infer<typeof nicheSchema>;
 
 // ============================================================================

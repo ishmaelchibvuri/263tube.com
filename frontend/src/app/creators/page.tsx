@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
-import { fetchAllCreators } from "@/lib/api-client";
+import { getAllCreators } from "@/lib/creators";
+import { getAllCategories } from "@/lib/actions/categories";
 import { CreatorsGrid } from "@/components/creators/CreatorsGrid";
 import { AuthButton } from "@/components/home/AuthButton";
 
@@ -39,8 +40,11 @@ function CreatorsGridSkeleton() {
 }
 
 export default async function CreatorsPage() {
-  // Fetch all active creators from API Gateway
-  const creators = await fetchAllCreators();
+  // Fetch all active creators and categories in parallel
+  const [creators, categories] = await Promise.all([
+    getAllCreators("ACTIVE"),
+    getAllCategories(),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#09090b]">
@@ -96,7 +100,7 @@ export default async function CreatorsPage() {
 
       {/* Creators Grid with Client-side Filtering */}
       <Suspense fallback={<CreatorsGridSkeleton />}>
-        <CreatorsGrid creators={creators} />
+        <CreatorsGrid creators={creators} categories={categories} />
       </Suspense>
 
       {/* Footer */}

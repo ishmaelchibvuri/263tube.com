@@ -75,10 +75,20 @@ interface VerifiedLinkData {
   verifiedAt: string;
   youtubeEnrichment?: {
     totalVideos: number | null;
+    totalViews: number | null;
+    channelStartDate: string | null;
     monthlyViews: number | null;
     engagementRate: number | null;
     channelId: string | null;
     dataFetchedAt: string;
+    videoHighlights?: {
+      videoId: string;
+      title: string;
+      thumbnail: string | null;
+      views: number;
+      likes: number;
+      publishedAt: string;
+    }[];
   };
 }
 
@@ -182,12 +192,16 @@ async function approveCreatorInternal(
       }
     }
 
-    // Extract YouTube enrichment data from verified links
+    // Extract YouTube enrichment data from verified links (summed across channels)
     let totalVideos = 0;
+    let totalViews = 0;
     let monthlyViews = 0;
     let primaryEngagementRate: number | null = null;
+    let earliestChannelStartDate: string | null = null;
     let hasVideoData = false;
     let hasMonthlyViewData = false;
+    let hasTotalViewData = false;
+    const allVideoHighlights: { videoId: string; title: string; thumbnail: string | null; views: number; likes: number; publishedAt: string }[] = [];
 
     if (request.verifiedLinks && request.verifiedLinks.length > 0) {
       for (const link of request.verifiedLinks) {
@@ -198,6 +212,15 @@ async function approveCreatorInternal(
           totalVideos += enrichment.totalVideos;
           hasVideoData = true;
         }
+        if (enrichment.totalViews != null) {
+          totalViews += enrichment.totalViews;
+          hasTotalViewData = true;
+        }
+        if (enrichment.channelStartDate) {
+          if (!earliestChannelStartDate || enrichment.channelStartDate < earliestChannelStartDate) {
+            earliestChannelStartDate = enrichment.channelStartDate;
+          }
+        }
         if (enrichment.monthlyViews != null) {
           monthlyViews += enrichment.monthlyViews;
           hasMonthlyViewData = true;
@@ -205,7 +228,26 @@ async function approveCreatorInternal(
         if (primaryEngagementRate == null && enrichment.engagementRate != null) {
           primaryEngagementRate = enrichment.engagementRate;
         }
+        if (enrichment.videoHighlights) {
+          allVideoHighlights.push(...enrichment.videoHighlights);
+        }
       }
+    }
+
+    // Deduplicate and pick best video highlights across all channels
+    const uniqueHighlights = allVideoHighlights.filter(
+      (v, i, arr) => arr.findIndex((x) => x.videoId === v.videoId) === i
+    );
+    const finalHighlights: typeof uniqueHighlights = [];
+    if (uniqueHighlights.length > 0) {
+      const mostViewed = [...uniqueHighlights].sort((a, b) => b.views - a.views)[0];
+      if (mostViewed) finalHighlights.push(mostViewed);
+      const mostLiked = [...uniqueHighlights].sort((a, b) => b.likes - a.likes)[0];
+      if (mostLiked && mostLiked.videoId !== mostViewed?.videoId) finalHighlights.push(mostLiked);
+      const latest = [...uniqueHighlights].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())[0];
+      if (latest && !finalHighlights.some((v) => v.videoId === latest.videoId)) finalHighlights.push(latest);
+      const oldest = [...uniqueHighlights].sort((a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime())[0];
+      if (oldest && !finalHighlights.some((v) => v.videoId === oldest.videoId)) finalHighlights.push(oldest);
     }
 
     const now = new Date().toISOString();
@@ -221,9 +263,12 @@ async function approveCreatorInternal(
         totalReach,
         subscribers: Object.keys(subscriberCounts).length > 0 ? subscriberCounts : undefined,
         ...(hasVideoData ? { totalVideos } : {}),
+        ...(hasTotalViewData ? { totalViews } : {}),
+        ...(earliestChannelStartDate ? { channelStartDate: earliestChannelStartDate } : {}),
         ...(hasMonthlyViewData ? { monthlyViews } : {}),
         ...(primaryEngagementRate != null ? { engagement: primaryEngagementRate } : {}),
       },
+      ...(finalHighlights.length > 0 ? { videoHighlights: finalHighlights } : {}),
       referralStats: {
         currentWeek: 0,
         allTime: 0,

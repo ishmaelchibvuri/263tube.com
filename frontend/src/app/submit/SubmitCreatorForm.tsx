@@ -36,7 +36,7 @@ import { checkDuplicateLink, type DuplicateCheckResult } from "@/lib/actions/che
 import { getCreatorPlatformLinks, type CreatorPlatformLink } from "@/lib/actions/creator-links";
 import { AuthButton } from "@/components/home/AuthButton";
 import { EcosystemPreview, NicheMultiSelect } from "@/components/submit";
-import { getNicheLabel } from "@/constants/niches";
+import type { CategoryItem } from "@/lib/categories-shared";
 
 const PLATFORMS = [
   { name: "YouTube", icon: Youtube, color: "#FF0000" },
@@ -95,9 +95,10 @@ function normalizeYouTubeInput(value: string): string {
 
 interface Props {
   session: SubmitSessionData | null;
+  categories?: CategoryItem[];
 }
 
-export default function SubmitCreatorForm({ session }: Props) {
+export default function SubmitCreatorForm({ session, categories }: Props) {
   const router = useRouter();
   const isLoggedIn = !!session;
 
@@ -627,6 +628,7 @@ export default function SubmitCreatorForm({ session }: Props) {
                   maxSelections={3}
                   placeholder="Select up to 3 niches..."
                   required
+                  categories={categories}
                 />
               </div>
 
@@ -944,7 +946,10 @@ export default function SubmitCreatorForm({ session }: Props) {
             {getVerifiedLinks().length > 0 && (
               <EcosystemPreview
                 creatorName={formData.creatorName}
-                niche={selectedNiches.map(getNicheLabel).join(", ")}
+                niche={selectedNiches.map((v) => {
+                  const cat = categories?.find((c) => c.value === v);
+                  return cat?.label || v.charAt(0).toUpperCase() + v.slice(1);
+                }).join(", ")}
                 verifiedLinks={getVerifiedLinks()}
                 primaryImage={getPrimaryProfileImage()}
               />

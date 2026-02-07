@@ -1,10 +1,14 @@
 import { getServerSession } from "@/lib/auth-server";
+import { getAllCategories } from "@/lib/actions/categories";
 import SubmitCreatorForm, { type SubmitSessionData } from "./SubmitCreatorForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function SubmitCreatorPage() {
-  const { user, isAuthenticated } = await getServerSession();
+  const [{ user, isAuthenticated }, categories] = await Promise.all([
+    getServerSession(),
+    getAllCategories(),
+  ]);
 
   let sessionData: SubmitSessionData | null = null;
 
@@ -17,5 +21,5 @@ export default async function SubmitCreatorPage() {
     };
   }
 
-  return <SubmitCreatorForm session={sessionData} />;
+  return <SubmitCreatorForm session={sessionData} categories={categories} />;
 }

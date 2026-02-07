@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Check, ChevronDown, X, Search } from "lucide-react";
 import { NICHES, OTHER_NICHE, type NicheItem } from "@/constants/niches";
+import type { CategoryItem } from "@/lib/categories-shared";
 
 interface NicheMultiSelectProps {
   selectedNiches: string[];
@@ -12,6 +13,8 @@ interface NicheMultiSelectProps {
   maxSelections?: number;
   placeholder?: string;
   required?: boolean;
+  /** Dynamic categories from the database. Falls back to static NICHES if not provided. */
+  categories?: CategoryItem[];
 }
 
 export function NicheMultiSelect({
@@ -22,6 +25,7 @@ export function NicheMultiSelect({
   maxSelections = 3,
   placeholder = "Select niches...",
   required = false,
+  categories,
 }: NicheMultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,8 +33,18 @@ export function NicheMultiSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Use dynamic categories if provided, fall back to static NICHES
+  const nicheList: NicheItem[] = categories?.length
+    ? categories.map((c) => ({
+        label: c.label,
+        value: c.value,
+        slug: c.slug,
+        description: c.description,
+      }))
+    : NICHES;
+
   // Filter niches based on search query
-  const filteredNiches = NICHES.filter((niche) =>
+  const filteredNiches = nicheList.filter((niche) =>
     niche.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
     niche.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -79,7 +93,7 @@ export function NicheMultiSelect({
 
   const getNicheLabel = (value: string): string => {
     if (value === OTHER_NICHE.value) return OTHER_NICHE.label;
-    const niche = NICHES.find((n) => n.value === value);
+    const niche = nicheList.find((n) => n.value === value);
     return niche?.label || value;
   };
 

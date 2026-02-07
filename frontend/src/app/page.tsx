@@ -17,6 +17,8 @@ import {
   Music2,
 } from "lucide-react";
 import { fetchAllCreators, fetchTopReferrers } from "@/lib/api-client";
+import { getCategoryStats } from "@/lib/actions/categories";
+import { getCategoryColors, type CategoryWithStats } from "@/lib/categories-shared";
 import type { Creator } from "@/lib/creators";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { FeaturedCarousel } from "@/components/home/FeaturedCarousel";
@@ -30,15 +32,7 @@ export const metadata: Metadata = {
     "Find YouTubers, influencers, and creators shaping African culture. The largest directory of Zimbabwean content creators.",
 };
 
-// Static data that rarely changes
-const CATEGORIES = [
-  { name: "Comedy", icon: "😂", count: 120, color: "from-[#DE2010] to-[#b01a0d]" },
-  { name: "Music", icon: "🎵", count: 85, color: "from-purple-500 to-pink-500" },
-  { name: "Tech", icon: "💻", count: 45, color: "from-cyan-500 to-blue-500" },
-  { name: "Cooking", icon: "🍳", count: 62, color: "from-[#319E31] to-emerald-600" },
-  { name: "Farming", icon: "🌾", count: 38, color: "from-[#FFD200] to-amber-500" },
-  { name: "Lifestyle", icon: "✨", count: 94, color: "from-pink-500 to-rose-500" },
-];
+// Top categories to show on the homepage (first 6 from dynamic data)
 
 const PLATFORMS = [
   {
@@ -96,6 +90,7 @@ function CreatorAvatar({ creator }: { creator: Creator }) {
               alt={creator.name}
               width={64}
               height={64}
+              loading="lazy"
               className="object-cover w-full h-full"
             />
           ) : (
@@ -165,6 +160,7 @@ function TrendingItem({ creator, rank }: { creator: Creator; rank: number }) {
             alt={creator.name}
             width={40}
             height={40}
+            loading="lazy"
             className="object-cover w-full h-full"
           />
         ) : (
@@ -196,36 +192,47 @@ function TrendingItem({ creator, rank }: { creator: Creator; rank: number }) {
 }
 
 // Category Card Component
-function CategoryCard({ category }: { category: (typeof CATEGORIES)[0] }) {
+function CategoryCard({ category }: { category: CategoryWithStats }) {
+  const colors = getCategoryColors(category.value);
   return (
     <Link
-      href={`/creators?niche=${category.name}`}
+      href={`/creators?niche=${category.value}`}
       className="group relative p-3 sm:p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300 overflow-hidden"
     >
       {/* Gradient Background on Hover */}
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+        className={`absolute inset-0 bg-gradient-to-br ${colors.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
       />
 
       <div className="relative text-center sm:text-left">
         <span className="text-2xl sm:text-3xl mb-1 sm:mb-2 block">
-          {category.icon}
+          {category.icon || "📁"}
         </span>
         <h3 className="text-xs sm:text-sm font-semibold text-white">
-          {category.name}
+          {category.label}
         </h3>
-        <p className="text-[10px] sm:text-xs text-slate-500">{category.count}</p>
+        {category.creatorCount > 0 && (
+          <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+            {category.creatorCount} creator{category.creatorCount !== 1 ? "s" : ""}
+          </p>
+        )}
       </div>
     </Link>
   );
 }
 
 export default async function HomePage() {
-  // Fetch data from API Gateway
-  const [allCreators, trendingCreators] = await Promise.all([
+  // Fetch data from API Gateway + categories in parallel
+  const [allCreators, trendingCreators, allCategoryStats] = await Promise.all([
     fetchAllCreators(50),
     fetchTopReferrers(10),
+    getCategoryStats(),
   ]);
+
+  // Take top 12 categories by creator count for homepage display
+  const homeCategories = [...allCategoryStats]
+    .sort((a, b) => b.creatorCount - a.creatorCount)
+    .slice(0, 12);
 
   // Get featured creators for carousel (top 10 by referrals)
   const featuredCreators =
@@ -465,16 +472,24 @@ export default async function HomePage() {
 
             {/* Browse Categories */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Flame className="w-4 h-4 text-[#319E31]" />
-                <h2 className="text-base sm:text-xl font-bold text-white">
-                  Categories
-                </h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-[#319E31]" />
+                  <h2 className="text-base sm:text-xl font-bold text-white">
+                    Categories
+                  </h2>
+                </div>
+                <Link
+                  href="/categories"
+                  className="text-xs text-slate-500 hover:text-white flex items-center gap-1"
+                >
+                  All <ArrowRight className="w-3 h-3" />
+                </Link>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {CATEGORIES.map((category) => (
-                  <CategoryCard key={category.name} category={category} />
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
+                {homeCategories.map((category) => (
+                  <CategoryCard key={category.value} category={category} />
                 ))}
               </div>
             </div>

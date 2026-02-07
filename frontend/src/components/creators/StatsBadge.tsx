@@ -18,6 +18,7 @@ interface StatsBadgeProps {
   icon?: IconName;
   className?: string;
   size?: "sm" | "md" | "lg";
+  subtitle?: string;
 }
 
 function formatNumber(num: number): string {
@@ -37,12 +38,20 @@ export function StatsBadge({
   icon,
   className,
   size = "md",
+  subtitle,
 }: StatsBadgeProps) {
   const Icon = icon ? iconMap[icon] : null;
+
   const sizeClasses = {
-    sm: "px-3 py-2",
-    md: "px-4 py-3",
-    lg: "px-6 py-4",
+    sm: "px-3 py-3",
+    md: "px-4 py-4",
+    lg: "px-6 py-5",
+  };
+
+  const iconSizeClasses = {
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
 
   const valueSizeClasses = {
@@ -57,18 +66,30 @@ export function StatsBadge({
   return (
     <div
       className={cn(
-        "stats-badge",
+        "flex flex-col items-center text-center rounded-xl bg-white/[0.03] border border-white/[0.06]",
         sizeClasses[size],
         className
       )}
     >
       {Icon && (
-        <Icon className="w-5 h-5 text-primary mb-1" />
+        <Icon className={cn("text-[#DE2010] mb-1.5", iconSizeClasses[size])} />
       )}
-      <span className={cn("stats-badge-value", valueSizeClasses[size])}>
+      <span
+        className={cn(
+          "font-bold text-white leading-tight truncate w-full",
+          valueSizeClasses[size]
+        )}
+      >
         {formattedValue}
       </span>
-      <span className="stats-badge-label">{label}</span>
+      <span className="text-[11px] text-slate-500 uppercase tracking-wider mt-1 leading-tight">
+        {label}
+      </span>
+      {subtitle && (
+        <span className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+          {subtitle}
+        </span>
+      )}
     </div>
   );
 }

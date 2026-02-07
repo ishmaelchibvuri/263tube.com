@@ -7,7 +7,7 @@
  * returning minimal shapes suitable for client components.
  */
 
-import { searchCreators, getCreatorBySlug } from "@/lib/creators";
+import { searchCreators, getCreatorBySlug, type CreatorPlatforms } from "@/lib/creators";
 
 export interface CreatorSuggestion {
   slug: string;
@@ -106,9 +106,9 @@ export async function getCreatorForClaim(
  * Extract the first YouTube handle/URL from creator platforms data.
  */
 function extractYoutubeHandle(
-  platforms: Record<string, { label: string; url: string; handle?: string }[]> | undefined
+  platforms: CreatorPlatforms | undefined
 ): string | null {
-  if (!platforms?.youtube || platforms.youtube.length === 0) return null;
-  const first = platforms.youtube[0];
+  const first = platforms?.youtube?.[0];
+  if (!first) return null;
   return first.handle ? `@${first.handle}` : first.url || null;
 }

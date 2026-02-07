@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Users, ArrowUpRight } from "lucide-react";
+import { Users, ArrowUpRight, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreatorCardProps {
@@ -12,6 +12,9 @@ interface CreatorCardProps {
   coverImageUrl?: string;
   niche: string;
   totalReach: number;
+  engagementScore?: number;
+  engagementLabel?: string;
+  engagementColor?: string;
   className?: string;
 }
 
@@ -32,6 +35,9 @@ export function CreatorCard({
   coverImageUrl,
   niche,
   totalReach,
+  engagementScore,
+  engagementLabel,
+  engagementColor,
   className,
 }: CreatorCardProps) {
   return (
@@ -49,6 +55,7 @@ export function CreatorCard({
             src={coverImageUrl}
             alt={`${name} cover`}
             fill
+            loading="lazy"
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
@@ -71,6 +78,7 @@ export function CreatorCard({
               src={profilePicUrl}
               alt={name}
               fill
+              loading="lazy"
               className="object-cover"
             />
           ) : (
@@ -95,15 +103,27 @@ export function CreatorCard({
           {niche}
         </span>
 
-        {/* Total Reach */}
-        <div className="flex items-center justify-center gap-1.5 mt-4 text-slate-500">
-          <Users className="w-3.5 h-3.5" />
-          <span className="text-sm">
-            <span className="font-medium text-white">
-              {formatNumber(totalReach)}
-            </span>{" "}
-            reach
-          </span>
+        {/* Stats Row */}
+        <div className="flex items-center justify-center gap-4 mt-4 text-slate-500">
+          <div className="flex items-center gap-1">
+            <Users className="w-3.5 h-3.5" />
+            <span className="text-sm">
+              <span className="font-medium text-white">
+                {formatNumber(totalReach)}
+              </span>
+            </span>
+          </div>
+          {engagementScore !== undefined && (
+            <div className="flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5" />
+              <span className="text-sm">
+                <span className={cn("font-medium", engagementColor || "text-white")}>
+                  {engagementScore}
+                </span>
+                <span className="text-[10px] text-slate-600">/10</span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

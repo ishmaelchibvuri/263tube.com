@@ -12,16 +12,26 @@ import {
   Loader2,
   BadgeCheck,
   TrendingUp,
+  LayoutGrid,
+  Database,
 } from "lucide-react";
 import { syncAllCreatorStats, type DashboardStats } from "@/lib/actions/sync-engine";
+import { seedCategories } from "@/lib/actions/categories";
+import type { CategoryWithStats } from "@/lib/categories-shared";
 
 interface DashboardContentProps {
   stats: DashboardStats;
+  categoryStats: CategoryWithStats[];
 }
 
-export function DashboardContent({ stats }: DashboardContentProps) {
+export function DashboardContent({ stats, categoryStats }: DashboardContentProps) {
   const [syncing, setSyncing] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [syncResult, setSyncResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [seedResult, setSeedResult] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
@@ -43,6 +53,26 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    setSeedResult(null);
+
+    try {
+      const result = await seedCategories();
+      setSeedResult({
+        type: result.success ? "success" : "error",
+        message: result.message,
+      });
+    } catch {
+      setSeedResult({
+        type: "error",
+        message: "Seeding failed. Please try again.",
+      });
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -224,6 +254,27 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                 </p>
               </div>
             </Link>
+
+            {/* Seed Categories */}
+            <button
+              onClick={handleSeed}
+              disabled={seeding}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-colors disabled:opacity-50 text-left"
+            >
+              {seeding ? (
+                <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+              ) : (
+                <Database className="w-5 h-5 flex-shrink-0" />
+              )}
+              <div>
+                <p className="font-medium text-sm">
+                  {seeding ? "Seeding..." : "Seed Categories"}
+                </p>
+                <p className="text-xs text-purple-400/60 mt-0.5">
+                  Populate categories from taxonomy
+                </p>
+              </div>
+            </button>
           </div>
 
           {/* Sync Result */}
@@ -236,6 +287,19 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               }`}
             >
               {syncResult.message}
+            </div>
+          )}
+
+          {/* Seed Result */}
+          {seedResult && (
+            <div
+              className={`mt-4 p-3 rounded-xl text-sm ${
+                seedResult.type === "success"
+                  ? "bg-[#319E31]/10 border border-[#319E31]/20 text-[#319E31]"
+                  : "bg-[#DE2010]/10 border border-[#DE2010]/20 text-[#DE2010]"
+              }`}
+            >
+              {seedResult.message}
             </div>
           )}
         </div>
@@ -302,6 +366,53 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           <div className="zim-stripe mt-6 rounded-full" />
         </div>
       </div>
+
+      {/* Categories Breakdown */}
+      {categoryStats.length > 0 && (
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <LayoutGrid className="w-5 h-5 text-[#FFD200]" />
+              Categories
+            </h2>
+            <Link
+              href="/admin/creators"
+              className="text-xs text-slate-500 hover:text-white transition-colors"
+            >
+              View all creators
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {categoryStats
+              .filter((cat) => cat.creatorCount > 0)
+              .sort((a, b) => b.creatorCount - a.creatorCount)
+              .map((cat) => (
+                <div
+                  key={cat.value}
+                  className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 hover:border-white/[0.1] transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{cat.icon || "📁"}</span>
+                    <span className="text-sm font-medium text-white truncate">
+                      {cat.label}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">
+                    {cat.creatorCount}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">creators</p>
+                </div>
+              ))}
+          </div>
+
+          {categoryStats.every((cat) => cat.creatorCount === 0) && (
+            <p className="text-sm text-slate-500 text-center py-4">
+              No creators assigned to categories yet. Run a global sync to detect categories.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

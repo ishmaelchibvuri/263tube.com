@@ -48,10 +48,20 @@ interface VerifiedLinkData {
   verifiedAt: string;
   youtubeEnrichment?: {
     totalVideos: number | null;
+    totalViews: number | null;
+    channelStartDate: string | null;
     monthlyViews: number | null;
     engagementRate: number | null;
     channelId: string | null;
     dataFetchedAt: string;
+    videoHighlights?: {
+      videoId: string;
+      title: string;
+      thumbnail: string | null;
+      views: number;
+      likes: number;
+      publishedAt: string;
+    }[];
   };
 }
 

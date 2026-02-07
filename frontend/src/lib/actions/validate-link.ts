@@ -17,12 +17,24 @@ import { resolve } from "path";
 // Types
 // ============================================================================
 
+export interface VideoHighlightData {
+  videoId: string;
+  title: string;
+  thumbnail: string | null;
+  views: number;
+  likes: number;
+  publishedAt: string;
+}
+
 export interface YouTubeEnrichment {
   totalVideos: number | null;
+  totalViews: number | null;
+  channelStartDate: string | null;
   monthlyViews: number | null;
   engagementRate: number | null; // avg((likes+comments)/views) * 100
   channelId: string | null;
   dataFetchedAt: string;
+  videoHighlights?: VideoHighlightData[];
 }
 
 export interface ValidationResult {
@@ -134,10 +146,14 @@ async function enrichYouTubeData(
   uploadsPlaylistId: string,
   videoCountFromStats: number | null,
   channelId: string,
-  apiKey: string
+  apiKey: string,
+  totalViews: number | null,
+  channelStartDate: string | null,
 ): Promise<YouTubeEnrichment> {
   const fallback: YouTubeEnrichment = {
     totalVideos: videoCountFromStats,
+    totalViews,
+    channelStartDate,
     monthlyViews: null,
     engagementRate: null,
     channelId,
@@ -198,12 +214,52 @@ async function enrichYouTubeData(
         ? Math.round((totalEngagement / engagementSamples) * 100 * 100) / 100
         : null;
 
+    // 5. Extract video highlights: most viewed, most liked, latest
+    const videoHighlights: VideoHighlightData[] = [];
+    const mapped = videos.map((v: any) => ({
+      videoId: v.id as string,
+      title: (v.snippet.title || "") as string,
+      thumbnail: (v.snippet.thumbnails?.medium?.url || v.snippet.thumbnails?.default?.url || null) as string | null,
+      views: parseInt(v.statistics.viewCount) || 0,
+      likes: parseInt(v.statistics.likeCount) || 0,
+      publishedAt: v.snippet.publishedAt as string,
+    }));
+
+    // Most viewed
+    const mostViewed = [...mapped].sort((a, b) => b.views - a.views)[0];
+    if (mostViewed) videoHighlights.push(mostViewed);
+
+    // Most liked (skip if same as most viewed)
+    const mostLiked = [...mapped].sort((a, b) => b.likes - a.likes)[0];
+    if (mostLiked && mostLiked.videoId !== mostViewed?.videoId) {
+      videoHighlights.push(mostLiked);
+    }
+
+    // Latest (by publish date, skip if already included)
+    const latest = [...mapped].sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    )[0];
+    if (latest && !videoHighlights.some((v) => v.videoId === latest.videoId)) {
+      videoHighlights.push(latest);
+    }
+
+    // Oldest from the batch (earliest published, as a proxy for "first")
+    const oldest = [...mapped].sort(
+      (a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime()
+    )[0];
+    if (oldest && !videoHighlights.some((v) => v.videoId === oldest.videoId)) {
+      videoHighlights.push(oldest);
+    }
+
     return {
       totalVideos: videoCountFromStats,
+      totalViews,
+      channelStartDate,
       monthlyViews: hasRecentVideos ? monthlyViews : null,
       engagementRate,
       channelId,
       dataFetchedAt: new Date().toISOString(),
+      videoHighlights,
     };
   } catch (error) {
     console.error("YouTube enrichment error:", error);
@@ -348,6 +404,8 @@ async function validateYouTube(handleOrUrl: string): Promise<ValidationResult> {
       : null;
     const followers = parseInt(channel.statistics?.subscriberCount) || null;
     const videoCount = parseInt(channel.statistics?.videoCount) || null;
+    const totalViews = parseInt(channel.statistics?.viewCount) || null;
+    const channelStartDate = channel.snippet?.publishedAt || null;
     const resolvedChannelId = channel.id;
     const uploadsPlaylistId =
       channel.contentDetails?.relatedPlaylists?.uploads;
@@ -360,11 +418,15 @@ async function validateYouTube(handleOrUrl: string): Promise<ValidationResult> {
         uploadsPlaylistId,
         videoCount,
         resolvedChannelId,
-        apiKey
+        apiKey,
+        totalViews,
+        channelStartDate,
       );
     } else {
       youtubeEnrichment = {
         totalVideos: videoCount,
+        totalViews,
+        channelStartDate,
         monthlyViews: null,
         engagementRate: null,
         channelId: resolvedChannelId,

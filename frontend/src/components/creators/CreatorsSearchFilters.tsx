@@ -11,19 +11,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { CreatorSearchAutocomplete } from "./CreatorSearchAutocomplete";
-
-const NICHES = [
-  "All",
-  "Comedy",
-  "Music",
-  "Entertainment",
-  "Technology",
-  "Cooking",
-  "Farming",
-  "Lifestyle",
-  "Commentary",
-  "Beauty",
-];
+import type { CategoryItem } from "@/lib/categories-shared";
 
 const PLATFORMS = [
   { name: "All", icon: null, color: "" },
@@ -36,6 +24,7 @@ const PLATFORMS = [
 
 const SORT_OPTIONS = [
   { value: "reach", label: "Most Popular" },
+  { value: "engagement", label: "Most Engaged" },
   { value: "name", label: "Name (A-Z)" },
   { value: "shares", label: "Most Shared" },
 ];
@@ -52,14 +41,34 @@ interface CreatorsSearchFiltersProps {
   onFilterChange: (filters: FilterState) => void;
   totalCount: number;
   filteredCount: number;
+  /** Dynamic categories from the database */
+  categories?: CategoryItem[];
 }
+
+// Default fallback niches if no dynamic categories provided
+const DEFAULT_NICHES = [
+  { value: "comedy", label: "Comedy" },
+  { value: "music", label: "Music" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "technology", label: "Technology" },
+  { value: "cooking", label: "Cooking" },
+  { value: "farming", label: "Farming" },
+  { value: "lifestyle", label: "Lifestyle" },
+  { value: "commentary", label: "Commentary" },
+  { value: "beauty", label: "Beauty" },
+];
 
 export function CreatorsSearchFilters({
   initialFilters = {},
   onFilterChange,
   totalCount,
   filteredCount,
+  categories,
 }: CreatorsSearchFiltersProps) {
+  // Build niche list from dynamic categories or fallback
+  const nicheOptions = categories?.length
+    ? categories.map((c) => ({ value: c.value, label: c.label }))
+    : DEFAULT_NICHES;
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: initialFilters.searchQuery || "",
@@ -132,17 +141,27 @@ export function CreatorsSearchFilters({
                   Category
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {NICHES.map((niche) => (
+                  <button
+                    onClick={() => updateFilter("selectedNiche", "All")}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                      filters.selectedNiche === "All"
+                        ? "bg-[#DE2010] text-white"
+                        : "bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.1]"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {nicheOptions.map((niche) => (
                     <button
-                      key={niche}
-                      onClick={() => updateFilter("selectedNiche", niche)}
+                      key={niche.value}
+                      onClick={() => updateFilter("selectedNiche", niche.value)}
                       className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-                        filters.selectedNiche === niche
+                        filters.selectedNiche === niche.value
                           ? "bg-[#DE2010] text-white"
                           : "bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.1]"
                       }`}
                     >
-                      {niche}
+                      {niche.label}
                     </button>
                   ))}
                 </div>
@@ -241,7 +260,7 @@ export function CreatorsSearchFilters({
             )}
             {filters.selectedNiche !== "All" && (
               <span className="flex items-center gap-1 px-2 py-1 bg-[#DE2010]/10 rounded-lg text-xs text-[#DE2010]">
-                {filters.selectedNiche}
+                {nicheOptions.find((n) => n.value === filters.selectedNiche)?.label || filters.selectedNiche}
                 <button
                   onClick={() => updateFilter("selectedNiche", "All")}
                   className="ml-1 hover:text-white"
