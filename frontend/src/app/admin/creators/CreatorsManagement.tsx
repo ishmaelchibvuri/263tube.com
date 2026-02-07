@@ -11,6 +11,11 @@ import {
   Loader2,
   ShieldCheck,
   ShieldOff,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  AlertTriangle,
 } from "lucide-react";
 import { toggleCreatorVerified } from "@/lib/actions/sync-engine";
 import type { Creator } from "@/lib/creators";
@@ -29,6 +34,23 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  // Delete state
+  const [deleteConfirmSlug, setDeleteConfirmSlug] = useState<string | null>(null);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+
+  // Edit state
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    niche: string;
+    bio: string;
+    website: string;
+    status: string;
+    location: string;
+    contactEmail: string;
+  }>({ name: "", niche: "", bio: "", website: "", status: "ACTIVE", location: "", contactEmail: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Get unique niches for filter
   const allNiches = Array.from(
@@ -80,6 +102,90 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
       });
     } finally {
       setTogglingSlug(null);
+    }
+  };
+
+  const handleDelete = async (slug: string) => {
+    setDeletingSlug(slug);
+    setActionResult(null);
+
+    try {
+      const res = await fetch(`/api/creators/${slug}`, { method: "DELETE" });
+      const data = await res.json();
+
+      if (data.success) {
+        setLocalCreators((prev) => prev.filter((c) => c.slug !== slug));
+        setActionResult({ type: "success", message: `Creator "${slug}" deleted successfully.` });
+      } else {
+        setActionResult({ type: "error", message: data.error || "Failed to delete creator." });
+      }
+    } catch {
+      setActionResult({ type: "error", message: "Failed to delete creator." });
+    } finally {
+      setDeletingSlug(null);
+      setDeleteConfirmSlug(null);
+    }
+  };
+
+  const openEdit = (creator: Creator) => {
+    setEditingSlug(creator.slug);
+    setEditForm({
+      name: creator.name,
+      niche: creator.niche,
+      bio: creator.bio || "",
+      website: "",
+      status: creator.status,
+      location: creator.location || "",
+      contactEmail: creator.contactEmail || "",
+    });
+    setActionResult(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSlug) return;
+    setSavingEdit(true);
+    setActionResult(null);
+
+    try {
+      const res = await fetch(`/api/creators/${editingSlug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name,
+          niche: editForm.niche,
+          bio: editForm.bio,
+          website: editForm.website || undefined,
+          status: editForm.status,
+          location: editForm.location || undefined,
+          contactEmail: editForm.contactEmail || undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setLocalCreators((prev) =>
+          prev.map((c) =>
+            c.slug === editingSlug
+              ? {
+                  ...c,
+                  name: editForm.name,
+                  niche: editForm.niche,
+                  bio: editForm.bio,
+                  status: editForm.status as Creator["status"],
+                  location: editForm.location || c.location,
+                }
+              : c
+          )
+        );
+        setActionResult({ type: "success", message: `Creator "${editForm.name}" updated successfully.` });
+        setEditingSlug(null);
+      } else {
+        setActionResult({ type: "error", message: data.error || "Failed to update creator." });
+      }
+    } catch {
+      setActionResult({ type: "error", message: "Failed to update creator." });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -302,11 +408,217 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                       )}
                       {creator.verified ? "Verified" : "Unverified"}
                     </button>
+
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => openEdit(creator)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#FFD200]/10 text-[#FFD200] border border-[#FFD200]/20 hover:bg-[#FFD200]/20 transition-colors text-xs font-medium"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => setDeleteConfirmSlug(creator.slug)}
+                      disabled={deletingSlug === creator.slug}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#DE2010]/10 text-[#DE2010] border border-[#DE2010]/20 hover:bg-[#DE2010]/20 transition-colors text-xs font-medium disabled:opacity-50"
+                    >
+                      {deletingSlug === creator.slug ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmSlug && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141418] border border-white/[0.1] rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#DE2010]/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-[#DE2010]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Delete Creator</h3>
+            </div>
+            <p className="text-sm text-slate-400 mb-2">
+              Are you sure you want to delete <span className="text-white font-medium">@{deleteConfirmSlug}</span>?
+            </p>
+            <p className="text-xs text-slate-500 mb-6">
+              This action cannot be undone. All creator data including their profile, platform links, and metrics will be permanently removed.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirmSlug(null)}
+                className="px-4 py-2 rounded-lg bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirmSlug)}
+                disabled={!!deletingSlug}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#DE2010] text-white hover:bg-[#ff2a17] transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {deletingSlug ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Creator
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Creator Modal */}
+      {editingSlug && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141418] border border-white/[0.1] rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FFD200]/10 flex items-center justify-center">
+                  <Pencil className="w-5 h-5 text-[#FFD200]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Edit Creator</h3>
+                  <p className="text-xs text-slate-500">@{editingSlug}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingSlug(null)}
+                className="p-2 text-slate-500 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                />
+              </div>
+
+              {/* Niche */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Niche</label>
+                <input
+                  type="text"
+                  value={editForm.niche}
+                  onChange={(e) => setEditForm({ ...editForm, niche: e.target.value })}
+                  className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD200]/40 appearance-none cursor-pointer"
+                >
+                  <option value="ACTIVE" className="bg-[#141418]">Active</option>
+                  <option value="FEATURED" className="bg-[#141418]">Featured</option>
+                  <option value="PENDING" className="bg-[#141418]">Pending</option>
+                  <option value="INACTIVE" className="bg-[#141418]">Inactive</option>
+                </select>
+              </div>
+
+              {/* Bio */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Bio</label>
+                <textarea
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20 resize-none"
+                />
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Location</label>
+                <input
+                  type="text"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  placeholder="e.g. Harare, Zimbabwe"
+                  className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                />
+              </div>
+
+              {/* Website */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Website</label>
+                <input
+                  type="url"
+                  value={editForm.website}
+                  onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                  placeholder="https://example.com"
+                  className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                />
+              </div>
+
+              {/* Contact Email */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Contact Email</label>
+                <input
+                  type="email"
+                  value={editForm.contactEmail}
+                  onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
+                  placeholder="creator@example.com"
+                  className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                />
+              </div>
+            </div>
+
+            {/* Save / Cancel */}
+            <div className="flex items-center gap-3 justify-end mt-6 pt-4 border-t border-white/[0.05]">
+              <button
+                onClick={() => setEditingSlug(null)}
+                className="px-4 py-2 rounded-lg bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={savingEdit || !editForm.name.trim() || !editForm.niche.trim()}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#319E31] text-white hover:bg-[#3db83d] transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {savingEdit ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

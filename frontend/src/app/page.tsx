@@ -23,6 +23,8 @@ import type { Creator } from "@/lib/creators";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { FeaturedCarousel } from "@/components/home/FeaturedCarousel";
 import { AuthButton } from "@/components/home/AuthButton";
+import { CreatorCard } from "@/components/creators/CreatorCard";
+import { calculateEngagementScore } from "@/lib/utils/engagement";
 
 export const dynamic = 'force-dynamic';
 
@@ -240,8 +242,16 @@ export default async function HomePage() {
       ? trendingCreators
       : allCreators.slice(0, 10);
 
-  // Get popular creators for quick browse (first 8)
-  const popularCreators = allCreators.slice(0, 8);
+  // Get upcoming creators (joined YouTube in the past 2 years)
+  const twoYearsAgo = new Date();
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  const upcomingCreators = allCreators
+    .filter((c) => {
+      const startDate = c.metrics.channelStartDate;
+      if (!startDate) return false;
+      return new Date(startDate) >= twoYearsAgo;
+    })
+    .slice(0, 10);
 
   // Get trending creators for sidebar (use trending data or fallback)
   const sidebarTrending =
@@ -412,14 +422,14 @@ export default async function HomePage() {
         <FeaturedCarousel creators={featuredCreators} />
       </section>
 
-      {/* Quick Browse Creators - Popular Creators */}
+      {/* Upcoming Creators */}
       <section className="relative py-6 sm:py-10 px-4 sm:px-6 border-t border-white/[0.05] bg-white/[0.01]">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#FFD200]" />
               <h3 className="text-sm sm:text-lg font-semibold text-white">
-                Popular Creators
+                Upcoming Creators
               </h3>
             </div>
             <Link
@@ -430,10 +440,24 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-4 sm:flex sm:flex-wrap sm:justify-center gap-1 sm:gap-2">
-            {popularCreators.map((creator) => (
-              <CreatorAvatar key={creator.slug} creator={creator} />
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {upcomingCreators.map((creator) => {
+              const engagement = calculateEngagementScore(creator.metrics, creator.platforms);
+              return (
+                <CreatorCard
+                  key={creator.slug}
+                  name={creator.name}
+                  slug={creator.slug}
+                  profilePicUrl={creator.profilePicUrl || ""}
+                  coverImageUrl={creator.coverImageUrl || creator.bannerUrl || ""}
+                  niche={creator.niche}
+                  totalReach={creator.metrics.totalReach}
+                  engagementScore={engagement.score}
+                  engagementLabel={engagement.label}
+                  engagementColor={engagement.color}
+                />
+              );
+            })}
           </div>
         </div>
       </section>

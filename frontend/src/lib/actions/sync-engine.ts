@@ -542,33 +542,37 @@ export async function syncAllCreatorStats(): Promise<SyncResult> {
 
             const reachSortKey = `${String(totalReach).padStart(12, "0")}#${creator.slug}`;
 
-            // Build dynamic update
+            // Build merged metrics object to avoid nested-path errors when
+            // the "metrics" map doesn't yet exist on the item.
+            const updatedMetrics: Record<string, any> = {
+              ...(creator.metrics || {}),
+              totalReach,
+            };
+
+            if (ytData) {
+              updatedMetrics.totalViews = ytData.totalViews;
+              updatedMetrics.channelStartDate = ytData.channelStartDate;
+              if (ytData.totalVideos > 0) {
+                updatedMetrics.totalVideos = ytData.totalVideos;
+              }
+            }
+
             const exprParts = [
-              "metrics.totalReach = :reach",
+              "metrics = :metrics",
               "gsi1sk = :gsi1sk",
               "gsi2sk = :gsi2sk",
               "updatedAt = :now",
             ];
             const exprValues: Record<string, any> = {
-              ":reach": totalReach,
+              ":metrics": updatedMetrics,
               ":gsi1sk": reachSortKey,
               ":gsi2sk": reachSortKey,
               ":now": now,
             };
 
-            if (ytData) {
-              exprParts.push("metrics.totalViews = :totalViews");
-              exprValues[":totalViews"] = ytData.totalViews;
-              exprParts.push("metrics.channelStartDate = :channelStartDate");
-              exprValues[":channelStartDate"] = ytData.channelStartDate;
-              if (ytData.totalVideos > 0) {
-                exprParts.push("metrics.totalVideos = :totalVideos");
-                exprValues[":totalVideos"] = ytData.totalVideos;
-              }
-              if (ytData.videoHighlights.length > 0) {
-                exprParts.push("videoHighlights = :videoHighlights");
-                exprValues[":videoHighlights"] = ytData.videoHighlights;
-              }
+            if (ytData && ytData.videoHighlights.length > 0) {
+              exprParts.push("videoHighlights = :videoHighlights");
+              exprValues[":videoHighlights"] = ytData.videoHighlights;
             }
 
             await docClient.send(
@@ -699,36 +703,37 @@ export async function syncSingleCreator(slug: string): Promise<SyncResult> {
 
     const reachSortKey = `${String(totalReach).padStart(12, "0")}#${slug}`;
 
-    // Build update expression dynamically
+    // Build merged metrics object to avoid nested-path errors when
+    // the "metrics" map doesn't yet exist on the item.
+    const updatedMetrics: Record<string, any> = {
+      ...(creator.metrics || {}),
+      totalReach,
+    };
+
+    if (ytData) {
+      updatedMetrics.totalViews = ytData.totalViews;
+      updatedMetrics.channelStartDate = ytData.channelStartDate;
+      if (ytData.totalVideos > 0) {
+        updatedMetrics.totalVideos = ytData.totalVideos;
+      }
+    }
+
     const exprParts = [
-      "metrics.totalReach = :reach",
+      "metrics = :metrics",
       "gsi1sk = :gsi1sk",
       "gsi2sk = :gsi2sk",
       "updatedAt = :now",
     ];
     const exprValues: Record<string, any> = {
-      ":reach": totalReach,
+      ":metrics": updatedMetrics,
       ":gsi1sk": reachSortKey,
       ":gsi2sk": reachSortKey,
       ":now": now,
     };
 
-    if (ytData) {
-      exprParts.push("metrics.totalViews = :totalViews");
-      exprValues[":totalViews"] = ytData.totalViews;
-
-      exprParts.push("metrics.channelStartDate = :channelStartDate");
-      exprValues[":channelStartDate"] = ytData.channelStartDate;
-
-      if (ytData.totalVideos > 0) {
-        exprParts.push("metrics.totalVideos = :totalVideos");
-        exprValues[":totalVideos"] = ytData.totalVideos;
-      }
-
-      if (ytData.videoHighlights.length > 0) {
-        exprParts.push("videoHighlights = :videoHighlights");
-        exprValues[":videoHighlights"] = ytData.videoHighlights;
-      }
+    if (ytData && ytData.videoHighlights.length > 0) {
+      exprParts.push("videoHighlights = :videoHighlights");
+      exprValues[":videoHighlights"] = ytData.videoHighlights;
     }
 
     await docClient.send(

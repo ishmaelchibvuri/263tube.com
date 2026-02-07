@@ -467,15 +467,14 @@ export default async function CreatorProfilePage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Featured Videos: Latest, Most Viewed, Most Liked */}
+            {/* Featured Videos: Latest & Most Viewed */}
             {(() => {
               // videoHighlights order: [0]=most viewed, [1]=most liked, [2]=latest, [3]=oldest
               const latest = videoHighlights[2] ?? null;
               const mostViewed = videoHighlights[0] ?? null;
-              const mostLiked = videoHighlights[1] ?? null;
               // Also support legacy topVideo as fallback
-              const fallbackTop = !latest && !mostViewed && !mostLiked && creator.topVideo ? creator.topVideo : null;
-              const hasVideos = latest || mostViewed || mostLiked || fallbackTop;
+              const fallbackTop = !latest && !mostViewed && creator.topVideo ? creator.topVideo : null;
+              const hasVideos = latest || mostViewed || fallbackTop;
               if (!hasVideos) return null;
 
               const fmtNum = (n: number) =>
@@ -526,7 +525,7 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                     </h2>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
                     {/* Latest Video */}
                     {latest ? (
                       <VideoCard
@@ -561,19 +560,9 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                     {mostViewed && (
                       <VideoCard
                         video={mostViewed}
-                        label="Most Viewed"
+                        label="Recently Most Viewed"
                         labelColor="text-amber-400"
                         icon={<Flame className="w-3.5 h-3.5 text-amber-400" />}
-                      />
-                    )}
-
-                    {/* Most Liked Video */}
-                    {mostLiked && (
-                      <VideoCard
-                        video={mostLiked}
-                        label="Most Liked"
-                        labelColor="text-blue-400"
-                        icon={<ThumbsUp className="w-3.5 h-3.5 text-blue-400" />}
                       />
                     )}
                   </div>
