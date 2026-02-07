@@ -111,12 +111,6 @@ export async function getCreatorForClaim(
  * 3. verifiedLinks (youtube)     → channelId stored by seed script
  */
 function extractYoutubeIdentifier(creator: Creator): string | null {
-  // DEBUG: see what data we actually have
-  console.log("[extractYoutubeIdentifier]", creator.slug, {
-    platforms: JSON.stringify(creator.platforms),
-    verifiedLinks: JSON.stringify(creator.verifiedLinks),
-  });
-
   // --- Source 1: platforms.youtube ---
   const first = creator.platforms?.youtube?.[0];
   if (first) {
@@ -134,15 +128,19 @@ function extractYoutubeIdentifier(creator: Creator): string | null {
     }
   }
 
-  // --- Source 2: verifiedLinks (seed script stores channelId here) ---
+  // --- Source 2: verifiedLinks (youtube) ---
   const ytLink = creator.verifiedLinks?.find(
     (l) => l.platform === "youtube"
   );
   if (ytLink) {
-    // The seed script stores channelId as an extra field on verifiedLinks
+    // channelId (if stored as an extra field by the seed script)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const channelId = (ytLink as any).channelId;
     if (typeof channelId === "string" && channelId) return channelId;
+
+    // Fall back to displayName — resolveChannelId in verify-owner.ts
+    // can search YouTube by name to find the channel
+    if (ytLink.displayName) return ytLink.displayName;
   }
 
   return null;

@@ -526,6 +526,20 @@ export async function trackReferral(slug: string): Promise<ReferralStats | null>
   const now = new Date().toISOString();
 
   try {
+    // Ensure referralStats map exists on the item (idempotent - won't overwrite existing map)
+    await docClient.send(new UpdateCommand({
+      TableName: tableName,
+      Key: {
+        pk: `CREATOR#${slug}`,
+        sk: "METADATA",
+      },
+      UpdateExpression: "SET referralStats = if_not_exists(referralStats, :emptyMap)",
+      ExpressionAttributeValues: {
+        ":emptyMap": { currentWeek: 0, allTime: 0, lastReferralAt: "" },
+      },
+      ConditionExpression: "attribute_exists(pk)",
+    }));
+
     // Use atomic increment to update referral counts
     const command = new UpdateCommand({
       TableName: tableName,
@@ -534,18 +548,16 @@ export async function trackReferral(slug: string): Promise<ReferralStats | null>
         sk: "METADATA",
       },
       UpdateExpression: `
-        SET referralStats.currentWeek = if_not_exists(referralStats.currentWeek, :zero) + :inc,
-            referralStats.allTime = if_not_exists(referralStats.allTime, :zero) + :inc,
+        SET referralStats.currentWeek = referralStats.currentWeek + :inc,
+            referralStats.allTime = referralStats.allTime + :inc,
             referralStats.lastReferralAt = :now,
             updatedAt = :now
       `,
       ExpressionAttributeValues: {
         ":inc": 1,
-        ":zero": 0,
         ":now": now,
       },
       ReturnValues: "ALL_NEW",
-      ConditionExpression: "attribute_exists(pk)",
     });
 
     const response = await docClient.send(command);

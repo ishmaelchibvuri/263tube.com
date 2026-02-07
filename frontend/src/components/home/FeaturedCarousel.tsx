@@ -22,7 +22,11 @@ function FeaturedCard({
   creator: Creator;
   rank: number;
 }) {
-  const sharesThisWeek = creator.referralStats?.currentWeek || 0;
+  const engagementRate = creator.metrics.engagementRate
+    ? parseFloat(creator.metrics.engagementRate).toFixed(1) + "%"
+    : creator.metrics.engagement
+    ? creator.metrics.engagement.toFixed(1) + "%"
+    : "N/A";
 
   return (
     <Link
@@ -97,11 +101,11 @@ function FeaturedCard({
           </div>
         </div>
 
-        {/* Shares This Week */}
+        {/* Engagement Rate */}
         <div className="mt-2 pt-2 border-t border-white/[0.05] flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs text-slate-500">Shares</span>
+          <span className="text-[10px] sm:text-xs text-slate-500">Engagement</span>
           <span className="text-xs sm:text-sm font-bold text-[#DE2010]">
-            {formatNumber(sharesThisWeek)}
+            {engagementRate}
           </span>
         </div>
       </div>
@@ -121,7 +125,7 @@ export function FeaturedCarousel({ creators }: FeaturedCarouselProps) {
         <div className="flex items-center gap-2">
           <Flame className="w-4 h-4 text-[#DE2010]" />
           <h2 className="text-sm sm:text-lg font-bold text-white">
-            Most Shared This Week
+            Most Engaging Creators
           </h2>
         </div>
         <Link

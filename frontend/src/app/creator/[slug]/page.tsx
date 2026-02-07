@@ -467,24 +467,55 @@ export default async function CreatorProfilePage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Highest Viewed & Latest Video */}
+            {/* Featured Videos: Latest, Most Viewed, Most Liked */}
             {(() => {
               // videoHighlights order: [0]=most viewed, [1]=most liked, [2]=latest, [3]=oldest
+              const latest = videoHighlights[2] ?? null;
               const mostViewed = videoHighlights[0] ?? null;
-              // Find the latest video — it's at index 2, or if highlights are short, pick the last different one
-              const latest = videoHighlights.find((v, i) => i > 0 && v.videoId !== videoHighlights[0]?.videoId)
-                ?? videoHighlights[1] ?? null;
-              // Also support legacy topVideo as fallback for most viewed
-              const fallbackTop = !mostViewed && creator.topVideo ? creator.topVideo : null;
-              const hasVideos = mostViewed || fallbackTop || latest;
+              const mostLiked = videoHighlights[1] ?? null;
+              // Also support legacy topVideo as fallback
+              const fallbackTop = !latest && !mostViewed && !mostLiked && creator.topVideo ? creator.topVideo : null;
+              const hasVideos = latest || mostViewed || mostLiked || fallbackTop;
               if (!hasVideos) return null;
 
-              const fmtViews = (n: number) =>
+              const fmtNum = (n: number) =>
                 n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
                 : n >= 1_000 ? `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`
                 : n.toLocaleString();
 
-              const fmtLikes = fmtViews;
+              const VideoCard = ({ video, label, labelColor, icon }: {
+                video: VideoHighlight;
+                label: string;
+                labelColor: string;
+                icon: React.ReactNode;
+              }) => (
+                <div>
+                  <div className={`flex items-center gap-1.5 mb-2`}>
+                    {icon}
+                    <span className={`text-xs font-semibold ${labelColor}`}>{label}</span>
+                  </div>
+                  <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${video.videoId}`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  </div>
+                  <h3 className="text-sm font-medium text-white line-clamp-2">
+                    {video.title}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> {fmtNum(video.views)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ThumbsUp className="w-3 h-3" /> {fmtNum(video.likes)}
+                    </span>
+                  </div>
+                </div>
+              );
 
               return (
                 <div className="bg-white/[0.02] rounded-xl border border-white/[0.05] p-4 sm:p-6">
@@ -495,109 +526,55 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                     </h2>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {/* Highest Viewed */}
-                    {(mostViewed || fallbackTop) && (
-                      <div>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <Flame className="w-3.5 h-3.5 text-orange-400" />
-                          <span className="text-xs font-semibold text-orange-400">Highest Viewed</span>
-                        </div>
-                        {mostViewed ? (
-                          <a
-                            href={`https://www.youtube.com/watch?v=${mostViewed.videoId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group block"
-                          >
-                            <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
-                              {mostViewed.thumbnail ? (
-                                <Image
-                                  src={mostViewed.thumbnail}
-                                  alt={mostViewed.title}
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Play className="w-8 h-8 text-slate-600" />
-                                </div>
-                              )}
-                            </div>
-                            <h3 className="text-sm font-medium text-white line-clamp-2 group-hover:text-[#FF0000] transition-colors">
-                              {mostViewed.title}
-                            </h3>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Eye className="w-3 h-3" /> {fmtViews(mostViewed.views)}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <ThumbsUp className="w-3 h-3" /> {fmtLikes(mostViewed.likes)}
-                              </span>
-                            </div>
-                          </a>
-                        ) : fallbackTop ? (
-                          <div>
-                            <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
-                              <iframe
-                                src={fallbackTop.embedUrl}
-                                title={fallbackTop.title}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="absolute inset-0 w-full h-full"
-                              />
-                            </div>
-                            <h3 className="text-sm font-medium text-white line-clamp-2">{fallbackTop.title}</h3>
-                            <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
-                              <Eye className="w-3 h-3" /> {fmtViews(fallbackTop.views)}
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Latest Video */}
-                    {latest && (
+                    {latest ? (
+                      <VideoCard
+                        video={latest}
+                        label="Latest"
+                        labelColor="text-emerald-400"
+                        icon={<TrendingUp className="w-3.5 h-3.5 text-emerald-400" />}
+                      />
+                    ) : fallbackTop ? (
                       <div>
                         <div className="flex items-center gap-1.5 mb-2">
                           <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
                           <span className="text-xs font-semibold text-emerald-400">Latest</span>
                         </div>
-                        <a
-                          href={`https://www.youtube.com/watch?v=${latest.videoId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group block"
-                        >
-                          <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
-                            {latest.thumbnail ? (
-                              <Image
-                                src={latest.thumbnail}
-                                alt={latest.title}
-                                fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                unoptimized
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Play className="w-8 h-8 text-slate-600" />
-                              </div>
-                            )}
-                          </div>
-                          <h3 className="text-sm font-medium text-white line-clamp-2 group-hover:text-[#FF0000] transition-colors">
-                            {latest.title}
-                          </h3>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-3 h-3" /> {fmtViews(latest.views)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <ThumbsUp className="w-3 h-3" /> {fmtLikes(latest.likes)}
-                            </span>
-                          </div>
-                        </a>
+                        <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-800 mb-2">
+                          <iframe
+                            src={fallbackTop.embedUrl}
+                            title={fallbackTop.title}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 w-full h-full"
+                          />
+                        </div>
+                        <h3 className="text-sm font-medium text-white line-clamp-2">{fallbackTop.title}</h3>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                          <Eye className="w-3 h-3" /> {fmtNum(fallbackTop.views)}
+                        </div>
                       </div>
+                    ) : null}
+
+                    {/* Most Viewed Video */}
+                    {mostViewed && (
+                      <VideoCard
+                        video={mostViewed}
+                        label="Most Viewed"
+                        labelColor="text-amber-400"
+                        icon={<Flame className="w-3.5 h-3.5 text-amber-400" />}
+                      />
+                    )}
+
+                    {/* Most Liked Video */}
+                    {mostLiked && (
+                      <VideoCard
+                        video={mostLiked}
+                        label="Most Liked"
+                        labelColor="text-blue-400"
+                        icon={<ThumbsUp className="w-3.5 h-3.5 text-blue-400" />}
+                      />
                     )}
                   </div>
                 </div>

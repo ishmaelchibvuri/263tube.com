@@ -51,7 +51,15 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const IMAGES_DIR = resolve(PROJECT_ROOT, "public/images/creators");
 
 const docClient = DynamoDBDocumentClient.from(
-  new DynamoDBClient({ region: process.env.AWS_REGION })
+  new DynamoDBClient({ region: process.env.AWS_REGION }),
+  {
+    marshallOptions: {
+      convertEmptyValues: true,
+      removeUndefinedValues: true,
+      convertClassInstanceToMap: true,
+    },
+    unmarshallOptions: { wrapNumbers: false },
+  }
 );
 
 // ============================================================================
@@ -169,8 +177,14 @@ async function processChannel(channelId) {
     .replace(/-+/g, "-");
   const niche = inferNiche(snippet.description, name);
 
+  // Extract YouTube handle from customUrl (e.g. "@SomeCreator")
+  const rawCustomUrl = snippet.customUrl || "";
+  const youtubeHandle = rawCustomUrl.startsWith("@")
+    ? rawCustomUrl.slice(1)
+    : rawCustomUrl || null;
+
   // Image logic: use the high-res YouTube logo + banner
-  const profileUrl = snippet.thumbnails?.high?.url;
+  const profileUrl = snippet.thumbnails?.high?.url || null;
   const bannerUrl = brandingSettings?.image?.bannerExternalUrl || null;
 
   // Fetch video highlights from uploads playlist
@@ -183,7 +197,12 @@ async function processChannel(channelId) {
   const totalReach = parseInt(statistics.subscriberCount || "0");
   const reachSortKey = `${String(totalReach).padStart(12, "0")}#${slug}`;
 
-  return {
+  // Build the YouTube platform URL — prefer handle URL, fallback to channel ID URL
+  const youtubeUrl = youtubeHandle
+    ? `https://www.youtube.com/@${youtubeHandle}`
+    : `https://www.youtube.com/channel/${channelId}`;
+
+  const item = {
     pk: `CREATOR#${slug}`,
     sk: "METADATA",
     entityType: "CREATOR",
@@ -206,7 +225,8 @@ async function processChannel(channelId) {
       youtube: [
         {
           label: name,
-          url: `https://www.youtube.com/channel/${channelId}`,
+          url: youtubeUrl,
+          handle: youtubeHandle,
         },
       ],
     },
@@ -217,12 +237,11 @@ async function processChannel(channelId) {
       channelStartDate: snippet.publishedAt || null,
       monthlyViews: Math.round(parseInt(statistics.viewCount || "0") / 12),
     },
-    videoHighlights: videoHighlights.length > 0 ? videoHighlights : undefined,
     verifiedLinks: [
       {
         platform: "youtube",
         displayName: name,
-        followers: parseInt(statistics.subscriberCount || "0"),
+        followers: totalReach,
         image: profileUrl,
         channelId: channelId,
         verifiedAt: now,
@@ -231,6 +250,13 @@ async function processChannel(channelId) {
     createdAt: now,
     updatedAt: now,
   };
+
+  // Only include videoHighlights if we have any (avoid storing empty arrays)
+  if (videoHighlights.length > 0) {
+    item.videoHighlights = videoHighlights;
+  }
+
+  return item;
 }
 
 // ============================================================================

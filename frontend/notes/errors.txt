@@ -1,28 +1,26 @@
-intercept-console-error.js:57 Registration error: AuthUserPoolException: Auth UserPool not configured.
-    at eval (createAssertionFunction.mjs:13:15)
-    at assertTokenProviderConfig (index.mjs:26:62)
-    at signUp (signUp.mjs:55:97)
-    at handleRegister (C:\Temp\apps\263tube.com\frontend\src\app\(auth)\register\page.tsx:67:66)
-    at executeDispatch (react-dom-client.development.js:16971:9)
-    at runWithFiberInDEV (react-dom-client.development.js:872:30)
-    at processDispatchQueue (react-dom-client.development.js:17021:19)
-    at eval (react-dom-client.development.js:17622:9)
-    at batchedUpdates$1 (react-dom-client.development.js:3312:40)
-    at dispatchEventForPluginEventSystem (react-dom-client.development.js:17175:7)
-    at dispatchEvent (react-dom-client.development.js:21358:11)
-    at dispatchDiscreteEvent (react-dom-client.development.js:21326:11)
-error @ intercept-console-error.js:57
-intercept-console-error.js:57 Registration error: AuthUserPoolException: Auth UserPool not configured.
-    at eval (createAssertionFunction.mjs:13:15)
-    at assertTokenProviderConfig (index.mjs:26:62)
-    at signUp (signUp.mjs:55:97)
-    at handleRegister (C:\Temp\apps\263tube.com\frontend\src\app\(auth)\register\page.tsx:67:66)
-    at executeDispatch (react-dom-client.development.js:16971:9)
-    at runWithFiberInDEV (react-dom-client.development.js:872:30)
-    at processDispatchQueue (react-dom-client.development.js:17021:19)
-    at eval (react-dom-client.development.js:17622:9)
-    at batchedUpdates$1 (react-dom-client.development.js:3312:40)
-    at dispatchEventForPluginEventSystem (react-dom-client.development.js:17175:7)
-    at dispatchEvent (react-dom-client.development.js:21358:11)
-    at dispatchDiscreteEvent (react-dom-client.development.js:21326:11)
-error @ intercept-console-error.js:57
+GET /creator/davud-akhundzada 200 in 11528ms
+Error tracking referral: Error: ValidationException
+    at async trackReferral (src\lib\creators.ts:551:22)    
+    at async trackReferralAction (src\lib\actions\referrals.ts:49:20)
+  549 |     });
+  550 |
+> 551 |     const response = await docClient.send(command);
+      |                      ^
+  552 |
+  553 |     if (!response.Attributes) {
+  554 |       return null; {
+  '$metadata': [Object],
+  '$fault': 'client',
+  __type: 'com.amazon.coral.validate#ValidationException'  
+}
+Error tracking referral: Error: Failed to track referral for: davud-akhundzada
+    at trackReferral (src\lib\creators.ts:570:11)
+    at async trackReferralAction (src\lib\actions\referrals.ts:49:20)
+  568 |     }
+  569 |     console.error("Error tracking referral:", error);
+> 570 |     throw new Error(`Failed to track referral for: ${slug}`);
+      |           ^
+  571 |   }
+  572 | }
+  573 |
+ POST /creator/davud-akhundzada 200 in 1081ms
