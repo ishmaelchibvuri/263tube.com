@@ -1,131 +1,30 @@
-08:55:47.538 Running build in Washington, D.C., USA (East) – iad1
-08:55:47.538 Build machine configuration: 2 cores, 8 GB
-08:55:47.711 Cloning github.com/ishmaelchibvuri/quickbudget.co.za (Branch: dev, Commit: 7b59ef9)
-08:55:47.712 Previous build caches not available.
-08:55:48.581 Cloning completed: 869.000ms
-08:55:49.127 Warning: Detected "engines": { "node": ">=18.0.0" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
-08:55:49.127 Running "vercel build"
-08:55:50.088 Vercel CLI 50.4.10
-08:55:50.657 Warning: Detected "engines": { "node": ">=18.0.0" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
-08:55:50.662 Installing dependencies...
-08:55:51.042 yarn install v1.22.19
-08:55:51.142 [1/5] Validating package.json...
-08:55:51.146 [2/5] Resolving packages...
-08:55:53.257 warning Lockfile has incorrect entry for "ajv@^8.0.1". Ignoring it.
-08:55:54.129 [3/5] Fetching packages...
-08:56:28.779 info There appears to be trouble with your network connection. Retrying...
-08:56:45.767 warning bare-fs@4.5.1: The engine "bare" appears to be invalid.
-08:56:45.769 warning bare-os@3.6.2: The engine "bare" appears to be invalid.
-08:56:45.774 [4/5] Linking dependencies...
-08:56:45.776 warning " > @capacitor/android@7.4.4" has unmet peer dependency "@capacitor/core@^7.4.0".
-08:56:45.780 warning " > @capacitor/ios@7.4.4" has unmet peer dependency "@capacitor/core@^7.4.0".
-08:56:45.780 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @ducanh2912/next-pwa@10.2.9" has unmet peer dependency "webpack@>=5.9.0".
-08:56:45.783 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/extension-image@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.784 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/extension-link@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.784 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/extension-link@3.11.0" has unmet peer dependency "@tiptap/pm@^3.11.0".
-08:56:45.785 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/extension-placeholder@3.11.0" has unmet peer dependency "@tiptap/extensions@^3.11.0".
-08:56:45.785 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/extension-text-style@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.785 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/extension-underline@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.785 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.786 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react@3.11.0" has unmet peer dependency "@tiptap/pm@^3.11.0".
-08:56:45.787 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @ducanh2912/next-pwa > workbox-webpack-plugin@7.1.0" has unmet peer dependency "webpack@^4.4.0 || ^5.91.0".
-08:56:45.789 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react > @tiptap/extension-bubble-menu@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.789 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react > @tiptap/extension-bubble-menu@3.11.0" has unmet peer dependency "@tiptap/pm@^3.11.0".
-08:56:45.790 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react > @tiptap/extension-floating-menu@3.11.0" has unmet peer dependency "@floating-ui/dom@^1.0.0".
-08:56:45.790 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react > @tiptap/extension-floating-menu@3.11.0" has unmet peer dependency "@tiptap/core@^3.11.0".
-08:56:45.790 warning "workspace-aggregator-b680a53b-ca7a-4725-888f-ca8e131f1c9b > quickbudget-frontend > @tiptap/react > @tiptap/extension-floating-menu@3.11.0" has unmet peer dependency "@tiptap/pm@^3.11.0".
-08:57:17.373 [5/5] Building fresh packages...
-08:57:19.386 success Saved lockfile.
-08:57:19.389 Done in 88.35s.
-08:57:19.521 Running "yarn run build"
-08:57:19.678 yarn run v1.22.19
-08:57:19.699 $ npm run build --workspaces
-08:57:19.843 npm warn Unknown env config "argv". This will stop working in the next major version of npm.
-08:57:19.843 npm warn Unknown env config "network-timeout". This will stop working in the next major version of npm.
-08:57:19.844 npm warn Unknown env config "version-git-tag". This will stop working in the next major version of npm.
-08:57:19.844 npm warn Unknown env config "version-commit-hooks". This will stop working in the next major version of npm.
-08:57:19.845 npm warn Unknown env config "version-tag-prefix". This will stop working in the next major version of npm.
-08:57:19.845 npm warn Unknown env config "version-git-message". This will stop working in the next major version of npm.
-08:57:19.845 npm warn Unknown env config "node-linker". This will stop working in the next major version of npm.
-08:57:19.958 
-08:57:19.960 > quickbudget-infrastructure@1.0.0 build
-08:57:19.960 > tsc
-08:57:19.961 
-08:57:25.130 
-08:57:25.131 > debt-payoff-planner-backend@1.0.0 build
-08:57:25.131 > tsc
-08:57:25.131 
-08:57:30.367 
-08:57:30.368 > quickbudget-frontend@1.0.0 build
-08:57:30.368 > next build
-08:57:30.368 
-08:57:31.363 Attention: Next.js now collects completely anonymous telemetry regarding usage.
-08:57:31.364 This information is used to shape Next.js' roadmap and prioritize features.
-08:57:31.364 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-08:57:31.364 https://nextjs.org/telemetry
-08:57:31.364 
-08:57:31.487    ▲ Next.js 15.5.7
-08:57:31.488 
-08:57:31.526    Creating an optimized production build ...
-08:57:31.855  ✓ (pwa) Compiling for server...
-08:57:31.864  ✓ (pwa) Compiling for server...
-08:57:31.873  ✓ (pwa) Compiling for client (static)...
-08:57:31.876  ○ (pwa) Service worker: /vercel/path0/frontend/public/sw.js
-08:57:31.876  ○ (pwa)   URL: /sw.js
-08:57:31.877  ○ (pwa)   Scope: /
-08:58:08.002  ✓ Compiled successfully in 36.1s
-08:58:08.007    Linting and checking validity of types ...
-08:58:20.203    Collecting page data ...
-08:58:23.816    Generating static pages (0/31) ...
-08:58:24.795    Generating static pages (7/31) 
-08:58:25.094    Generating static pages (15/31) 
-08:58:25.248    Generating static pages (23/31) 
-08:58:25.464  ✓ Generating static pages (31/31)
-08:58:26.196    Finalizing page optimization ...
-08:58:26.201    Collecting build traces ...
-08:58:31.639 
-08:58:31.644 Route (app)                                 Size  First Load JS
-08:58:31.645 ┌ ○ /                                    6.82 kB         170 kB
-08:58:31.645 ├ ○ /_not-found                             1 kB         106 kB
-08:58:31.645 ├ ƒ /[slug]                               3.7 kB         219 kB
-08:58:31.645 ├ ○ /activate-account                     6.4 kB         176 kB
-08:58:31.645 ├ ○ /admin/analytics                     2.13 kB         223 kB
-08:58:31.645 ├ ○ /admin/blog                          8.64 kB         205 kB
-08:58:31.645 ├ ƒ /admin/blog/[postId]/edit              326 B         201 kB
-08:58:31.645 ├ ○ /admin/blog/new                        278 B         201 kB
-08:58:31.645 ├ ○ /admin/dashboard                     2.37 kB         223 kB
-08:58:31.646 ├ ○ /admin/email-templates               7.77 kB         185 kB
-08:58:31.646 ├ ○ /admin/features                      8.08 kB         210 kB
-08:58:31.646 ├ ○ /admin/questions                     6.07 kB         233 kB
-08:58:31.646 ├ ○ /admin/reported-questions            5.89 kB         209 kB
-08:58:31.646 ├ ○ /admin/settings                      6.11 kB         180 kB
-08:58:31.646 ├ ○ /admin/subscriptions                 6.34 kB         200 kB
-08:58:31.646 ├ ○ /admin/users                         7.83 kB         265 kB
-08:58:31.646 ├ ƒ /api/webhooks/posthog                  133 B         105 kB
-08:58:31.646 ├ ○ /blog                                4.56 kB         176 kB
-08:58:31.646 ├ ƒ /blog/[slug]                         3.74 kB         219 kB
-08:58:31.646 ├ ○ /budget                              15.4 kB         247 kB
-08:58:31.646 ├ ○ /complete-profile                    6.62 kB         175 kB
-08:58:31.646 ├ ○ /dashboard                            155 kB         368 kB
-08:58:31.646 ├ ○ /forgot-password                     7.09 kB         197 kB
-08:58:31.646 ├ ○ /login                               8.19 kB         235 kB
-08:58:31.646 ├ ○ /mobile                              6.96 kB         189 kB
-08:58:31.646 ├ ○ /payment/cancelled                    3.3 kB         160 kB
-08:58:31.646 ├ ○ /payment/failed                      2.48 kB         162 kB
-08:58:31.646 ├ ○ /payment/success                     3.65 kB         164 kB
-08:58:31.646 ├ ○ /privacy                             3.99 kB         122 kB
-08:58:31.646 ├ ○ /profile                             9.53 kB         189 kB
-08:58:31.646 ├ ○ /register                            8.35 kB         217 kB
-08:58:31.646 └ ○ /terms                               4.12 kB         122 kB
-08:58:31.646 + First Load JS shared by all             105 kB
-08:58:31.646   ├ chunks/5638-1ad46907ef0708c8.js      48.5 kB
-08:58:31.646   ├ chunks/c7879cf7-fabe25011515220e.js  54.2 kB
-08:58:31.646   └ other shared chunks (total)          2.24 kB
-08:58:31.652 
-08:58:31.653 
-08:58:31.653 ○  (Static)   prerendered as static content
-08:58:31.653 ƒ  (Dynamic)  server-rendered on demand
-08:58:31.653 
-08:58:31.707 Done in 72.03s.
-08:58:31.746 Error: No Output Directory named "public" found after the Build completed. Configure the Output Directory in your Project Settings. Alternatively, configure vercel.json#outputDirectory.
-08:58:31.747 Learn More: https://vercel.link/missing-public-directory
+00:38:36.025 Failed to compile.
+00:38:36.026 Type error: Argument of type 'import("/vercel/path0/frontend/node_modules/@aws-sdk/client-dynamodb/dist-types/DynamoDBClient").DynamoDBClient' is not assignable to parameter of type 'import("/vercel/path0/node_modules/@aws-sdk/client-dynamodb/dist-types/DynamoDBClient").DynamoDBClient'.
+00:38:36.027   The types of 'middlewareStack.add' are incompatible between these types.
+00:38:36.027     Type '{ (middleware: import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/middleware").InitializeMiddleware<import("/vercel/path0/frontend/node_modules/@aws-sdk/client-dynamodb/dist-types/DynamoDBClient").ServiceInputTypes, import("/vercel/path0/frontend/node_modules/@aws-sdk/clie...' is not assignable to type '{ (middleware: import("/vercel/path0/node_modules/@smithy/types/dist-types/middleware").InitializeMiddleware<import("/vercel/path0/node_modules/@aws-sdk/client-dynamodb/dist-types/DynamoDBClient").ServiceInputTypes, import("/vercel/path0/node_modules/@aws-sdk/client-dynamodb/dist-types/DynamoDBClient").ServiceOutput...'.
+00:38:36.028       Types of parameters 'middleware' and 'middleware' are incompatible.
+00:38:36.028         Types of parameters 'context' and 'context' are incompatible.
+00:38:36.029           Type 'import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/middleware").HandlerExecutionContext' is not assignable to type 'import("/vercel/path0/node_modules/@smithy/types/dist-types/middleware").HandlerExecutionContext'.
+00:38:36.029             Types of property '[SMITHY_CONTEXT_KEY]' are incompatible.
+00:38:36.030               Type '{ [key: string]: unknown; service?: string | undefined; operation?: string | undefined; commandInstance?: import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any> | undefined; selectedHttpAuthScheme?: import("/vercel/path0/node_modules/...' is not assignable to type '{ [key: string]: unknown; service?: string | undefined; operation?: string | undefined; commandInstance?: import("/vercel/path0/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any> | undefined; selectedHttpAuthScheme?: import("/vercel/path0/node_modules/@smithy/types/dist-types/auth/HttpA...'.
+00:38:36.031                 Type '{ [key: string]: unknown; service?: string | undefined; operation?: string | undefined; commandInstance?: import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any> | undefined; selectedHttpAuthScheme?: import("/vercel/path0/node_modules/...' is not assignable to type '{ [key: string]: unknown; service?: string | undefined; operation?: string | undefined; commandInstance?: import("/vercel/path0/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any> | undefined; selectedHttpAuthScheme?: import("/vercel/path0/node_modules/@smithy/types/dist-types/auth/HttpA...'.
+00:38:36.032                   Types of property 'commandInstance' are incompatible.
+00:38:36.032                     Type 'import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any> | undefined' is not assignable to type 'import("/vercel/path0/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any> | undefined'.
+00:38:36.032                       Type 'import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any>' is not assignable to type 'import("/vercel/path0/node_modules/@smithy/types/dist-types/command").Command<any, any, any, any, any>'.
+00:38:36.033                         The types of 'middlewareStack.add' are incompatible between these types.
+00:38:36.033                           Type '{ (middleware: import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/middleware").InitializeMiddleware<any, any>, options?: (import("/vercel/path0/node_modules/@smithy/smithy-client/node_modules/@smithy/types/dist-types/middleware").InitializeHandlerOptions & import("/vercel/...' is not assignable to type '{ (middleware: import("/vercel/path0/node_modules/@smithy/types/dist-types/middleware").InitializeMiddleware<any, any>, options?: (import("/vercel/path0/node_modules/@smithy/types/dist-types/middleware").InitializeHandlerOptions & import("/vercel/path0/node_modules/@smithy/types/dist-types/middleware").AbsoluteLocat...'.
+00:38:36.034                             Types of parameters 'options' and 'options' are incompatible.
+00:38:36.034                               Type 'SerializeHandlerOptions & AbsoluteLocation' is not assignable to type '(InitializeHandlerOptions & AbsoluteLocation) | undefined'.
+00:38:36.034                                 Type 'SerializeHandlerOptions & AbsoluteLocation' is not assignable to type 'InitializeHandlerOptions & AbsoluteLocation'.
+00:38:36.035                                   Type 'SerializeHandlerOptions & AbsoluteLocation' is not assignable to type 'InitializeHandlerOptions'.
+00:38:36.036                                     Types of property 'step' are incompatible.
+00:38:36.036                                       Type '"serialize"' is not assignable to type '"initialize"'.
+00:38:36.040 [0m [90m 21 |[39m })[33m;[39m
+00:38:36.040  [90m 22 |[39m
+00:38:36.040 [31m[1m>[22m[39m[90m 23 |[39m [36mconst[39m docClient [33m=[39m [33mDynamoDBDocumentClient[39m[33m.[39m[36mfrom[39m(dynamoClient[33m,[39m {
+00:38:36.041  [90m    |[39m                                               [31m[1m^[22m[39m
+00:38:36.041  [90m 24 |[39m   marshallOptions[33m:[39m {
+00:38:36.041  [90m 25 |[39m     convertEmptyValues[33m:[39m [36mtrue[39m[33m,[39m
+00:38:36.041  [90m 26 |[39m     removeUndefinedValues[33m:[39m [36mtrue[39m[33m,[39m[0m
+00:38:36.125 error Command failed with exit code 1.
+00:38:36.147 Error: Command "yarn build" exited with 1

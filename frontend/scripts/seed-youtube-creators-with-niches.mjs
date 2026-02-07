@@ -176,7 +176,7 @@ const SEARCH_QUERIES = [
   "Learn Zim Ndebele",
   "Zim Diaspora stories",
   "Kumusha lifestyle",
-  "Zim-dancehall riddim 2026",
+  "Zim-dancehall riddim",
 ];
 
 // Diaspora-specific queries that run WITHOUT regionCode so they capture
@@ -419,7 +419,9 @@ async function discoverAllChannelIds() {
 
   if (uniqueIds.size > 0) {
     console.log(
-      `  Resuming from cache: ${uniqueIds.size} IDs, ${completedQueries.size}/${SEARCH_QUERIES.length + DIASPORA_QUERIES.length} queries completed`
+      `  Resuming from cache: ${uniqueIds.size} IDs, ${completedQueries.size}/${
+        SEARCH_QUERIES.length + DIASPORA_QUERIES.length
+      } queries completed`
     );
   }
 
@@ -506,7 +508,10 @@ async function _runSearchPass(
       const res = await fetch(
         `https://www.googleapis.com/youtube/v3/search?${params}`
       );
-      trackQuota(100, `search: "${query}" p${page}${regionCode ? "" : " (global)"}`);
+      trackQuota(
+        100,
+        `search: "${query}" p${page}${regionCode ? "" : " (global)"}`
+      );
       searchCalls++;
 
       if (!res.ok) {
@@ -575,7 +580,9 @@ async function _runSearchPass(
 async function processChannelBatch(channelIds, existingETags = {}) {
   if (channelIds.length === 0) return { creators: [], featuredChannelIds: [] };
 
-  const url = `https://www.googleapis.com/youtube/v3/channels?id=${channelIds.join(",")}&part=snippet,statistics,brandingSettings,contentDetails&key=${YOUTUBE_API_KEY}`;
+  const url = `https://www.googleapis.com/youtube/v3/channels?id=${channelIds.join(
+    ","
+  )}&part=snippet,statistics,brandingSettings,contentDetails&key=${YOUTUBE_API_KEY}`;
 
   const res = await fetch(url);
   trackQuota(1, "channels.list batch");
@@ -649,7 +656,9 @@ async function discoverRelatedChannels(
     }
 
     const batch = candidateIds.slice(i, i + CHANNEL_BATCH_SIZE);
-    const url = `https://www.googleapis.com/youtube/v3/channels?id=${batch.join(",")}&part=snippet,statistics,brandingSettings,contentDetails&key=${YOUTUBE_API_KEY}`;
+    const url = `https://www.googleapis.com/youtube/v3/channels?id=${batch.join(
+      ","
+    )}&part=snippet,statistics,brandingSettings,contentDetails&key=${YOUTUBE_API_KEY}`;
 
     const res = await fetch(url);
     trackQuota(1, "channels.list (related crawl)");
@@ -803,7 +812,9 @@ async function enrichWithVideoHighlights(creators) {
 
     // Progress every 50 creators
     if ((i + VIDEO_CONCURRENCY) % 50 < VIDEO_CONCURRENCY) {
-      console.log(`  Highlights: ${enriched} enriched, ${quotaUsed} quota used`);
+      console.log(
+        `  Highlights: ${enriched} enriched, ${quotaUsed} quota used`
+      );
     }
   }
 
@@ -825,7 +836,9 @@ async function fetchVideoHighlights(uploadsPlaylistId) {
     const videoIds = (plData.items || []).map((i) => i.contentDetails.videoId);
     if (videoIds.length === 0) return [];
 
-    const vUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(",")}&key=${YOUTUBE_API_KEY}`;
+    const vUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(
+      ","
+    )}&key=${YOUTUBE_API_KEY}`;
     const vRes = await fetch(vUrl);
     trackQuota(1, "videos.list");
     if (!vRes.ok) return [];
@@ -991,7 +1004,15 @@ async function main() {
 
   console.log("=== 263Tube Seed Script (v3 — 5000 scale) ===");
   console.log(
-    `Mode: ${FLAG_DISCOVER_ONLY ? "discover-only" : FLAG_SEED_ONLY ? "seed-only" : "full"} | Highlights: ${FLAG_WITH_HIGHLIGHTS ? "ON" : "OFF"} | Quota limit: ${QUOTA_LIMIT}\n`
+    `Mode: ${
+      FLAG_DISCOVER_ONLY
+        ? "discover-only"
+        : FLAG_SEED_ONLY
+        ? "seed-only"
+        : "full"
+    } | Highlights: ${
+      FLAG_WITH_HIGHLIGHTS ? "ON" : "OFF"
+    } | Quota limit: ${QUOTA_LIMIT}\n`
   );
 
   // Estimate quota cost
@@ -1000,12 +1021,22 @@ async function main() {
   const estChannelFetch = Math.ceil(DISCOVERY_LIMIT / CHANNEL_BATCH_SIZE);
   const estHighlights = FLAG_WITH_HIGHLIGHTS ? DISCOVERY_LIMIT * 2 : 0;
   console.log("Estimated max quota cost:");
-  console.log(`  Discovery:  ~${estDiscovery} units (${totalQueries} queries x ${PAGES_PER_QUERY} pages x 100)`);
-  console.log(`  Channels:   ~${estChannelFetch} units (${Math.ceil(DISCOVERY_LIMIT / CHANNEL_BATCH_SIZE)} batches x 1)`);
+  console.log(
+    `  Discovery:  ~${estDiscovery} units (${totalQueries} queries x ${PAGES_PER_QUERY} pages x 100)`
+  );
+  console.log(
+    `  Channels:   ~${estChannelFetch} units (${Math.ceil(
+      DISCOVERY_LIMIT / CHANNEL_BATCH_SIZE
+    )} batches x 1)`
+  );
   if (FLAG_WITH_HIGHLIGHTS) {
-    console.log(`  Highlights: ~${estHighlights} units (${DISCOVERY_LIMIT} channels x 2)`);
+    console.log(
+      `  Highlights: ~${estHighlights} units (${DISCOVERY_LIMIT} channels x 2)`
+    );
   }
-  console.log(`  Total max:  ~${estDiscovery + estChannelFetch + estHighlights} units\n`);
+  console.log(
+    `  Total max:  ~${estDiscovery + estChannelFetch + estHighlights} units\n`
+  );
 
   // ── Phase 1: Discovery ──
   let channelIds;
@@ -1014,7 +1045,9 @@ async function main() {
     const cache = loadDiscoveryCache();
     channelIds = Array.from(cache.channelIds).slice(0, DISCOVERY_LIMIT);
     console.log(
-      `Loaded ${channelIds.length} channel IDs from cache (last run: ${cache.lastRun || "never"})\n`
+      `Loaded ${channelIds.length} channel IDs from cache (last run: ${
+        cache.lastRun || "never"
+      })\n`
     );
   } else {
     console.log("Phase 1: Discovering channel IDs via search.list...");
@@ -1052,7 +1085,9 @@ async function main() {
   for (let i = 0; i < channelIds.length; i += CHANNEL_BATCH_SIZE) {
     if (!hasQuota(1)) {
       console.log(
-        `  Quota limit reached at batch ${Math.floor(i / CHANNEL_BATCH_SIZE) + 1}. Stopping fetch.`
+        `  Quota limit reached at batch ${
+          Math.floor(i / CHANNEL_BATCH_SIZE) + 1
+        }. Stopping fetch.`
       );
       break;
     }
