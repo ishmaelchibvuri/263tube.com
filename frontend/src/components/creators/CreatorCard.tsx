@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Users, ArrowUpRight, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Users, ArrowUpRight, Zap, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { deleteCreatorFull } from "@/lib/actions/admin";
 
 interface CreatorCardProps {
   name: string;
@@ -16,6 +19,7 @@ interface CreatorCardProps {
   engagementLabel?: string;
   engagementColor?: string;
   className?: string;
+  isAdmin?: boolean;
 }
 
 function formatNumber(num: number): string {
@@ -39,7 +43,30 @@ export function CreatorCard({
   engagementLabel,
   engagementColor,
   className,
+  isAdmin,
 }: CreatorCardProps) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${name}"? This will remove the creator and all related data.`)) return;
+    setDeleting(true);
+    try {
+      const result = await deleteCreatorFull(slug);
+      if (result.success) {
+        router.refresh();
+      } else {
+        alert(result.message);
+      }
+    } catch {
+      alert("Failed to delete creator.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Link
       href={`/creator/${slug}`}
@@ -68,6 +95,28 @@ export function CreatorCard({
         <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <ArrowUpRight className="w-4 h-4 text-white" />
         </div>
+
+        {/* Admin actions */}
+        {isAdmin && (
+          <div className="absolute top-3 left-3 flex gap-1.5 z-10">
+            <Link
+              href={`/creator/${slug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-colors"
+              title="Edit creator"
+            >
+              <Pencil className="w-3.5 h-3.5 text-white" />
+            </Link>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
+              title="Delete creator"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-white" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Avatar */}

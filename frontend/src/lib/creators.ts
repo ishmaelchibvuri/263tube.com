@@ -140,6 +140,9 @@ export interface Creator {
   updatedAt: string;
   joinedDate?: string;
 
+  // Follow count (incremented by users on the profile page)
+  followCount?: number;
+
   // Contact
   contactEmail?: string;
   bookingUrl?: string;
@@ -723,6 +726,7 @@ function mapDynamoItemToCreator(item: Record<string, any>): Creator {
     verifiedLinks: item.verifiedLinks || [],
     topVideo: item.topVideo,
     videoHighlights: item.videoHighlights,
+    followCount: item.followCount ?? 0,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     joinedDate: item.joinedDate,

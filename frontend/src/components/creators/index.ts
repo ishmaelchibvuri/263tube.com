@@ -7,5 +7,6 @@ export { CreatorsGrid } from "./CreatorsGrid";
 export { CreatorsSearchFilters } from "./CreatorsSearchFilters";
 export { ContactCreatorForm } from "./ContactCreatorForm";
 export { ClaimButton } from "./ClaimButton";
+export { FollowButton } from "./FollowButton";
 export { CreatorSearchAutocomplete } from "./CreatorSearchAutocomplete";
 export type { FilterState } from "./CreatorsSearchFilters";

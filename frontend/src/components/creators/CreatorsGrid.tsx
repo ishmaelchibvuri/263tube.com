@@ -18,6 +18,7 @@ const ITEMS_PER_PAGE = 24;
 interface CreatorsGridProps {
   creators: Creator[];
   categories?: CategoryItem[];
+  isAdmin?: boolean;
 }
 
 // Map Creator platforms object to array of platform names
@@ -31,7 +32,7 @@ function getCreatorPlatforms(creator: Creator): string[] {
   return platforms;
 }
 
-export function CreatorsGrid({ creators, categories }: CreatorsGridProps) {
+export function CreatorsGrid({ creators, categories, isAdmin }: CreatorsGridProps) {
   const searchParams = useSearchParams();
 
   // Initial filters from URL params
@@ -162,6 +163,7 @@ export function CreatorsGrid({ creators, categories }: CreatorsGridProps) {
                       engagementScore={engagement.score}
                       engagementLabel={engagement.label}
                       engagementColor={engagement.color}
+                      isAdmin={isAdmin}
                     />
                   );
                 })}

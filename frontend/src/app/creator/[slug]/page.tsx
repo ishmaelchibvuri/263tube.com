@@ -7,7 +7,6 @@ import {
   MapPin,
   Calendar,
   Eye,
-  Heart,
   Briefcase,
   Zap,
   Users,
@@ -21,13 +20,12 @@ import {
   Youtube,
   ThumbsUp,
   Flame,
-  History,
 } from "lucide-react";
 import { getCreatorBySlug } from "@/lib/creators";
 import { getServerSession, isAdmin } from "@/lib/auth-server";
 import { calculateEngagementScore } from "@/lib/utils/engagement";
 import { deriveYouTubeInsights } from "@/lib/utils/youtube-insights";
-import { SocialLinkGroup, ContactCreatorForm, ClaimButton } from "@/components/creators";
+import { SocialLinkGroup, ContactCreatorForm, ClaimButton, FollowButton } from "@/components/creators";
 import { ReferralTracker } from "@/components/creators/ReferralTracker";
 import { ShareButton } from "@/components/creators/ShareButton";
 import { AuthButton } from "@/components/home/AuthButton";
@@ -284,10 +282,7 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                 <Briefcase className="w-4 h-4" />
                 Work Together
               </a>
-              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-sm font-semibold rounded-xl transition-all">
-                <Heart className="w-4 h-4" />
-                Follow
-              </button>
+              <FollowButton slug={slug} initialCount={creator.followCount ?? 0} />
               {!creator.claimedBy && (
                 <ClaimButton slug={slug} isAuthenticated={isAuthenticated} />
               )}
@@ -474,9 +469,11 @@ export default async function CreatorProfilePage({ params }: PageProps) {
 
             {/* Highest Viewed & Latest Video */}
             {(() => {
-              const mostViewed = videoHighlights[0] ?? null;   // idx 0 = most viewed
-              const latest = videoHighlights.find((v, i) => i >= 1 && videoHighlights.slice(0, i).every((h) => h.videoId !== v.videoId))
-                ?? videoHighlights[1] ?? null;  // next unique entry = latest
+              // videoHighlights order: [0]=most viewed, [1]=most liked, [2]=latest, [3]=oldest
+              const mostViewed = videoHighlights[0] ?? null;
+              // Find the latest video — it's at index 2, or if highlights are short, pick the last different one
+              const latest = videoHighlights.find((v, i) => i > 0 && v.videoId !== videoHighlights[0]?.videoId)
+                ?? videoHighlights[1] ?? null;
               // Also support legacy topVideo as fallback for most viewed
               const fallbackTop = !mostViewed && creator.topVideo ? creator.topVideo : null;
               const hasVideos = mostViewed || fallbackTop || latest;
@@ -626,7 +623,7 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                 </div>
 
                 {/* Stats Strip — compact horizontal row */}
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                   <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
                     <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.totalViews ?? "--"}</p>
                     <p className="text-[10px] text-slate-500 mt-1">views</p>
@@ -636,20 +633,12 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                     <p className="text-[10px] text-slate-500 mt-1">per video</p>
                   </div>
                   <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
-                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.uploadPace ?? "--"}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">uploads</p>
-                  </div>
-                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
                     <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.viewsPerSub ?? "--"}</p>
                     <p className="text-[10px] text-slate-500 mt-1">{ytInsights.viewsPerSubLabel ?? "views/sub"}</p>
                   </div>
                   <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
                     <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.estWatchTimeHours ?? "--"}</p>
                     <p className="text-[10px] text-slate-500 mt-1">watched</p>
-                  </div>
-                  <div className="text-center p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
-                    <p className="text-sm sm:text-base font-bold text-white leading-none">{ytInsights.channelAge ?? "--"}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">on YouTube</p>
                   </div>
                 </div>
 
@@ -668,94 +657,6 @@ export default async function CreatorProfilePage({ params }: PageProps) {
                   </div>
                 )}
 
-                {/* Video Highlights */}
-                {videoHighlights.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-400 mb-3">Video Highlights</h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {videoHighlights.map((video, idx) => {
-                        // Creative labels for each highlight slot
-                        const labels = ["Most Viewed", "Most Liked", "Latest", "Throwback"];
-                        const icons = [
-                          <Flame key="flame" className="w-3 h-3" />,
-                          <ThumbsUp key="like" className="w-3 h-3" />,
-                          <TrendingUp key="trend" className="w-3 h-3" />,
-                          <History key="history" className="w-3 h-3" />,
-                        ];
-                        const colors = [
-                          "text-orange-400 bg-orange-400/10 border-orange-400/20",
-                          "text-pink-400 bg-pink-400/10 border-pink-400/20",
-                          "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-                          "text-blue-400 bg-blue-400/10 border-blue-400/20",
-                        ];
-                        const label = labels[idx] ?? "Featured";
-                        const icon = icons[idx] ?? icons[0];
-                        const color = colors[idx] ?? colors[0];
-
-                        const viewsStr = video.views >= 1_000_000
-                          ? `${(video.views / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
-                          : video.views >= 1_000
-                            ? `${(video.views / 1_000).toFixed(1).replace(/\.0$/, "")}K`
-                            : video.views.toLocaleString();
-
-                        const likesStr = video.likes >= 1_000_000
-                          ? `${(video.likes / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
-                          : video.likes >= 1_000
-                            ? `${(video.likes / 1_000).toFixed(1).replace(/\.0$/, "")}K`
-                            : video.likes.toLocaleString();
-
-                        return (
-                          <a
-                            key={video.videoId}
-                            href={`https://www.youtube.com/watch?v=${video.videoId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group flex gap-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-colors"
-                          >
-                            {/* Thumbnail */}
-                            <div className="relative w-28 h-16 flex-shrink-0 rounded-md overflow-hidden bg-slate-800">
-                              {video.thumbnail ? (
-                                <Image
-                                  src={video.thumbnail}
-                                  alt={video.title}
-                                  fill
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Play className="w-5 h-5 text-slate-600" />
-                                </div>
-                              )}
-                              {/* Badge overlay */}
-                              <span className={`absolute top-1 left-1 flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold border ${color}`}>
-                                {icon}
-                                {label}
-                              </span>
-                            </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                              <p className="text-xs font-medium text-white line-clamp-2 leading-tight group-hover:text-[#FF0000] transition-colors">
-                                {video.title}
-                              </p>
-                              <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
-                                <span className="flex items-center gap-0.5">
-                                  <Eye className="w-3 h-3" />
-                                  {viewsStr}
-                                </span>
-                                <span className="flex items-center gap-0.5">
-                                  <ThumbsUp className="w-3 h-3" />
-                                  {likesStr}
-                                </span>
-                              </div>
-                            </div>
-                          </a>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>

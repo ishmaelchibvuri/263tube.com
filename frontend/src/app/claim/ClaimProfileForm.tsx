@@ -101,10 +101,15 @@ export default function ClaimProfileForm({ session, preSelectedCreator }: Props)
     }
   };
 
-  const handleSelectCreator = (creator: ClaimCreatorResult) => {
+  const handleSelectCreator = async (creator: ClaimCreatorResult) => {
     if (creator.claimedBy) return;
-    setSelectedCreator(creator);
-    setStep("verify");
+    // Fetch full creator data from primary table to ensure all fields
+    // (like platforms) are present — GSI queries may not project everything.
+    const full = await getCreatorForClaim(creator.slug);
+    if (full && !full.claimedBy) {
+      setSelectedCreator(full);
+      setStep("verify");
+    }
   };
 
   const handleAutocompletePick = async (suggestion: { slug: string }) => {

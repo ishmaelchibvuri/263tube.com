@@ -7,7 +7,7 @@
  * returning minimal shapes suitable for client components.
  */
 
-import { searchCreators, getCreatorBySlug, type CreatorPlatforms } from "@/lib/creators";
+import { searchCreators, getCreatorBySlug, type Creator } from "@/lib/creators";
 
 export interface CreatorSuggestion {
   slug: string;
@@ -67,7 +67,7 @@ export async function searchCreatorsForClaim(
       profilePicUrl: c.profilePicUrl,
       verified: c.verified,
       claimedBy: c.claimedBy || null,
-      youtubeHandle: extractYoutubeHandle(c.platforms),
+      youtubeHandle: extractYoutubeIdentifier(c),
     }));
   } catch (error) {
     console.error("Error searching creators for claim:", error);
@@ -94,7 +94,7 @@ export async function getCreatorForClaim(
       profilePicUrl: creator.profilePicUrl,
       verified: creator.verified,
       claimedBy: creator.claimedBy || null,
-      youtubeHandle: extractYoutubeHandle(creator.platforms),
+      youtubeHandle: extractYoutubeIdentifier(creator),
     };
   } catch (error) {
     console.error("Error getting creator for claim:", error);
@@ -103,12 +103,47 @@ export async function getCreatorForClaim(
 }
 
 /**
- * Extract the first YouTube handle/URL from creator platforms data.
+ * Extract a YouTube identifier from a creator using all available sources.
+ *
+ * Sources checked (in order):
+ * 1. platforms.youtube[].handle  → "@handle"
+ * 2. platforms.youtube[].url     → extract @handle or channel ID from URL
+ * 3. verifiedLinks (youtube)     → channelId stored by seed script
  */
-function extractYoutubeHandle(
-  platforms: CreatorPlatforms | undefined
-): string | null {
-  const first = platforms?.youtube?.[0];
-  if (!first) return null;
-  return first.handle ? `@${first.handle}` : first.url || null;
+function extractYoutubeIdentifier(creator: Creator): string | null {
+  // DEBUG: see what data we actually have
+  console.log("[extractYoutubeIdentifier]", creator.slug, {
+    platforms: JSON.stringify(creator.platforms),
+    verifiedLinks: JSON.stringify(creator.verifiedLinks),
+  });
+
+  // --- Source 1: platforms.youtube ---
+  const first = creator.platforms?.youtube?.[0];
+  if (first) {
+    if (first.handle) return `@${first.handle}`;
+
+    const url = first.url;
+    if (url) {
+      const handleMatch = url.match(/youtube\.com\/@([^/?]+)/);
+      if (handleMatch?.[1]) return `@${handleMatch[1]}`;
+
+      const channelIdMatch = url.match(/youtube\.com\/channel\/([^/?]+)/);
+      if (channelIdMatch?.[1]) return channelIdMatch[1];
+
+      return url;
+    }
+  }
+
+  // --- Source 2: verifiedLinks (seed script stores channelId here) ---
+  const ytLink = creator.verifiedLinks?.find(
+    (l) => l.platform === "youtube"
+  );
+  if (ytLink) {
+    // The seed script stores channelId as an extra field on verifiedLinks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channelId = (ytLink as any).channelId;
+    if (typeof channelId === "string" && channelId) return channelId;
+  }
+
+  return null;
 }

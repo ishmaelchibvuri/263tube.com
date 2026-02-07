@@ -17,9 +17,11 @@ import {
   GetCommand,
   DeleteCommand,
   UpdateCommand,
+  QueryCommand,
+  BatchWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { revalidatePath } from "next/cache";
-import { createCreator, type Creator } from "@/lib/creators";
+import { createCreator, deleteCreator, type Creator } from "@/lib/creators";
 import { requireAdmin } from "@/lib/auth-server";
 import { verifyChannelOwnership } from "@/lib/actions/verify-owner";
 
@@ -59,6 +61,11 @@ export interface VerificationProofResult {
   success: boolean;
   message: string;
   verificationCode?: string;
+}
+
+export interface DeleteCreatorResult {
+  success: boolean;
+  message: string;
 }
 
 export interface ReverifyResult {
@@ -515,6 +522,69 @@ export async function reverifyOwnership(
     }
 
     return { success: false, message: "Failed to re-verify ownership. Please try again." };
+  }
+}
+
+/**
+ * Fully delete an approved creator and all related inquiry records
+ */
+export async function deleteCreatorFull(slug: string): Promise<DeleteCreatorResult> {
+  try {
+    await requireAdmin();
+
+    const tableName = getTableName();
+
+    // 1. Delete the main creator record
+    await deleteCreator(slug);
+
+    // 2. Query all inquiry records for this creator (pk = INQUIRY#{slug})
+    const queryCmd = new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: {
+        ":pk": `INQUIRY#${slug}`,
+      },
+    });
+
+    const queryResponse = await docClient.send(queryCmd);
+
+    // 3. Batch-delete all inquiry records (max 25 per batch)
+    if (queryResponse.Items && queryResponse.Items.length > 0) {
+      const batches: Record<string, unknown>[][] = [];
+      for (let i = 0; i < queryResponse.Items.length; i += 25) {
+        batches.push(queryResponse.Items.slice(i, i + 25));
+      }
+
+      for (const batch of batches) {
+        const deleteRequests = batch.map((item) => ({
+          DeleteRequest: {
+            Key: { pk: item.pk, sk: item.sk },
+          },
+        }));
+
+        await docClient.send(
+          new BatchWriteCommand({
+            RequestItems: {
+              [tableName]: deleteRequests,
+            },
+          })
+        );
+      }
+    }
+
+    revalidatePath("/creators");
+    revalidatePath("/admin");
+    revalidatePath("/");
+
+    return { success: true, message: `Creator "${slug}" and related data deleted.` };
+  } catch (error: any) {
+    console.error("Error deleting creator:", error);
+
+    if (error.message?.includes("UNAUTHORIZED") || error.message?.includes("FORBIDDEN")) {
+      return { success: false, message: "You are not authorized to perform this action" };
+    }
+
+    return { success: false, message: "Failed to delete creator. Please try again." };
   }
 }
 

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Metadata } from "next";
 import { getAllCreators } from "@/lib/creators";
 import { getAllCategories } from "@/lib/actions/categories";
+import { isAdmin } from "@/lib/auth-server";
 import { CreatorsGrid } from "@/components/creators/CreatorsGrid";
 import { AuthButton } from "@/components/home/AuthButton";
 
@@ -40,10 +41,11 @@ function CreatorsGridSkeleton() {
 }
 
 export default async function CreatorsPage() {
-  // Fetch all active creators and categories in parallel
-  const [creators, categories] = await Promise.all([
+  // Fetch all active creators, categories, and admin status in parallel
+  const [creators, categories, adminStatus] = await Promise.all([
     getAllCreators("ACTIVE"),
     getAllCategories(),
+    isAdmin(),
   ]);
 
   return (
@@ -100,7 +102,7 @@ export default async function CreatorsPage() {
 
       {/* Creators Grid with Client-side Filtering */}
       <Suspense fallback={<CreatorsGridSkeleton />}>
-        <CreatorsGrid creators={creators} categories={categories} />
+        <CreatorsGrid creators={creators} categories={categories} isAdmin={adminStatus} />
       </Suspense>
 
       {/* Footer */}
