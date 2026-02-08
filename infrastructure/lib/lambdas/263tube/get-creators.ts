@@ -26,38 +26,84 @@ export const handler = async (
     // Check if requesting featured creators
     const isFeatured = event.path.includes("/featured");
     const status = isFeatured ? "FEATURED" : "ACTIVE";
-    const limitParam = event.queryStringParameters?.limit
+    const limit = event.queryStringParameters?.limit
       ? parseInt(event.queryStringParameters.limit)
+      : 50;
+
+    // Optional reach range filtering (uses GSI1 sort key: paddedReach#slug)
+    const minReach = event.queryStringParameters?.minReach
+      ? parseInt(event.queryStringParameters.minReach)
+      : undefined;
+    const maxReach = event.queryStringParameters?.maxReach
+      ? parseInt(event.queryStringParameters.maxReach)
       : undefined;
 
-    const allItems: Record<string, any>[] = [];
-    let lastEvaluatedKey: Record<string, any> | undefined;
+    const hasReachRange = minReach !== undefined || maxReach !== undefined;
 
-    // Paginate through all results from DynamoDB
-    do {
-      const command = new QueryCommand({
-        TableName: TABLE_NAME,
-        IndexName: "GSI1",
-        KeyConditionExpression: "gsi1pk = :pk",
-        ExpressionAttributeValues: {
-          ":pk": `STATUS#${status}`,
-        },
-        ScanIndexForward: false, // Sort by reach descending
-        ExclusiveStartKey: lastEvaluatedKey,
-      });
+    let keyCondition = "gsi1pk = :pk";
+    const exprValues: Record<string, any> = {
+      ":pk": `STATUS#${status}`,
+    };
 
-      const response = await docClient.send(command);
-      allItems.push(...(response.Items || []));
-      lastEvaluatedKey = response.LastEvaluatedKey;
+    if (hasReachRange) {
+      const low = String(minReach ?? 0).padStart(12, "0") + "#";
+      const high = String(maxReach ?? 999999999999).padStart(12, "0") + "#zzzzz";
+      keyCondition += " AND gsi1sk BETWEEN :low AND :high";
+      exprValues[":low"] = low;
+      exprValues[":high"] = high;
+    }
 
-      // If a limit was specified and we've collected enough, stop early
-      if (limitParam && allItems.length >= limitParam) {
-        allItems.length = limitParam;
-        break;
-      }
-    } while (lastEvaluatedKey);
+    // When using a reach range, paginate to collect all matching items
+    // (they're typically a subset). Otherwise use the limit directly.
+    if (hasReachRange) {
+      const allItems: Record<string, any>[] = [];
+      let lastEvaluatedKey: Record<string, any> | undefined;
 
-    const creators = allItems.map(mapToCreator);
+      do {
+        const command = new QueryCommand({
+          TableName: TABLE_NAME,
+          IndexName: "GSI1",
+          KeyConditionExpression: keyCondition,
+          ExpressionAttributeValues: exprValues,
+          ScanIndexForward: false,
+          ExclusiveStartKey: lastEvaluatedKey,
+        });
+
+        const response = await docClient.send(command);
+        allItems.push(...(response.Items || []));
+        lastEvaluatedKey = response.LastEvaluatedKey;
+
+        if (allItems.length >= limit) {
+          allItems.length = limit;
+          break;
+        }
+      } while (lastEvaluatedKey);
+
+      const creators = allItems.map(mapToCreator);
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          data: creators,
+          count: creators.length,
+        }),
+      };
+    }
+
+    // Default: simple limited query (top N by reach)
+    const command = new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: "GSI1",
+      KeyConditionExpression: keyCondition,
+      ExpressionAttributeValues: exprValues,
+      ScanIndexForward: false,
+      Limit: limit,
+    });
+
+    const response = await docClient.send(command);
+    const creators = (response.Items || []).map(mapToCreator);
 
     return {
       statusCode: 200,

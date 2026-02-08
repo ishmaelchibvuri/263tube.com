@@ -16,7 +16,7 @@ import {
   Facebook,
   Music2,
 } from "lucide-react";
-import { fetchAllCreators, fetchTopReferrers } from "@/lib/api-client";
+import { fetchAllCreators, fetchHiddenGems, fetchTopReferrers } from "@/lib/api-client";
 import { getCategoryStats } from "@/lib/actions/categories";
 import { getCategoryColors, type CategoryWithStats } from "@/lib/categories-shared";
 import type { Creator } from "@/lib/creators";
@@ -225,8 +225,9 @@ function CategoryCard({ category }: { category: CategoryWithStats }) {
 
 export default async function HomePage() {
   // Fetch data from API Gateway + categories in parallel
-  const [allCreators, trendingCreators, allCategoryStats] = await Promise.all([
+  const [allCreators, hiddenGemCreators, trendingCreators, allCategoryStats] = await Promise.all([
     fetchAllCreators(),
+    fetchHiddenGems(100, 10_000, 50),
     fetchTopReferrers(10),
     getCategoryStats(),
   ]);
@@ -242,17 +243,14 @@ export default async function HomePage() {
       ? trendingCreators
       : allCreators.slice(0, 10);
 
-  // Get upcoming creators — "Hidden Gems": smaller creators with high engagement, randomized
-  const UPCOMING_REACH_MIN = 100;
-  const UPCOMING_REACH_CAP = 10_000;
-  const hiddenGemCandidates = allCreators
-    .filter((c) => c.metrics.totalReach >= UPCOMING_REACH_MIN && c.metrics.totalReach <= UPCOMING_REACH_CAP)
+  // Get upcoming creators — "Hidden Gems": sort by engagement, shuffle, pick 10
+  const hiddenGemCandidates = hiddenGemCreators
     .map((c) => ({
       creator: c,
       engagement: calculateEngagementScore(c.metrics, c.platforms),
     }))
     .sort((a, b) => b.engagement.score - a.engagement.score)
-    .slice(0, 20) // take top 20 by engagement
+    .slice(0, 20)
     .map((item) => item.creator);
   // Shuffle so different creators appear each page load
   for (let i = hiddenGemCandidates.length - 1; i > 0; i--) {

@@ -88,6 +88,33 @@ export async function fetchCreatorBySlug(slug: string): Promise<Creator | null> 
 }
 
 /**
+ * Fetch hidden gem creators (small reach, high engagement)
+ */
+export async function fetchHiddenGems(
+  minReach = 100,
+  maxReach = 10_000,
+  limit = 50,
+): Promise<Creator[]> {
+  const params = `?minReach=${minReach}&maxReach=${maxReach}&limit=${limit}`;
+  const url = getApiUrl(`creators${params}`);
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (!res.ok) {
+      console.error(`Failed to fetch hidden gems: ${res.status}`);
+      return [];
+    }
+
+    const json: ApiResponse = await res.json();
+    return json.data ?? [];
+  } catch (error) {
+    console.error(`Network error fetching hidden gems from ${url}:`, error);
+    return [];
+  }
+}
+
+/**
  * Fetch top referrers (trending this week)
  */
 export async function fetchTopReferrers(limit?: number): Promise<Creator[]> {
