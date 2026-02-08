@@ -97,6 +97,7 @@ function mapToCreator(item: Record<string, any>) {
     metrics: item.metrics || { totalReach: 0 },
     referralStats: item.referralStats || { currentWeek: 0, allTime: 0 },
     topVideo: item.topVideo,
+    videoHighlights: item.videoHighlights || [],
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     contactEmail: item.contactEmail,

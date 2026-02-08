@@ -3,7 +3,7 @@
  *
  * POST /api/cron/sync
  *
- * Runs as a Vercel Cron Job to keep 5,000+ creator profiles in sync
+ * Runs as a Vercel Cron Job to keep 10,000+ creator profiles in sync
  * with YouTube. Uses a recursive batching pattern to work within
  * Vercel's 300-second execution limit.
  *
@@ -60,7 +60,7 @@ const CHANNEL_BATCH_SIZE = 50; // YouTube channels.list max per request
 const CHUNK_SIZE = 100; // Channel IDs to process per tick
 const DYNAMO_BATCH_SIZE = 25;
 const TIME_BUDGET_MS = 240_000; // 4 minutes — leave 1 min buffer
-const DISCOVERY_LIMIT = 5000;
+const DISCOVERY_LIMIT = 10000;
 const PAGES_PER_QUERY = 3;
 const QUOTA_LIMIT = 9500;
 
@@ -352,12 +352,21 @@ interface CreatorItem {
   createdAt: string;
   updatedAt: string;
   youtubeEtag?: string;
+  videoHighlights?: {
+    videoId: string;
+    title: string;
+    thumbnail: string | null;
+    views: number;
+    likes: number;
+    publishedAt: string;
+  }[];
   // Temp fields
   _youtubeProfileUrl?: string | null;
   _youtubeBannerUrl?: string | null;
+  _uploadsPlaylistId?: string;
 }
 
-function buildCreatorItem(channel: YouTubeChannel): CreatorItem {
+function buildCreatorItem(channel: YouTubeChannel): CreatorItem & { _uploadsPlaylistId?: string } {
   const { snippet, statistics, brandingSettings } = channel;
   const channelId = channel.id;
   const name = snippet.title;
@@ -431,7 +440,86 @@ function buildCreatorItem(channel: YouTubeChannel): CreatorItem {
     updatedAt: now,
     _youtubeProfileUrl: profileUrl,
     _youtubeBannerUrl: bannerUrl,
+    _uploadsPlaylistId: channel.contentDetails?.relatedPlaylists?.uploads,
   };
+}
+
+// ============================================================================
+// Video Highlights — fetch top videos for embedding on creator profiles
+// ============================================================================
+
+async function fetchVideoHighlights(
+  uploadsPlaylistId: string
+): Promise<CreatorItem["videoHighlights"]> {
+  try {
+    const plUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=10&key=${YOUTUBE_API_KEY}`;
+    const plRes = await fetch(plUrl);
+    trackQuota(1);
+    if (!plRes.ok) return [];
+    const plData = await plRes.json();
+    const videoIds = (plData.items || []).map(
+      (i: { contentDetails: { videoId: string } }) => i.contentDetails.videoId
+    );
+    if (videoIds.length === 0) return [];
+
+    const vUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(
+      ","
+    )}&key=${YOUTUBE_API_KEY}`;
+    const vRes = await fetch(vUrl);
+    trackQuota(1);
+    if (!vRes.ok) return [];
+    const vData = await vRes.json();
+    const videos = (vData.items || []).map(
+      (v: {
+        id: string;
+        snippet: {
+          title: string;
+          thumbnails?: { medium?: { url: string }; default?: { url: string } };
+          publishedAt: string;
+        };
+        statistics: { viewCount?: string; likeCount?: string };
+      }) => ({
+        videoId: v.id,
+        title: v.snippet.title || "",
+        thumbnail:
+          v.snippet.thumbnails?.medium?.url ||
+          v.snippet.thumbnails?.default?.url ||
+          null,
+        views: parseInt(v.statistics.viewCount || "0") || 0,
+        likes: parseInt(v.statistics.likeCount || "0") || 0,
+        publishedAt: v.snippet.publishedAt,
+      })
+    );
+
+    const highlights: NonNullable<CreatorItem["videoHighlights"]> = [];
+    const addUnique = (v: (typeof highlights)[number] | undefined) => {
+      if (v && !highlights.some((h) => h.videoId === v.videoId))
+        highlights.push(v);
+    };
+
+    // Most viewed
+    addUnique([...videos].sort((a: { views: number }, b: { views: number }) => b.views - a.views)[0]);
+    // Most liked
+    addUnique([...videos].sort((a: { likes: number }, b: { likes: number }) => b.likes - a.likes)[0]);
+    // Latest
+    addUnique(
+      [...videos].sort(
+        (a: { publishedAt: string }, b: { publishedAt: string }) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      )[0]
+    );
+    // Oldest
+    addUnique(
+      [...videos].sort(
+        (a: { publishedAt: string }, b: { publishedAt: string }) =>
+          new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime()
+      )[0]
+    );
+
+    return highlights;
+  } catch {
+    return [];
+  }
 }
 
 // ============================================================================
@@ -562,9 +650,21 @@ async function processChannelBatch(
     creators.push(creator);
   }
 
-  // Parallel S3 image uploads
+  // Parallel S3 image uploads + video highlight enrichment
   if (creators.length > 0) {
-    await Promise.all(creators.map((c) => uploadCreatorImages(c)));
+    await Promise.all(
+      creators.map(async (c) => {
+        await uploadCreatorImages(c);
+        // Fetch video highlights for embedding on creator profiles
+        if (c._uploadsPlaylistId) {
+          const highlights = await fetchVideoHighlights(c._uploadsPlaylistId);
+          if (highlights && highlights.length > 0) {
+            c.videoHighlights = highlights;
+          }
+        }
+        delete c._uploadsPlaylistId;
+      })
+    );
   }
 
   return { creators, etagSkipped: skipped };

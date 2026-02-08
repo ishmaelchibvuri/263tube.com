@@ -1,7 +1,7 @@
 /**
- * 263Tube - Discovery & Seed Script (v3 — 5000-channel scale)
+ * 263Tube - Discovery & Seed Script (v3 — 10000-channel scale)
  *
- * Designed for discovering and maintaining 5000+ Zimbabwean creators.
+ * Designed for discovering and maintaining 10000+ Zimbabwean creators.
  *
  * Architecture:
  *   1. Separate Discovery from Sync
@@ -30,10 +30,10 @@
  *   and accumulate across runs. Video highlights are opt-in (--with-highlights).
  *
  * Usage:
- *   node scripts/seed-youtube-creators-with-niches.mjs                  # full run (discover + seed, no highlights)
+ *   node scripts/seed-youtube-creators-with-niches.mjs                  # full run (discover + seed + highlights)
  *   node scripts/seed-youtube-creators-with-niches.mjs --discover-only  # only discover IDs, save to cache
  *   node scripts/seed-youtube-creators-with-niches.mjs --seed-only      # seed from cache (skip discovery)
- *   node scripts/seed-youtube-creators-with-niches.mjs --with-highlights # include video highlights (costs ~2 units/channel)
+ *   node scripts/seed-youtube-creators-with-niches.mjs --no-highlights  # skip video highlights (saves ~2 units/channel)
  *   node scripts/seed-youtube-creators-with-niches.mjs --quota-limit 8000 # cap quota usage
  */
 
@@ -84,7 +84,7 @@ try {
 const args = process.argv.slice(2);
 const FLAG_DISCOVER_ONLY = args.includes("--discover-only");
 const FLAG_SEED_ONLY = args.includes("--seed-only");
-const FLAG_WITH_HIGHLIGHTS = args.includes("--with-highlights");
+const FLAG_WITH_HIGHLIGHTS = !args.includes("--no-highlights");
 const QUOTA_LIMIT = (() => {
   const idx = args.indexOf("--quota-limit");
   return idx !== -1 && args[idx + 1] ? parseInt(args[idx + 1]) : 9500;
@@ -197,7 +197,7 @@ const DIASPORA_QUERIES = [
   "Relocating to Zimbabwe",
 ];
 
-const DISCOVERY_LIMIT = 5000;
+const DISCOVERY_LIMIT = 10000;
 const PAGES_PER_QUERY = 3; // 3 pages x 50 results = 150 per query max
 const CHANNEL_BATCH_SIZE = 50; // YouTube channels.list max per request
 const DYNAMO_BATCH_SIZE = 25; // DynamoDB BatchWriteItem max
@@ -1272,7 +1272,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("=== 263Tube Seed Script (v3 — 5000 scale) ===");
+  console.log("=== 263Tube Seed Script (v3 — 10000 scale) ===");
   console.log(
     `Mode: ${
       FLAG_DISCOVER_ONLY
@@ -1464,7 +1464,7 @@ async function main() {
       delete creator._youtubeBannerUrl;
     }
     console.log(
-      "Skipping video highlights (use --with-highlights to enable)\n"
+      "Skipping video highlights (remove --no-highlights to enable)\n"
     );
   }
 

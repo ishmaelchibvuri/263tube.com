@@ -17,7 +17,7 @@ import {
   Music2,
 } from "lucide-react";
 import { fetchAllCreators, fetchHiddenGems, fetchMostEngaging, fetchTopReferrers } from "@/lib/api-client";
-import { getCategoryStats } from "@/lib/actions/categories";
+import { getCategoryStats, getTotalReach } from "@/lib/actions/categories";
 import { getCategoryColors, type CategoryWithStats } from "@/lib/categories-shared";
 import type { Creator } from "@/lib/creators";
 import { HeroSearch } from "@/components/home/HeroSearch";
@@ -225,12 +225,13 @@ function CategoryCard({ category }: { category: CategoryWithStats }) {
 
 export default async function HomePage() {
   // Fetch data from API Gateway + categories in parallel
-  const [allCreators, hiddenGemCreators, mostEngagingCreators, trendingCreators, allCategoryStats] = await Promise.all([
+  const [allCreators, hiddenGemCreators, mostEngagingCreators, trendingCreators, allCategoryStats, dbTotalReach] = await Promise.all([
     fetchAllCreators(),
     fetchHiddenGems(100, 10_000, 50),
     fetchMostEngaging(7.5, 50),
     fetchTopReferrers(10),
     getCategoryStats(),
+    getTotalReach(),
   ]);
 
   // Take top 12 categories by creator count for homepage display
@@ -274,12 +275,9 @@ export default async function HomePage() {
       ? trendingCreators.slice(0, 4)
       : allCreators.slice(0, 4);
 
-  // Calculate total stats
-  const totalCreators = allCreators.length;
-  const totalReach = allCreators.reduce(
-    (sum, c) => sum + c.metrics.totalReach,
-    0
-  );
+  // Calculate total stats from DynamoDB directly (not limited by API Gateway)
+  const totalCreators = allCategoryStats.reduce((sum, c) => sum + c.creatorCount, 0);
+  const totalReach = dbTotalReach;
   const totalNiches = allCategoryStats.filter((c) => c.creatorCount > 0).length;
 
   return (

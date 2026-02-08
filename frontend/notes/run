@@ -1,23 +1,12 @@
-qa.263tube.com
-DNS Change Recommended
-Learn more
-qa
-Vercel recommends updating your DNS records to match the following:
-Type Name Value
-CNAME
-qa
-0aaa356dc04acad4.vercel-dns-017.com.
-As part of a planned IP range expansion, you may notice new records above. The old records of cname.vercel-dns.com and 76.76.21.21 will continue to work but we recommend you use the new ones.
-It might take some time for the DNS records to apply. Learn More
-
-dev.263tube.com
-DNS Change Recommended
-Learn more
-dev
-Vercel recommends updating your DNS records to match the following:
-Type Name Value
-CNAME
-dev
-0aaa356dc04acad4.vercel-dns-017.com.
-As part of a planned IP range expansion, you may notice new records above. The old records of cname.vercel-dns.com and 76.76.21.21 will continue to work but we recommend you use the new ones.
-It might take some time for the DNS records to apply. Learn More
+i want to handpick creators who i will be          
+  featuring on the website.. this will be an        
+  incentive for creators to be featured from           time to time.. the scrolling area [Most            
+  Engaging Creators] is where these should be          showing in the scroll.. create an                  
+  administrator funtion that can be invoked from     
+   the dashboard.. then pops up a modal where i      
+  can add 10 creator pages who will shopw up in      
+  this section. Put a small toggle button as         
+  well for this funtion in the administrator         
+  page whereby if this feature is toggle off         
+  then this section picks up random channels         
+  from the entire database

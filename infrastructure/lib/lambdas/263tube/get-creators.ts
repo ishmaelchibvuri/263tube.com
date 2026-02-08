@@ -26,9 +26,8 @@ export const handler = async (
     // Check if requesting featured creators
     const isFeatured = event.path.includes("/featured");
     const status = isFeatured ? "FEATURED" : "ACTIVE";
-    const limit = event.queryStringParameters?.limit
-      ? parseInt(event.queryStringParameters.limit)
-      : 50;
+    const limitParam = event.queryStringParameters?.limit;
+    const limit = limitParam ? parseInt(limitParam) : undefined;
 
     // Optional reach range filtering (uses GSI1 sort key: paddedReach#slug)
     const minReach = event.queryStringParameters?.minReach
@@ -58,61 +57,43 @@ export const handler = async (
       exprValues[":high"] = high;
     }
 
-    // When filtering by engagement or reach range, paginate through all items
-    // and apply server-side filters before returning
-    if (hasReachRange || minEngagement !== undefined) {
-      const allItems: Record<string, any>[] = [];
-      let lastEvaluatedKey: Record<string, any> | undefined;
+    // Paginate through all items and apply server-side filters before returning.
+    // When no limit is specified, return all matching items.
+    const needsFilter = hasReachRange || minEngagement !== undefined;
+    const fetchAll = limit === undefined;
 
-      do {
-        const command = new QueryCommand({
-          TableName: TABLE_NAME,
-          IndexName: "GSI1",
-          KeyConditionExpression: keyCondition,
-          ExpressionAttributeValues: exprValues,
-          ScanIndexForward: false,
-          ExclusiveStartKey: lastEvaluatedKey,
-        });
+    const allItems: Record<string, any>[] = [];
+    let lastEvaluatedKey: Record<string, any> | undefined;
 
-        const response = await docClient.send(command);
+    do {
+      const command = new QueryCommand({
+        TableName: TABLE_NAME,
+        IndexName: "GSI1",
+        KeyConditionExpression: keyCondition,
+        ExpressionAttributeValues: exprValues,
+        ScanIndexForward: false,
+        ExclusiveStartKey: lastEvaluatedKey,
+        ...((!fetchAll && !needsFilter) ? { Limit: limit } : {}),
+      });
 
-        for (const item of response.Items || []) {
-          if (minEngagement !== undefined) {
-            const score = computeEngagement(item);
-            if (score < minEngagement) continue;
-          }
-          allItems.push(item);
-          if (allItems.length >= limit) break;
+      const response = await docClient.send(command);
+
+      for (const item of response.Items || []) {
+        if (minEngagement !== undefined) {
+          const score = computeEngagement(item);
+          if (score < minEngagement) continue;
         }
+        allItems.push(item);
+        if (limit !== undefined && allItems.length >= limit) break;
+      }
 
-        lastEvaluatedKey = response.LastEvaluatedKey;
-      } while (lastEvaluatedKey && allItems.length < limit);
+      lastEvaluatedKey = response.LastEvaluatedKey;
+    } while (
+      lastEvaluatedKey &&
+      (limit === undefined || allItems.length < limit)
+    );
 
-      const creators = allItems.map(mapToCreator);
-
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          success: true,
-          data: creators,
-          count: creators.length,
-        }),
-      };
-    }
-
-    // Default: simple limited query (top N by reach)
-    const command = new QueryCommand({
-      TableName: TABLE_NAME,
-      IndexName: "GSI1",
-      KeyConditionExpression: keyCondition,
-      ExpressionAttributeValues: exprValues,
-      ScanIndexForward: false,
-      Limit: limit,
-    });
-
-    const response = await docClient.send(command);
-    const creators = (response.Items || []).map(mapToCreator);
+    const creators = allItems.map(mapToCreator);
 
     return {
       statusCode: 200,
@@ -208,6 +189,7 @@ function mapToCreator(item: Record<string, any>) {
     metrics: item.metrics || { totalReach: 0 },
     referralStats: item.referralStats || { currentWeek: 0, allTime: 0 },
     topVideo: item.topVideo,
+    videoHighlights: item.videoHighlights || [],
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };

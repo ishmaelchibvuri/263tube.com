@@ -274,6 +274,48 @@ export async function seedCategories(): Promise<{
 }
 
 /**
+ * Get total reach across all active creators.
+ * Queries GSI1 (STATUS#ACTIVE) and sums totalReach from metrics.
+ * Cached for 5 minutes.
+ */
+export const getTotalReach = unstable_cache(
+  async (): Promise<number> => {
+    const tableName = getTableName();
+    let totalReach = 0;
+    let lastKey: Record<string, unknown> | undefined;
+
+    try {
+      do {
+        const result = await docClient.send(
+          new QueryCommand({
+            TableName: tableName,
+            IndexName: "GSI1",
+            KeyConditionExpression: "gsi1pk = :pk",
+            ExpressionAttributeValues: {
+              ":pk": "STATUS#ACTIVE",
+            },
+            ProjectionExpression: "metrics",
+            ExclusiveStartKey: lastKey,
+          })
+        );
+
+        for (const item of result.Items || []) {
+          totalReach += (item.metrics as Record<string, number>)?.totalReach || 0;
+        }
+
+        lastKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
+      } while (lastKey);
+    } catch (error) {
+      console.error("Error fetching total reach:", error);
+    }
+
+    return totalReach;
+  },
+  ["total-reach"],
+  { tags: ["category-stats"], revalidate: 300 }
+);
+
+/**
  * Revalidate all category caches.
  * Call this after creator sync, category updates, etc.
  */
