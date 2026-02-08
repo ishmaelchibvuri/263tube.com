@@ -38,6 +38,11 @@ export const handler = async (
       ? parseInt(event.queryStringParameters.maxReach)
       : undefined;
 
+    // Optional engagement score filtering (computed server-side)
+    const minEngagement = event.queryStringParameters?.minEngagement
+      ? parseFloat(event.queryStringParameters.minEngagement)
+      : undefined;
+
     const hasReachRange = minReach !== undefined || maxReach !== undefined;
 
     let keyCondition = "gsi1pk = :pk";
@@ -53,9 +58,9 @@ export const handler = async (
       exprValues[":high"] = high;
     }
 
-    // When using a reach range, paginate to collect all matching items
-    // (they're typically a subset). Otherwise use the limit directly.
-    if (hasReachRange) {
+    // When filtering by engagement or reach range, paginate through all items
+    // and apply server-side filters before returning
+    if (hasReachRange || minEngagement !== undefined) {
       const allItems: Record<string, any>[] = [];
       let lastEvaluatedKey: Record<string, any> | undefined;
 
@@ -70,14 +75,18 @@ export const handler = async (
         });
 
         const response = await docClient.send(command);
-        allItems.push(...(response.Items || []));
-        lastEvaluatedKey = response.LastEvaluatedKey;
 
-        if (allItems.length >= limit) {
-          allItems.length = limit;
-          break;
+        for (const item of response.Items || []) {
+          if (minEngagement !== undefined) {
+            const score = computeEngagement(item);
+            if (score < minEngagement) continue;
+          }
+          allItems.push(item);
+          if (allItems.length >= limit) break;
         }
-      } while (lastEvaluatedKey);
+
+        lastEvaluatedKey = response.LastEvaluatedKey;
+      } while (lastEvaluatedKey && allItems.length < limit);
 
       const creators = allItems.map(mapToCreator);
 
