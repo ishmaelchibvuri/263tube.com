@@ -265,6 +265,7 @@ export default async function HomePage() {
     (sum, c) => sum + c.metrics.totalReach,
     0
   );
+  const totalNiches = allCategoryStats.filter((c) => c.creatorCount > 0).length;
 
   return (
     <div className="min-h-screen bg-[#09090b]">
@@ -401,7 +402,10 @@ export default async function HomePage() {
             <div className="flex items-center gap-1.5 text-slate-500">
               <Heart className="w-3.5 h-3.5 text-[#319E31]" />
               <span>
-                <span className="text-white font-semibold">10+</span> Niches
+                <span className="text-white font-semibold">
+                  {totalNiches > 0 ? `${totalNiches}+` : "10+"}
+                </span>{" "}
+                Niches
               </span>
             </div>
           </div>

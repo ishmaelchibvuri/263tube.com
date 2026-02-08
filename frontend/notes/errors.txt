@@ -1,26 +1,6 @@
-GET /creator/davud-akhundzada 200 in 11528ms
-Error tracking referral: Error: ValidationException
-    at async trackReferral (src\lib\creators.ts:551:22)    
-    at async trackReferralAction (src\lib\actions\referrals.ts:49:20)
-  549 |     });
-  550 |
-> 551 |     const response = await docClient.send(command);
-      |                      ^
-  552 |
-  553 |     if (!response.Attributes) {
-  554 |       return null; {
-  '$metadata': [Object],
-  '$fault': 'client',
-  __type: 'com.amazon.coral.validate#ValidationException'  
-}
-Error tracking referral: Error: Failed to track referral for: davud-akhundzada
-    at trackReferral (src\lib\creators.ts:570:11)
-    at async trackReferralAction (src\lib\actions\referrals.ts:49:20)
-  568 |     }
-  569 |     console.error("Error tracking referral:", error);
-> 570 |     throw new Error(`Failed to track referral for: ${slug}`);
-      |           ^
-  571 |   }
-  572 | }
-  573 |
- POST /creator/davud-akhundzada 200 in 1081ms
+qa.263tube.com/:1  Failed to load resource: the server responded with a status of 400 ()
+5638-1ad46907ef0708c8.js:1 Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.
+s @ 5638-1ad46907ef0708c8.js:1
+rrweb-plugin-console-record.js:160 Error boundary caught: Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.
+(anonymous) @ rrweb-plugin-console-record.js:160
+263tube:1 The resource https://qa.263tube.com/_next/static/media/e4af272ccee01ff0-s.p.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.

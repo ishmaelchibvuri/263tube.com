@@ -204,6 +204,8 @@ const VIDEO_CONCURRENCY = 5; // Parallel video highlight fetches
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "263tube-dev";
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const CACHE_PATH = resolve(__dirname, ".discovery-cache.json");
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "263tube-creator-images";
+const S3_REGION = process.env.AWS_REGION || "af-south-1";
 
 const docClient = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: process.env.AWS_REGION }),
@@ -216,6 +218,8 @@ const docClient = DynamoDBDocumentClient.from(
     unmarshallOptions: { wrapNumbers: false },
   }
 );
+
+const s3Client = new S3Client({ region: S3_REGION });
 
 // ============================================================================
 // Quota Tracker
@@ -232,6 +236,149 @@ function trackQuota(units, label) {
 
 function hasQuota(units) {
   return quotaUsed + units <= QUOTA_LIMIT;
+}
+
+// ============================================================================
+// S3 Infrastructure — ensure bucket exists with public access + CORS
+// ============================================================================
+
+async function ensureS3Infrastructure() {
+  const bucket = S3_BUCKET_NAME;
+
+  // Check if bucket already exists
+  try {
+    await s3Client.send(new HeadBucketCommand({ Bucket: bucket }));
+    console.log(`  S3 bucket "${bucket}" already exists.`);
+  } catch (err) {
+    if (err.name === "NotFound" || err.$metadata?.httpStatusCode === 404) {
+      console.log(`  Creating S3 bucket "${bucket}" in ${S3_REGION}...`);
+      await s3Client.send(
+        new CreateBucketCommand({
+          Bucket: bucket,
+          CreateBucketConfiguration: { LocationConstraint: S3_REGION },
+        })
+      );
+      console.log(`  Bucket "${bucket}" created.`);
+    } else {
+      throw err;
+    }
+  }
+
+  // Disable Block Public Access
+  console.log("  Disabling Block Public Access...");
+  await s3Client.send(
+    new DeletePublicAccessBlockCommand({ Bucket: bucket })
+  );
+
+  // Apply bucket policy allowing public s3:GetObject
+  console.log("  Applying public read bucket policy...");
+  const policy = {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Sid: "PublicReadGetObject",
+        Effect: "Allow",
+        Principal: "*",
+        Action: "s3:GetObject",
+        Resource: `arn:aws:s3:::${bucket}/*`,
+      },
+    ],
+  };
+  await s3Client.send(
+    new PutBucketPolicyCommand({
+      Bucket: bucket,
+      Policy: JSON.stringify(policy),
+    })
+  );
+
+  // Configure CORS for Next.js frontend
+  console.log("  Configuring CORS...");
+  await s3Client.send(
+    new PutBucketCorsCommand({
+      Bucket: bucket,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedHeaders: ["*"],
+            AllowedMethods: ["GET"],
+            AllowedOrigins: ["*"],
+            MaxAgeSeconds: 86400,
+          },
+        ],
+      },
+    })
+  );
+
+  console.log(`  S3 infrastructure ready: ${bucket}\n`);
+}
+
+// ============================================================================
+// S3 Image Upload — stream from YouTube URL to S3
+// ============================================================================
+
+/**
+ * Fetch an image from a URL and stream it directly to S3.
+ * Returns the public S3 URL on success, or null on failure.
+ *
+ * @param {string} imageUrl - Source image URL (YouTube thumbnail/banner)
+ * @param {string} slug - Creator slug for the S3 key path
+ * @param {string} type - Image type: "profile" or "banner"
+ */
+async function uploadToS3(imageUrl, slug, type) {
+  if (!imageUrl) return null;
+
+  const key = `creators/${slug}/${type}.jpg`;
+  const s3Url = `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com/${key}`;
+
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) return null;
+
+    const upload = new Upload({
+      client: s3Client,
+      params: {
+        Bucket: S3_BUCKET_NAME,
+        Key: key,
+        Body: response.body,
+        ContentType: "image/jpeg",
+      },
+    });
+
+    await upload.done();
+    return s3Url;
+  } catch (err) {
+    console.warn(`  S3 upload failed for ${key}: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Upload profile and banner images to S3 for a creator.
+ * Updates the creator item URLs in-place. Falls back to original YouTube
+ * URLs if the S3 upload fails.
+ */
+async function uploadCreatorImages(creator) {
+  const slug = creator.slug;
+  const youtubeProfileUrl = creator._youtubeProfileUrl;
+  const youtubeBannerUrl = creator._youtubeBannerUrl;
+
+  const [profileS3Url, bannerS3Url] = await Promise.all([
+    uploadToS3(youtubeProfileUrl, slug, "profile"),
+    uploadToS3(youtubeBannerUrl, slug, "banner"),
+  ]);
+
+  // Update profile image URLs (fallback to YouTube URL on failure)
+  const finalProfileUrl = profileS3Url || youtubeProfileUrl;
+  creator.profilePicUrl = finalProfileUrl;
+  creator.primaryProfileImage = finalProfileUrl;
+  if (creator.verifiedLinks?.[0]) {
+    creator.verifiedLinks[0].image = finalProfileUrl;
+  }
+
+  // Update banner/cover URLs (fallback to YouTube URL on failure)
+  const finalBannerUrl = bannerS3Url || youtubeBannerUrl;
+  creator.bannerUrl = finalBannerUrl;
+  creator.coverImageUrl = finalBannerUrl;
 }
 
 // ============================================================================
@@ -621,6 +768,11 @@ async function processChannelBatch(channelIds, existingETags = {}) {
     }
   }
 
+  // Parallel S3 image uploads for all new/updated creators in this batch
+  if (creators.length > 0) {
+    await Promise.all(creators.map((c) => uploadCreatorImages(c)));
+  }
+
   return { creators, featuredChannelIds };
 }
 
@@ -666,6 +818,7 @@ async function discoverRelatedChannels(
     if (!res.ok) continue;
 
     const data = await res.json();
+    const batchCreators = [];
     for (const channel of data.items || []) {
       const desc = channel.snippet?.description || "";
       const title = channel.snippet?.title || "";
@@ -677,6 +830,7 @@ async function discoverRelatedChannels(
       const itemEtag = channel.etag;
       newIds.push(channelId);
 
+      // ETag match = skip S3 upload + DynamoDB write
       if (existingETags[channelId] && existingETags[channelId] === itemEtag) {
         continue;
       }
@@ -686,8 +840,14 @@ async function discoverRelatedChannels(
         creator.youtubeEtag = itemEtag;
         creator._uploadsPlaylistId =
           channel.contentDetails?.relatedPlaylists?.uploads;
+        batchCreators.push(creator);
         newCreators.push(creator);
       }
+    }
+
+    // Parallel S3 image uploads for new creators in this batch
+    if (batchCreators.length > 0) {
+      await Promise.all(batchCreators.map((c) => uploadCreatorImages(c)));
     }
 
     await sleep(100);
@@ -778,6 +938,9 @@ function buildCreatorItem(channel) {
     ],
     createdAt: now,
     updatedAt: now,
+    // Temp fields for S3 image upload (cleaned up before DB write)
+    _youtubeProfileUrl: profileUrl,
+    _youtubeBannerUrl: bannerUrl,
   };
 }
 
@@ -821,6 +984,8 @@ async function enrichWithVideoHighlights(creators) {
   // Clean up temp fields before DynamoDB write
   for (const creator of creators) {
     delete creator._uploadsPlaylistId;
+    delete creator._youtubeProfileUrl;
+    delete creator._youtubeBannerUrl;
   }
 
   return enriched;
@@ -1068,6 +1233,10 @@ async function main() {
     return;
   }
 
+  // ── Ensure S3 bucket exists with proper configuration ──
+  console.log("Ensuring S3 infrastructure...");
+  await ensureS3Infrastructure();
+
   // ── Load existing ETags for delta detection ──
   console.log("Loading existing ETags from DynamoDB...");
   const existingETags = await loadExistingETags();
@@ -1149,6 +1318,8 @@ async function main() {
     // Still need to clean up temp fields
     for (const creator of allCreators) {
       delete creator._uploadsPlaylistId;
+    delete creator._youtubeProfileUrl;
+    delete creator._youtubeBannerUrl;
     }
     console.log(
       "Skipping video highlights (use --with-highlights to enable)\n"

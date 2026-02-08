@@ -22,15 +22,20 @@ export async function fetchAllCreators(limit?: number): Promise<Creator[]> {
   const params = limit ? `?limit=${limit}` : "";
   const url = getApiUrl(`creators${params}`);
 
-  const res = await fetch(url, { cache: "no-store" });
+  try {
+    const res = await fetch(url, { cache: "no-store" });
 
-  if (!res.ok) {
-    console.error(`Failed to fetch creators: ${res.status}`);
+    if (!res.ok) {
+      console.error(`Failed to fetch creators: ${res.status}`);
+      return [];
+    }
+
+    const json: ApiResponse = await res.json();
+    return json.data ?? [];
+  } catch (error) {
+    console.error(`Network error fetching creators from ${url}:`, error);
     return [];
   }
-
-  const json: ApiResponse = await res.json();
-  return json.data ?? [];
 }
 
 /**
@@ -40,15 +45,20 @@ export async function fetchFeaturedCreators(limit?: number): Promise<Creator[]> 
   const params = limit ? `?limit=${limit}` : "";
   const url = getApiUrl(`creators/featured${params}`);
 
-  const res = await fetch(url, { cache: "no-store" });
+  try {
+    const res = await fetch(url, { cache: "no-store" });
 
-  if (!res.ok) {
-    console.error(`Failed to fetch featured creators: ${res.status}`);
+    if (!res.ok) {
+      console.error(`Failed to fetch featured creators: ${res.status}`);
+      return [];
+    }
+
+    const json: ApiResponse = await res.json();
+    return json.data ?? [];
+  } catch (error) {
+    console.error(`Network error fetching featured creators from ${url}:`, error);
     return [];
   }
-
-  const json: ApiResponse = await res.json();
-  return json.data ?? [];
 }
 
 /**
@@ -57,19 +67,24 @@ export async function fetchFeaturedCreators(limit?: number): Promise<Creator[]> 
 export async function fetchCreatorBySlug(slug: string): Promise<Creator | null> {
   const url = getApiUrl(`creators/${encodeURIComponent(slug)}`);
 
-  const res = await fetch(url, { cache: "no-store" });
+  try {
+    const res = await fetch(url, { cache: "no-store" });
 
-  if (res.status === 404) {
+    if (res.status === 404) {
+      return null;
+    }
+
+    if (!res.ok) {
+      console.error(`Failed to fetch creator ${slug}: ${res.status}`);
+      return null;
+    }
+
+    const json = await res.json();
+    return json.data ?? null;
+  } catch (error) {
+    console.error(`Network error fetching creator ${slug} from ${url}:`, error);
     return null;
   }
-
-  if (!res.ok) {
-    console.error(`Failed to fetch creator ${slug}: ${res.status}`);
-    return null;
-  }
-
-  const json = await res.json();
-  return json.data ?? null;
 }
 
 /**
@@ -79,13 +94,18 @@ export async function fetchTopReferrers(limit?: number): Promise<Creator[]> {
   const params = limit ? `?limit=${limit}` : "";
   const url = getApiUrl(`creators/trending${params}`);
 
-  const res = await fetch(url, { cache: "no-store" });
+  try {
+    const res = await fetch(url, { cache: "no-store" });
 
-  if (!res.ok) {
-    console.error(`Failed to fetch top referrers: ${res.status}`);
+    if (!res.ok) {
+      console.error(`Failed to fetch top referrers: ${res.status}`);
+      return [];
+    }
+
+    const json: ApiResponse = await res.json();
+    return json.data ?? [];
+  } catch (error) {
+    console.error(`Network error fetching top referrers from ${url}:`, error);
     return [];
   }
-
-  const json: ApiResponse = await res.json();
-  return json.data ?? [];
 }

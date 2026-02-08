@@ -34,6 +34,21 @@ const nextConfig = {
   },
   images: {
     unoptimized: true, // Disable image optimization for simpler deployment
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '263tube-creator-images.s3.af-south-1.amazonaws.com',
+        pathname: '/creators/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'yt3.ggpht.com', // YouTube profile pictures
+      },
+      {
+        protocol: 'https',
+        hostname: 'yt3.googleusercontent.com', // YouTube banners
+      },
+    ],
   },
 };
 

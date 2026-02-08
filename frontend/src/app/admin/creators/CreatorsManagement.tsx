@@ -16,6 +16,7 @@ import {
   X,
   Save,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
 import { toggleCreatorVerified } from "@/lib/actions/sync-engine";
 import type { Creator } from "@/lib/creators";
@@ -49,8 +50,11 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
     status: string;
     location: string;
     contactEmail: string;
-  }>({ name: "", niche: "", bio: "", website: "", status: "ACTIVE", location: "", contactEmail: "" });
+    profilePicUrl: string;
+    bannerUrl: string;
+  }>({ name: "", niche: "", bio: "", website: "", status: "ACTIVE", location: "", contactEmail: "", profilePicUrl: "", bannerUrl: "" });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<"profile" | "banner" | null>(null);
 
   // Get unique niches for filter
   const allNiches = Array.from(
@@ -137,6 +141,8 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
       status: creator.status,
       location: creator.location || "",
       contactEmail: creator.contactEmail || "",
+      profilePicUrl: creator.profilePicUrl || "",
+      bannerUrl: creator.bannerUrl || creator.coverImageUrl || "",
     });
     setActionResult(null);
   };
@@ -158,6 +164,10 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
           status: editForm.status,
           location: editForm.location || undefined,
           contactEmail: editForm.contactEmail || undefined,
+          profilePicUrl: editForm.profilePicUrl || undefined,
+          primaryProfileImage: editForm.profilePicUrl || undefined,
+          bannerUrl: editForm.bannerUrl || undefined,
+          coverImageUrl: editForm.bannerUrl || undefined,
         }),
       });
       const data = await res.json();
@@ -173,6 +183,8 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                   bio: editForm.bio,
                   status: editForm.status as Creator["status"],
                   location: editForm.location || c.location,
+                  profilePicUrl: editForm.profilePicUrl || c.profilePicUrl,
+                  bannerUrl: editForm.bannerUrl || c.bannerUrl,
                 }
               : c
           )
@@ -186,6 +198,50 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
       setActionResult({ type: "error", message: "Failed to update creator." });
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File, type: "profile" | "banner") => {
+    if (!editingSlug) return;
+    setUploadingImage(type);
+    setActionResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+
+      const res = await fetch(`/api/creators/${editingSlug}/upload-image`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const s3Url = data.data.url;
+        if (type === "profile") {
+          setEditForm((prev) => ({ ...prev, profilePicUrl: s3Url }));
+          setLocalCreators((prev) =>
+            prev.map((c) =>
+              c.slug === editingSlug ? { ...c, profilePicUrl: s3Url } : c
+            )
+          );
+        } else {
+          setEditForm((prev) => ({ ...prev, bannerUrl: s3Url }));
+          setLocalCreators((prev) =>
+            prev.map((c) =>
+              c.slug === editingSlug ? { ...c, bannerUrl: s3Url, coverImageUrl: s3Url } : c
+            )
+          );
+        }
+        setActionResult({ type: "success", message: `${type === "profile" ? "Profile" : "Banner"} image uploaded to S3.` });
+      } else {
+        setActionResult({ type: "error", message: data.error || "Failed to upload image." });
+      }
+    } catch {
+      setActionResult({ type: "error", message: "Failed to upload image." });
+    } finally {
+      setUploadingImage(null);
     }
   };
 
@@ -589,6 +645,101 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                   placeholder="creator@example.com"
                   className="w-full h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
                 />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-white/[0.05] pt-4">
+                <p className="text-xs text-slate-500 mb-4">Images are stored in S3. Upload a file or paste an S3/image URL.</p>
+              </div>
+
+              {/* Profile Picture */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Profile Picture</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={editForm.profilePicUrl}
+                    onChange={(e) => setEditForm({ ...editForm, profilePicUrl: e.target.value })}
+                    placeholder="https://263tube-creator-images.s3..."
+                    className="flex-1 h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                  />
+                  <label className={`flex items-center gap-1.5 px-3 h-10 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                    uploadingImage === "profile"
+                      ? "bg-white/[0.05] border-white/[0.08] text-slate-500"
+                      : "bg-[#319E31]/10 border-[#319E31]/20 text-[#319E31] hover:bg-[#319E31]/20"
+                  }`}>
+                    {uploadingImage === "profile" ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    {uploadingImage === "profile" ? "Uploading..." : "Upload"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      disabled={uploadingImage !== null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, "profile");
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {editForm.profilePicUrl && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-800">
+                      <Image src={editForm.profilePicUrl} alt="Profile preview" width={40} height={40} className="object-cover w-full h-full" />
+                    </div>
+                    <span className="text-xs text-slate-500 truncate flex-1">{editForm.profilePicUrl}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Banner Image */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Banner Image</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={editForm.bannerUrl}
+                    onChange={(e) => setEditForm({ ...editForm, bannerUrl: e.target.value })}
+                    placeholder="https://263tube-creator-images.s3..."
+                    className="flex-1 h-10 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#FFD200]/40 focus:ring-1 focus:ring-[#FFD200]/20"
+                  />
+                  <label className={`flex items-center gap-1.5 px-3 h-10 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                    uploadingImage === "banner"
+                      ? "bg-white/[0.05] border-white/[0.08] text-slate-500"
+                      : "bg-[#319E31]/10 border-[#319E31]/20 text-[#319E31] hover:bg-[#319E31]/20"
+                  }`}>
+                    {uploadingImage === "banner" ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    {uploadingImage === "banner" ? "Uploading..." : "Upload"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      disabled={uploadingImage !== null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, "banner");
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {editForm.bannerUrl && (
+                  <div className="mt-2">
+                    <div className="h-16 rounded-lg overflow-hidden bg-slate-800">
+                      <Image src={editForm.bannerUrl} alt="Banner preview" width={400} height={64} className="object-cover w-full h-full" />
+                    </div>
+                    <span className="text-xs text-slate-500 truncate block mt-1">{editForm.bannerUrl}</span>
+                  </div>
+                )}
               </div>
             </div>
 

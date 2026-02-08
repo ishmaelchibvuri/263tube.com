@@ -25,8 +25,7 @@ function getDefaultApiUrl(env: string): string {
       // TODO: Update with production API Gateway URL after deployment
       return "https://263tube.com/api";
     case "qa":
-      // TODO: Update with QA API Gateway URL after deployment
-      return "https://qa.263tube.com/api";
+      return "https://e0q8diyy1e.execute-api.af-south-1.amazonaws.com/qa";
     case "dev":
     default:
       return "https://2c2pwepzii.execute-api.af-south-1.amazonaws.com/dev";
