@@ -88,6 +88,32 @@ export async function fetchCreatorBySlug(slug: string): Promise<Creator | null> 
 }
 
 /**
+ * Fetch most engaging creators (engagement score >= threshold)
+ */
+export async function fetchMostEngaging(
+  minEngagement = 7.5,
+  limit = 50,
+): Promise<Creator[]> {
+  const params = `?minEngagement=${minEngagement}&limit=${limit}`;
+  const url = getApiUrl(`creators${params}`);
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (!res.ok) {
+      console.error(`Failed to fetch most engaging: ${res.status}`);
+      return [];
+    }
+
+    const json: ApiResponse = await res.json();
+    return json.data ?? [];
+  } catch (error) {
+    console.error(`Network error fetching most engaging from ${url}:`, error);
+    return [];
+  }
+}
+
+/**
  * Fetch hidden gem creators (small reach, high engagement)
  */
 export async function fetchHiddenGems(

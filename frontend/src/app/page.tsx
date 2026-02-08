@@ -16,7 +16,7 @@ import {
   Facebook,
   Music2,
 } from "lucide-react";
-import { fetchAllCreators, fetchHiddenGems, fetchTopReferrers } from "@/lib/api-client";
+import { fetchAllCreators, fetchHiddenGems, fetchMostEngaging, fetchTopReferrers } from "@/lib/api-client";
 import { getCategoryStats } from "@/lib/actions/categories";
 import { getCategoryColors, type CategoryWithStats } from "@/lib/categories-shared";
 import type { Creator } from "@/lib/creators";
@@ -225,9 +225,10 @@ function CategoryCard({ category }: { category: CategoryWithStats }) {
 
 export default async function HomePage() {
   // Fetch data from API Gateway + categories in parallel
-  const [allCreators, hiddenGemCreators, trendingCreators, allCategoryStats] = await Promise.all([
+  const [allCreators, hiddenGemCreators, mostEngagingCreators, trendingCreators, allCategoryStats] = await Promise.all([
     fetchAllCreators(),
     fetchHiddenGems(100, 10_000, 50),
+    fetchMostEngaging(7.5, 50),
     fetchTopReferrers(10),
     getCategoryStats(),
   ]);
@@ -258,6 +259,23 @@ export default async function HomePage() {
     [hiddenGemCandidates[i], hiddenGemCandidates[j]] = [hiddenGemCandidates[j]!, hiddenGemCandidates[i]!];
   }
   const upcomingCreators = hiddenGemCandidates.slice(0, 10);
+
+  // "Most Engaging" — daily-seeded shuffle so the 10 shown change each day
+  const dailySeed = (() => {
+    const d = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    let h = 0;
+    for (let i = 0; i < d.length; i++) {
+      h = (h * 31 + d.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h);
+  })();
+  const engagingPool = [...mostEngagingCreators];
+  // Seeded Fisher-Yates shuffle (same result for the entire day)
+  for (let i = engagingPool.length - 1; i > 0; i--) {
+    const j = ((dailySeed * (i + 1) * 2654435761) >>> 0) % (i + 1);
+    [engagingPool[i], engagingPool[j]] = [engagingPool[j]!, engagingPool[i]!];
+  }
+  const mostEngaging = engagingPool.slice(0, 10);
 
   // Get trending creators for sidebar (use trending data or fallback)
   const sidebarTrending =
@@ -471,6 +489,48 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Most Engaging Creators */}
+      {mostEngaging.length > 0 && (
+        <section className="relative py-6 sm:py-10 px-4 sm:px-6 border-t border-white/[0.05] bg-white/[0.01]">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-orange-400" />
+                <h3 className="text-sm sm:text-lg font-semibold text-white">
+                  Most Engaging
+                </h3>
+              </div>
+              <Link
+                href="/creators"
+                className="text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1"
+              >
+                See all <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {mostEngaging.map((creator) => {
+                const engagement = calculateEngagementScore(creator.metrics, creator.platforms);
+                return (
+                  <CreatorCard
+                    key={creator.slug}
+                    name={creator.name}
+                    slug={creator.slug}
+                    profilePicUrl={creator.profilePicUrl || ""}
+                    coverImageUrl={creator.coverImageUrl || creator.bannerUrl || ""}
+                    niche={creator.niche}
+                    totalReach={creator.metrics.totalReach}
+                    engagementScore={engagement.score}
+                    engagementLabel={engagement.label}
+                    engagementColor={engagement.color}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Trending + Categories Split - Mobile optimized */}
       <section className="relative py-10 sm:py-16 px-4 sm:px-6 bg-gradient-to-b from-transparent via-white/[0.02] to-transparent">

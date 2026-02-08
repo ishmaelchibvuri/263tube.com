@@ -136,6 +136,61 @@ export const handler = async (
   }
 };
 
+/**
+ * Compute engagement score (0–10) from a DynamoDB item.
+ * Mirrors the frontend calculateEngagementScore logic.
+ */
+function computeEngagement(item: Record<string, any>): number {
+  const metrics = item.metrics || {};
+  const platforms = item.platforms || {};
+
+  const totalReach = metrics.totalReach || 0;
+  const monthlyViews = metrics.rollingMonthlyViews ?? metrics.monthlyViews ?? 0;
+  const totalContent =
+    (metrics.videoCount || 0) + (metrics.postCount || 0) ||
+    metrics.totalVideos ||
+    0;
+
+  let total = 0;
+
+  // 1. Views-to-Reach Ratio (0–4 pts)
+  if (totalReach > 0 && monthlyViews > 0) {
+    const viewRatio = monthlyViews / totalReach;
+    if (viewRatio >= 2.0) total += 4;
+    else if (viewRatio >= 1.0) total += 3;
+    else if (viewRatio >= 0.5) total += 2;
+    else if (viewRatio >= 0.1) total += 1;
+    else total += 0.5;
+  }
+
+  // 2. Content Volume (0–3 pts)
+  if (totalContent >= 500) total += 3;
+  else if (totalContent >= 200) total += 2.5;
+  else if (totalContent >= 100) total += 2;
+  else if (totalContent >= 50) total += 1.5;
+  else if (totalContent >= 20) total += 1;
+  else if (totalContent >= 5) total += 0.5;
+
+  // 3. Audience Scale (0–2 pts)
+  if (totalReach >= 1_000_000) total += 2;
+  else if (totalReach >= 500_000) total += 1.75;
+  else if (totalReach >= 100_000) total += 1.5;
+  else if (totalReach >= 50_000) total += 1.25;
+  else if (totalReach >= 10_000) total += 1;
+  else if (totalReach >= 1_000) total += 0.5;
+
+  // 4. Platform Diversity (0–1 pt)
+  let platformCount = 0;
+  for (const key of ["youtube", "instagram", "twitter", "facebook", "tiktok", "linkedin", "website"]) {
+    if (platforms[key]?.length) platformCount++;
+  }
+  if (platformCount >= 4) total += 1;
+  else if (platformCount >= 3) total += 0.75;
+  else if (platformCount >= 2) total += 0.5;
+
+  return Math.min(10, Math.max(0, Math.round(total * 10) / 10));
+}
+
 function mapToCreator(item: Record<string, any>) {
   return {
     slug: item.slug,
