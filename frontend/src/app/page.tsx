@@ -226,7 +226,7 @@ function CategoryCard({ category }: { category: CategoryWithStats }) {
 export default async function HomePage() {
   // Fetch data from API Gateway + categories in parallel
   const [allCreators, trendingCreators, allCategoryStats] = await Promise.all([
-    fetchAllCreators(50),
+    fetchAllCreators(),
     fetchTopReferrers(10),
     getCategoryStats(),
   ]);
