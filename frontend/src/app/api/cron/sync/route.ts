@@ -71,30 +71,46 @@ const s3Client = new S3Client({ region: S3_REGION });
 // ============================================================================
 
 const SEARCH_QUERIES = [
+  // Homesteading & Building
   "Zimbabwe Homesteading",
   "Building in Zimbabwe",
   "Rural Home Zimbabwe",
   "Zim Diaspora Building",
   "Zimbabwe construction vlog",
   "Zimbabwe house build",
+  "Murewa building",
+  "Modern cottage Zim",
   "Relocating to Zimbabwe",
+  "Zimbabwe land restoration",
+  // Agriculture & Farming
   "Zimbabwe Agriculture",
   "Zimbabwe farming",
   "pfumvudza farming Zimbabwe",
+  "Zimbabwe livestock farming",
+  "Zimbabwe gardening tips",
+  // Music
   "ZimDancehall music",
   "Zimbabwe music artist",
   "Zim gospel music",
   "Zimbabwe hip hop",
   "Zim Afrobeats",
   "sungura music Zimbabwe",
+  "Zim amapiano",
+  // Comedy & Entertainment
   "Zim Comedy skits",
   "Zimbabwe comedy",
   "Zimbabwe entertainment",
+  "Zim pranks funny",
+  // News & Current Affairs
   "Zimbabwe News channel",
   "Zimbabwe politics",
   "Zimbabwe current affairs",
+  "Zim diaspora news",
+  // Technology
   "Zim Tech reviews",
   "Zimbabwe technology",
+  "tech in Zimbabwe",
+  // Vlogs & Lifestyle
   "Harare Vlogs",
   "Zimbabwe vlogs daily",
   "life in Zimbabwe",
@@ -102,26 +118,42 @@ const SEARCH_QUERIES = [
   "Zimbabwe food cooking",
   "Bulawayo vlogs",
   "Zimbabwe lifestyle",
+  // Education
   "Zimbabwe education channel",
   "learn Shona language",
+  "Zimbabwe tutorials",
+  // Sports
   "Zimbabwe cricket",
   "Zimbabwe football soccer",
+  "Zimbabwe sports",
+  // Business & Finance
   "Zimbabwe business",
   "Zimbabwe economy finance",
+  "Zimbabwe investment",
+  // Culture & Heritage
   "Zimbabwe culture heritage",
   "Shona culture traditions",
   "Ndebele culture",
+  "Zimbabwe history documentary",
+  // Diaspora
   "Zimbabwean in UK",
   "Zimbabwean in South Africa",
   "Zimbabwean in USA",
   "Zimbabwean in Australia",
   "Zim diaspora life",
+  // Beauty & Fashion
   "Zimbabwe beauty fashion",
+  "Zim makeup tutorial",
+  // Motivation & Religion
   "Zimbabwe motivational speaker",
   "Zimbabwe pastor sermon",
+  "Zim church worship",
+  // Cultural & Vernacular (Diaspora reach)
   "Learn Shona",
+  "Learn Zim Ndebele",
   "Zim Diaspora stories",
   "Kumusha lifestyle",
+  "Zim-dancehall riddim",
 ];
 
 const DIASPORA_QUERIES = [
@@ -133,22 +165,55 @@ const DIASPORA_QUERIES = [
   "Zim Diaspora stories",
   "Zim Diaspora Building",
   "Learn Shona",
+  "Learn Zim Ndebele",
   "Kumusha lifestyle",
   "Relocating to Zimbabwe",
 ];
 
 // ============================================================================
-// Cultural Markers & Niche Inference (ported from seed script)
+// Zim-Score — weighted cultural markers (ported from seed script)
 // ============================================================================
 
-const CULTURAL_MARKERS = [
-  "zim", "zimbabwe", "harare", "bulawayo",
-  "shona", "ndebele", "kumusha", "mushamukadzi", "diaspora",
+const WEIGHTED_MARKERS: Record<string, number> = {
+  // +2: Strong Zimbabwean indicators
+  "bulawayo": 2,
+  "harare": 2,
+  "shona": 2,
+  "ndebele": 2,
+  "pfumvudza": 2,
+  "zim-dancehall": 2,
+  "zimdancehall": 2,
+  // +1: General Zimbabwean indicators
+  "zim": 1,
+  "zimbabwe": 1,
+  "kumusha": 1,
+  "mushamukadzi": 1,
+  "diaspora": 1,
+};
+
+const NEGATIVE_MARKERS = [
+  "lagos", "nollywood", "kenya", "nairobi",
+  "ghana", "accra", "nigerian",
 ];
 
-function hasZimbabweanMarkers(description: string, title: string): boolean {
+/**
+ * Returns a numeric Zim-Score based on weighted cultural markers.
+ * Higher scores = stronger Zimbabwean signal.
+ * Negative markers (non-Zimbabwean African terms) reduce the score.
+ */
+function hasZimbabweanMarkers(description: string, title: string): number {
   const text = `${title} ${description}`.toLowerCase();
-  return CULTURAL_MARKERS.some((m) => text.includes(m));
+  let score = 0;
+
+  for (const [marker, weight] of Object.entries(WEIGHTED_MARKERS)) {
+    if (text.includes(marker)) score += weight;
+  }
+
+  for (const marker of NEGATIVE_MARKERS) {
+    if (text.includes(marker)) score -= 1;
+  }
+
+  return score;
 }
 
 function inferNiche(description: string, title: string): string {
@@ -278,6 +343,7 @@ interface CreatorItem {
   bannerUrl: string | null;
   coverImageUrl: string | null;
   niche: string;
+  zimScore: number;
   status: string;
   verified: boolean;
   platforms: Record<string, unknown>;
@@ -318,11 +384,15 @@ function buildCreatorItem(channel: YouTubeChannel): CreatorItem {
     ? `https://www.youtube.com/@${youtubeHandle}`
     : `https://www.youtube.com/channel/${channelId}`;
 
+  // Compute Zim-Score to determine status
+  const zimScore = hasZimbabweanMarkers(snippet.description || "", name);
+  const status = zimScore >= 2 ? "ACTIVE" : "PENDING_REVIEW";
+
   return {
     pk: `CREATOR#${slug}`,
     sk: "METADATA",
     entityType: "CREATOR",
-    gsi1pk: "STATUS#ACTIVE",
+    gsi1pk: `STATUS#${status}`,
     gsi1sk: reachSortKey,
     gsi2pk: `CATEGORY#${niche}`,
     gsi2sk: reachSortKey,
@@ -334,7 +404,8 @@ function buildCreatorItem(channel: YouTubeChannel): CreatorItem {
     bannerUrl,
     coverImageUrl: bannerUrl,
     niche,
-    status: "ACTIVE",
+    zimScore,
+    status,
     verified: false,
     platforms: {
       youtube: [{ label: name, url: youtubeUrl, handle: youtubeHandle }],
@@ -396,12 +467,22 @@ async function uploadCreatorImages(creator: CreatorItem): Promise<void> {
 // Load Existing ETags from DynamoDB
 // ============================================================================
 
-async function loadExistingETags(): Promise<Record<string, string>> {
-  const etagMap: Record<string, string> = {};
-  const partitions = ["STATUS#ACTIVE", "STATUS#FEATURED"];
+interface ETagEntry {
+  etag: string;
+  pk: string;
+  sk: string;
+}
+
+async function loadExistingETags(): Promise<Record<string, ETagEntry>> {
+  const etagMap: Record<string, ETagEntry> = {};
+  const partitions = [
+    "STATUS#ACTIVE",
+    "STATUS#FEATURED",
+    "STATUS#PENDING_REVIEW",
+  ];
 
   try {
-    for (const pk of partitions) {
+    for (const partition of partitions) {
       let lastKey: Record<string, unknown> | undefined;
       do {
         const result = await docClient.send(
@@ -409,8 +490,8 @@ async function loadExistingETags(): Promise<Record<string, string>> {
             TableName: TABLE_NAME,
             IndexName: "GSI1",
             KeyConditionExpression: "gsi1pk = :pk",
-            ExpressionAttributeValues: { ":pk": pk },
-            ProjectionExpression: "youtubeEtag, verifiedLinks",
+            ExpressionAttributeValues: { ":pk": partition },
+            ProjectionExpression: "pk, sk, youtubeEtag, verifiedLinks",
             ExclusiveStartKey: lastKey,
           })
         );
@@ -420,7 +501,11 @@ async function loadExistingETags(): Promise<Record<string, string>> {
             (l) => l.platform === "youtube"
           );
           if (ytLink?.channelId) {
-            etagMap[ytLink.channelId as string] = item.youtubeEtag as string;
+            etagMap[ytLink.channelId as string] = {
+              etag: item.youtubeEtag as string,
+              pk: item.pk as string,
+              sk: item.sk as string,
+            };
           }
         }
         lastKey = result.LastEvaluatedKey as
@@ -441,7 +526,7 @@ async function loadExistingETags(): Promise<Record<string, string>> {
 
 async function processChannelBatch(
   channelIds: string[],
-  existingETags: Record<string, string>
+  existingETags: Record<string, ETagEntry>
 ): Promise<{ creators: CreatorItem[]; etagSkipped: number }> {
   if (channelIds.length === 0) return { creators: [], etagSkipped: 0 };
 
@@ -466,8 +551,8 @@ async function processChannelBatch(
     const channelId = channel.id;
     const itemEtag = channel.etag;
 
-    // ETag gatekeeper — skip unchanged channels
-    if (existingETags[channelId] && existingETags[channelId] === itemEtag) {
+    // ETag comparison: skip unchanged channels
+    if (existingETags[channelId]?.etag === itemEtag) {
       skipped++;
       continue;
     }
@@ -492,8 +577,31 @@ async function processChannelBatch(
 async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
   let written = 0;
 
-  for (let i = 0; i < creators.length; i += DYNAMO_BATCH_SIZE) {
-    const batch = creators.slice(i, i + DYNAMO_BATCH_SIZE);
+  // Pre-write validation: filter out creators with invalid key fields
+  const KEY_FIELDS = ["pk", "sk", "gsi1pk", "gsi1sk"] as const;
+  const validCreators: CreatorItem[] = [];
+  let validationSkipped = 0;
+
+  for (const creator of creators) {
+    const invalidFields = KEY_FIELDS.filter(
+      (f) => typeof creator[f] !== "string" || (creator[f] as string).trim() === ""
+    );
+    if (invalidFields.length > 0) {
+      validationSkipped++;
+      console.warn(
+        `[SKIP] Creator "${creator.slug || "unknown"}" has invalid key fields: ${invalidFields.join(", ")}`
+      );
+      continue;
+    }
+    validCreators.push(creator);
+  }
+
+  if (validationSkipped > 0) {
+    console.warn(`Validation: skipped ${validationSkipped} creators with invalid keys`);
+  }
+
+  for (let i = 0; i < validCreators.length; i += DYNAMO_BATCH_SIZE) {
+    const batch = validCreators.slice(i, i + DYNAMO_BATCH_SIZE);
     const putRequests = batch.map((item) => ({
       PutRequest: { Item: item },
     }));
@@ -517,8 +625,26 @@ async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
           await new Promise((r) => setTimeout(r, 1000 * retries));
         }
       }
+
+      if ((unprocessed?.[TABLE_NAME]?.length ?? 0) > 0) {
+        console.warn(
+          `${unprocessed?.[TABLE_NAME]?.length ?? 0} items failed after retries at offset ${i}`
+        );
+      }
     } catch (err) {
-      console.error(`Batch write failed at offset ${i}:`, err);
+      const error = err as Error & { $metadata?: { httpStatusCode?: number; requestId?: string } };
+      console.error(`Batch write failed at offset ${i}:`);
+      console.error(`  Error: ${error.name}: ${error.message}`);
+      if (error.$metadata) {
+        console.error(`  HTTP status: ${error.$metadata.httpStatusCode}`);
+        console.error(`  Request ID: ${error.$metadata.requestId}`);
+      }
+      const firstItem = batch[0];
+      if (firstItem) {
+        const itemJson = JSON.stringify(firstItem);
+        console.error(`  First item slug: "${firstItem.slug}"`);
+        console.error(`  First item JSON size: ${itemJson.length} bytes (${(itemJson.length / 1024).toFixed(1)} KB, limit 400 KB)`);
+      }
     }
   }
 
@@ -594,7 +720,7 @@ async function runDiscoveryTick(
         if (validate) {
           const desc = item.snippet?.description || "";
           const title = item.snippet?.title || "";
-          if (!hasZimbabweanMarkers(desc, title)) continue;
+          if (hasZimbabweanMarkers(desc, title) < 1) continue;
         }
 
         uniqueIds.add(id);
@@ -622,7 +748,7 @@ async function runDiscoveryTick(
 
 async function runSyncTick(
   state: SyncJobState,
-  existingETags: Record<string, string>
+  existingETags: Record<string, ETagEntry>
 ): Promise<{ nextIndex: number; written: number; etagSkipped: number; done: boolean }> {
   const { channelIds, currentIndex } = state;
   const endIndex = Math.min(currentIndex + CHUNK_SIZE, channelIds.length);

@@ -44,6 +44,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   BatchWriteCommand,
+  DeleteCommand,
   QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
@@ -413,28 +414,76 @@ function saveDiscoveryCache(channelIds, completedQueries) {
 }
 
 // ============================================================================
-// Cultural Markers — identify Zimbabwean creators regardless of country code
+// Blacklist — filter out non-Zimbabwean creators by channel ID
 // ============================================================================
 
-const CULTURAL_MARKERS = [
-  "zim",
-  "zimbabwe",
-  "harare",
-  "bulawayo",
-  "shona",
-  "ndebele",
-  "kumusha",
-  "mushamukadzi",
-  "diaspora",
+const BLACKLIST_PATH = resolve(__dirname, "blacklist.json");
+
+function loadBlacklist() {
+  try {
+    if (!existsSync(BLACKLIST_PATH)) {
+      console.log("No blacklist.json found — skipping blacklist filter.");
+      return new Set();
+    }
+    const data = JSON.parse(readFileSync(BLACKLIST_PATH, "utf-8"));
+    const ids = new Set(data.channelIds || []);
+    console.log(`Loaded blacklist: ${ids.size} channel IDs`);
+    return ids;
+  } catch (err) {
+    console.warn("Could not load blacklist:", err.message);
+    return new Set();
+  }
+}
+
+// ============================================================================
+// Zim-Score — weighted cultural markers for Zimbabwean creator identification
+// ============================================================================
+
+const WEIGHTED_MARKERS = {
+  // +2: Strong Zimbabwean indicators
+  "bulawayo": 2,
+  "harare": 2,
+  "shona": 2,
+  "ndebele": 2,
+  "pfumvudza": 2,
+  "zim-dancehall": 2,
+  "zimdancehall": 2,
+  // +1: General Zimbabwean indicators
+  "zim": 1,
+  "zimbabwe": 1,
+  "kumusha": 1,
+  "mushamukadzi": 1,
+  "diaspora": 1,
+};
+
+const NEGATIVE_MARKERS = [
+  "lagos",
+  "nollywood",
+  "kenya",
+  "nairobi",
+  "ghana",
+  "accra",
+  "nigerian",
 ];
 
 /**
- * Returns true if the channel's title or description contains any Zimbabwean
- * cultural marker. Used to tag diaspora creators who may not have country=ZW.
+ * Returns a numeric Zim-Score based on weighted cultural markers found in the
+ * channel's title and description. Higher scores = stronger Zimbabwean signal.
+ * Negative markers (non-Zimbabwean African terms) reduce the score.
  */
 function hasZimbabweanMarkers(description, title) {
   const text = `${title} ${description}`.toLowerCase();
-  return CULTURAL_MARKERS.some((marker) => text.includes(marker));
+  let score = 0;
+
+  for (const [marker, weight] of Object.entries(WEIGHTED_MARKERS)) {
+    if (text.includes(marker)) score += weight;
+  }
+
+  for (const marker of NEGATIVE_MARKERS) {
+    if (text.includes(marker)) score -= 1;
+  }
+
+  return score;
 }
 
 // ============================================================================
@@ -687,7 +736,7 @@ async function _runSearchPass(
         if (validateMarkers) {
           const desc = item.snippet?.description || "";
           const title = item.snippet?.title || "";
-          if (!hasZimbabweanMarkers(desc, title)) continue;
+          if (hasZimbabweanMarkers(desc, title) < 1) continue;
         }
 
         uniqueIds.add(id);
@@ -754,7 +803,7 @@ async function processChannelBatch(channelIds, existingETags = {}) {
     featuredChannelIds.push(...featured);
 
     // ETag comparison: skip unchanged channels on re-run
-    if (existingETags[channelId] && existingETags[channelId] === itemEtag) {
+    if (existingETags[channelId]?.etag === itemEtag) {
       continue;
     }
 
@@ -823,15 +872,15 @@ async function discoverRelatedChannels(
       const desc = channel.snippet?.description || "";
       const title = channel.snippet?.title || "";
 
-      // Only accept channels that have Zimbabwean cultural markers
-      if (!hasZimbabweanMarkers(desc, title)) continue;
+      // Only accept channels with a positive Zim-Score
+      if (hasZimbabweanMarkers(desc, title) < 1) continue;
 
       const channelId = channel.id;
       const itemEtag = channel.etag;
       newIds.push(channelId);
 
       // ETag match = skip S3 upload + DynamoDB write
-      if (existingETags[channelId] && existingETags[channelId] === itemEtag) {
+      if (existingETags[channelId]?.etag === itemEtag) {
         continue;
       }
 
@@ -890,12 +939,16 @@ function buildCreatorItem(channel) {
     ? `https://www.youtube.com/@${youtubeHandle}`
     : `https://www.youtube.com/channel/${channelId}`;
 
+  // Compute Zim-Score to determine status
+  const zimScore = hasZimbabweanMarkers(snippet.description || "", name);
+  const status = zimScore >= 2 ? "ACTIVE" : "PENDING_REVIEW";
+
   return {
     pk: `CREATOR#${slug}`,
     sk: "METADATA",
     entityType: "CREATOR",
-    // GSI1: query all active creators sorted by reach
-    gsi1pk: "STATUS#ACTIVE",
+    // GSI1: query creators by status sorted by reach
+    gsi1pk: `STATUS#${status}`,
     gsi1sk: reachSortKey,
     // GSI2: query by niche/category sorted by reach
     gsi2pk: `CATEGORY#${niche}`,
@@ -908,7 +961,8 @@ function buildCreatorItem(channel) {
     bannerUrl,
     coverImageUrl: bannerUrl,
     niche,
-    status: "ACTIVE",
+    zimScore,
+    status,
     verified: false,
     platforms: {
       youtube: [
@@ -1051,9 +1105,31 @@ async function fetchVideoHighlights(uploadsPlaylistId) {
 
 async function seedCreatorsToDynamo(creators) {
   let written = 0;
+  let skipped = 0;
 
-  for (let i = 0; i < creators.length; i += DYNAMO_BATCH_SIZE) {
-    const batch = creators.slice(i, i + DYNAMO_BATCH_SIZE);
+  // Pre-write validation: filter out creators with invalid key fields
+  const validCreators = [];
+  const KEY_FIELDS = ["pk", "sk", "gsi1pk", "gsi1sk"];
+  for (const creator of creators) {
+    const invalidFields = KEY_FIELDS.filter(
+      (f) => typeof creator[f] !== "string" || creator[f].trim() === ""
+    );
+    if (invalidFields.length > 0) {
+      skipped++;
+      console.warn(
+        `  [SKIP] Creator "${creator.slug || "unknown"}" has invalid key fields: ${invalidFields.join(", ")} — values: ${invalidFields.map((f) => JSON.stringify(creator[f])).join(", ")}`
+      );
+      continue;
+    }
+    validCreators.push(creator);
+  }
+
+  if (skipped > 0) {
+    console.warn(`  Validation: skipped ${skipped} creators with invalid keys`);
+  }
+
+  for (let i = 0; i < validCreators.length; i += DYNAMO_BATCH_SIZE) {
+    const batch = validCreators.slice(i, i + DYNAMO_BATCH_SIZE);
     const putRequests = batch.map((item) => ({
       PutRequest: { Item: item },
     }));
@@ -1083,12 +1159,25 @@ async function seedCreatorsToDynamo(creators) {
         );
       }
     } catch (err) {
-      console.error(`  Batch write failed at offset ${i}: ${err.message}`);
+      console.error(`  Batch write failed at offset ${i}:`);
+      console.error(`    Error name: ${err.name}`);
+      console.error(`    Error message: ${err.message}`);
+      if (err.$metadata) {
+        console.error(`    HTTP status: ${err.$metadata.httpStatusCode}`);
+        console.error(`    Request ID: ${err.$metadata.requestId}`);
+      }
+      // Log first item details to help diagnose size/validation issues
+      const firstItem = batch[0];
+      if (firstItem) {
+        const itemJson = JSON.stringify(firstItem);
+        console.error(`    First item slug: "${firstItem.slug}"`);
+        console.error(`    First item JSON size: ${itemJson.length} bytes (${(itemJson.length / 1024).toFixed(1)} KB, limit 400 KB)`);
+      }
     }
 
     // Progress every 250 items
     if ((i + DYNAMO_BATCH_SIZE) % 250 < DYNAMO_BATCH_SIZE) {
-      console.log(`  DynamoDB: ${written}/${creators.length} written...`);
+      console.log(`  DynamoDB: ${written}/${validCreators.length} written...`);
     }
   }
 
@@ -1107,7 +1196,11 @@ async function seedCreatorsToDynamo(creators) {
 async function loadExistingETags() {
   const etagMap = {};
 
-  const statusPartitions = ["STATUS#ACTIVE", "STATUS#FEATURED"];
+  const statusPartitions = [
+    "STATUS#ACTIVE",
+    "STATUS#FEATURED",
+    "STATUS#PENDING_REVIEW",
+  ];
 
   try {
     for (const partition of statusPartitions) {
@@ -1120,7 +1213,7 @@ async function loadExistingETags() {
             IndexName: "GSI1",
             KeyConditionExpression: "gsi1pk = :pk",
             ExpressionAttributeValues: { ":pk": partition },
-            ProjectionExpression: "youtubeEtag, verifiedLinks",
+            ProjectionExpression: "pk, sk, youtubeEtag, verifiedLinks",
             ExclusiveStartKey: lastKey,
           })
         );
@@ -1131,7 +1224,11 @@ async function loadExistingETags() {
             (l) => l.platform === "youtube"
           );
           if (ytLink?.channelId) {
-            etagMap[ytLink.channelId] = item.youtubeEtag;
+            etagMap[ytLink.channelId] = {
+              etag: item.youtubeEtag,
+              pk: item.pk,
+              sk: item.sk,
+            };
           }
         }
 
@@ -1241,6 +1338,43 @@ async function main() {
   console.log("Loading existing ETags from DynamoDB...");
   const existingETags = await loadExistingETags();
 
+  // ── Blacklist: filter out non-Zimbabwean creators ──
+  const blacklist = loadBlacklist();
+  if (blacklist.size > 0) {
+    const beforeCount = channelIds.length;
+    channelIds = channelIds.filter((id) => !blacklist.has(id));
+    const removed = beforeCount - channelIds.length;
+    if (removed > 0) {
+      console.log(`  Blacklist: removed ${removed} channel IDs from queue`);
+    }
+
+    // Delete blacklisted creators that already exist in DynamoDB
+    let deletedFromDb = 0;
+    for (const id of blacklist) {
+      const existing = existingETags[id];
+      if (existing?.pk && existing?.sk) {
+        try {
+          await docClient.send(
+            new DeleteCommand({
+              TableName: TABLE_NAME,
+              Key: { pk: existing.pk, sk: existing.sk },
+            })
+          );
+          deletedFromDb++;
+          delete existingETags[id];
+        } catch (err) {
+          console.warn(`  Failed to delete blacklisted ${id}: ${err.message}`);
+        }
+      }
+    }
+    if (deletedFromDb > 0) {
+      console.log(
+        `  Blacklist: deleted ${deletedFromDb} existing creators from DynamoDB`
+      );
+    }
+    console.log("");
+  }
+
   // ── Phase 2: Batch fetch channel data ──
   console.log(
     `Phase 2: Fetching channel data in batches of ${CHANNEL_BATCH_SIZE}...`
@@ -1334,13 +1468,19 @@ async function main() {
 
   // ── Summary ──
   const nicheBreakdown = {};
+  const statusBreakdown = { ACTIVE: 0, PENDING_REVIEW: 0 };
   for (const c of allCreators) {
     nicheBreakdown[c.niche] = (nicheBreakdown[c.niche] || 0) + 1;
+    if (c.status === "ACTIVE") statusBreakdown.ACTIVE++;
+    else statusBreakdown.PENDING_REVIEW++;
   }
 
   console.log("\n=== Seed Complete ===");
   console.log(`Discovered:        ${channelIds.length} channel IDs`);
+  console.log(`Blacklisted:       ${blacklist.size} channel IDs`);
   console.log(`New/Updated:       ${allCreators.length}`);
+  console.log(`  -> ACTIVE:       ${statusBreakdown.ACTIVE}`);
+  console.log(`  -> PENDING_REVIEW: ${statusBreakdown.PENDING_REVIEW}`);
   console.log(`Skipped (ETag):    ${etagSkipped}`);
   console.log(`Written to Dynamo: ${written}`);
   console.log(`Quota used:        ${quotaUsed}/${QUOTA_LIMIT} units`);
