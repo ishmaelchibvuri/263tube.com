@@ -260,19 +260,10 @@ export default async function HomePage() {
   }
   const upcomingCreators = hiddenGemCandidates.slice(0, 10);
 
-  // "Most Engaging" — daily-seeded shuffle so the 10 shown change each day
-  const dailySeed = (() => {
-    const d = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-    let h = 0;
-    for (let i = 0; i < d.length; i++) {
-      h = (h * 31 + d.charCodeAt(i)) | 0;
-    }
-    return Math.abs(h);
-  })();
+  // "Most Engaging" — shuffle on every page load so visitors see variety
   const engagingPool = [...mostEngagingCreators];
-  // Seeded Fisher-Yates shuffle (same result for the entire day)
   for (let i = engagingPool.length - 1; i > 0; i--) {
-    const j = ((dailySeed * (i + 1) * 2654435761) >>> 0) % (i + 1);
+    const j = Math.floor(Math.random() * (i + 1));
     [engagingPool[i], engagingPool[j]] = [engagingPool[j]!, engagingPool[i]!];
   }
   const mostEngaging = engagingPool.slice(0, 10);

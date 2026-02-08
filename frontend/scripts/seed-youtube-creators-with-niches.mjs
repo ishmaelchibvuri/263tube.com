@@ -267,9 +267,7 @@ async function ensureS3Infrastructure() {
 
   // Disable Block Public Access
   console.log("  Disabling Block Public Access...");
-  await s3Client.send(
-    new DeletePublicAccessBlockCommand({ Bucket: bucket })
-  );
+  await s3Client.send(new DeletePublicAccessBlockCommand({ Bucket: bucket }));
 
   // Apply bucket policy allowing public s3:GetObject
   console.log("  Applying public read bucket policy...");
@@ -441,19 +439,19 @@ function loadBlacklist() {
 
 const WEIGHTED_MARKERS = {
   // +2: Strong Zimbabwean indicators
-  "bulawayo": 2,
-  "harare": 2,
-  "shona": 2,
-  "ndebele": 2,
-  "pfumvudza": 2,
+  bulawayo: 2,
+  harare: 2,
+  shona: 2,
+  ndebele: 2,
+  pfumvudza: 2,
   "zim-dancehall": 2,
-  "zimdancehall": 2,
+  zimdancehall: 2,
   // +1: General Zimbabwean indicators
-  "zim": 1,
-  "zimbabwe": 1,
-  "kumusha": 1,
-  "mushamukadzi": 1,
-  "diaspora": 1,
+  zim: 1,
+  zimbabwe: 1,
+  kumusha: 1,
+  mushamukadzi: 1,
+  diaspora: 1,
 };
 
 const NEGATIVE_MARKERS = [
@@ -1117,7 +1115,13 @@ async function seedCreatorsToDynamo(creators) {
     if (invalidFields.length > 0) {
       skipped++;
       console.warn(
-        `  [SKIP] Creator "${creator.slug || "unknown"}" has invalid key fields: ${invalidFields.join(", ")} — values: ${invalidFields.map((f) => JSON.stringify(creator[f])).join(", ")}`
+        `  [SKIP] Creator "${
+          creator.slug || "unknown"
+        }" has invalid key fields: ${invalidFields.join(
+          ", "
+        )} — values: ${invalidFields
+          .map((f) => JSON.stringify(creator[f]))
+          .join(", ")}`
       );
       continue;
     }
@@ -1171,7 +1175,11 @@ async function seedCreatorsToDynamo(creators) {
       if (firstItem) {
         const itemJson = JSON.stringify(firstItem);
         console.error(`    First item slug: "${firstItem.slug}"`);
-        console.error(`    First item JSON size: ${itemJson.length} bytes (${(itemJson.length / 1024).toFixed(1)} KB, limit 400 KB)`);
+        console.error(
+          `    First item JSON size: ${itemJson.length} bytes (${(
+            itemJson.length / 1024
+          ).toFixed(1)} KB, limit 400 KB)`
+        );
       }
     }
 
@@ -1452,8 +1460,8 @@ async function main() {
     // Still need to clean up temp fields
     for (const creator of allCreators) {
       delete creator._uploadsPlaylistId;
-    delete creator._youtubeProfileUrl;
-    delete creator._youtubeBannerUrl;
+      delete creator._youtubeProfileUrl;
+      delete creator._youtubeBannerUrl;
     }
     console.log(
       "Skipping video highlights (use --with-highlights to enable)\n"
