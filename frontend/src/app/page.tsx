@@ -257,7 +257,7 @@ export default async function HomePage() {
   // Shuffle so different creators appear each page load
   for (let i = hiddenGemCandidates.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [hiddenGemCandidates[i], hiddenGemCandidates[j]] = [hiddenGemCandidates[j], hiddenGemCandidates[i]];
+    [hiddenGemCandidates[i], hiddenGemCandidates[j]] = [hiddenGemCandidates[j]!, hiddenGemCandidates[i]!];
   }
   const upcomingCreators = hiddenGemCandidates.slice(0, 10);
 
