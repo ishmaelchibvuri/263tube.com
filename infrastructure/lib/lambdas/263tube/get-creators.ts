@@ -26,24 +26,38 @@ export const handler = async (
     // Check if requesting featured creators
     const isFeatured = event.path.includes("/featured");
     const status = isFeatured ? "FEATURED" : "ACTIVE";
-    const limit = event.queryStringParameters?.limit
+    const limitParam = event.queryStringParameters?.limit
       ? parseInt(event.queryStringParameters.limit)
-      : 50;
+      : undefined;
 
-    const command = new QueryCommand({
-      TableName: TABLE_NAME,
-      IndexName: "GSI1",
-      KeyConditionExpression: "gsi1pk = :pk",
-      ExpressionAttributeValues: {
-        ":pk": `STATUS#${status}`,
-      },
-      ScanIndexForward: false, // Sort by reach descending
-      Limit: limit,
-    });
+    const allItems: Record<string, any>[] = [];
+    let lastEvaluatedKey: Record<string, any> | undefined;
 
-    const response = await docClient.send(command);
+    // Paginate through all results from DynamoDB
+    do {
+      const command = new QueryCommand({
+        TableName: TABLE_NAME,
+        IndexName: "GSI1",
+        KeyConditionExpression: "gsi1pk = :pk",
+        ExpressionAttributeValues: {
+          ":pk": `STATUS#${status}`,
+        },
+        ScanIndexForward: false, // Sort by reach descending
+        ExclusiveStartKey: lastEvaluatedKey,
+      });
 
-    const creators = (response.Items || []).map(mapToCreator);
+      const response = await docClient.send(command);
+      allItems.push(...(response.Items || []));
+      lastEvaluatedKey = response.LastEvaluatedKey;
+
+      // If a limit was specified and we've collected enough, stop early
+      if (limitParam && allItems.length >= limitParam) {
+        allItems.length = limitParam;
+        break;
+      }
+    } while (lastEvaluatedKey);
+
+    const creators = allItems.map(mapToCreator);
 
     return {
       statusCode: 200,

@@ -1,41 +1,23 @@
-Context: We are pivoting 263Tube from a directory to a Business Engine. We need to implement a "Business Inquiry" system that allows brands to contact creators directly through their profile pages.
+qa.263tube.com
+DNS Change Recommended
+Learn more
+qa
+Vercel recommends updating your DNS records to match the following:
+Type Name Value
+CNAME
+qa
+0aaa356dc04acad4.vercel-dns-017.com.
+As part of a planned IP range expansion, you may notice new records above. The old records of cname.vercel-dns.com and 76.76.21.21 will continue to work but we recommend you use the new ones.
+It might take some time for the DNS records to apply. Learn More
 
-Task 1: The Inquiry Server Action (src/lib/actions/inquiries.ts)
-
-Create a server action submitBusinessInquiry(creatorSlug: string, formData: FormData).
-
-Logic: \* Validate the input (Company Name, Email, Budget Range, Message).
-
-Write the data to DynamoDB with PK: INQUIRY#slug and SK: INQUIRY#[timestamp].
-
-Include a status: "PENDING" attribute.
-
-Security: Implement a simple Honeypot or Rate Limiting to prevent spam bots from flooding creators.
-
-Task 2: The "Work With Me" UI (app/creator/[slug]/page.tsx)
-
-Add a prominent "Work With This Creator" button (High contrast, "Business" style).
-
-This button should open a clean, professional Modal.
-
-Form Fields:
-
-Company Name / Name
-
-Contact Email
-
-Type of Collaboration (e.g., Video Shoutout, Event Hosting, Long-term Partnership)
-
-Estimated Budget (Optional dropdown: $100-500, $500-2000, $2000+)
-
-Message details.
-
-Task 3: The Admin Inquiry Feed (app/admin/inquiries/page.tsx)
-
-Create a view for the Admin to see all incoming inquiries across the whole platform.
-
-This allows the Admin (Ishmael) to act as the "Agent" or moderator to ensure quality.
-
-Task 4: Success State
-
-After submission, show the brand a "Professional Confirmation" message: "Your inquiry has been sent to [Creator Name]. 263Tube helps facilitate these connections to ensure professional delivery."
+dev.263tube.com
+DNS Change Recommended
+Learn more
+dev
+Vercel recommends updating your DNS records to match the following:
+Type Name Value
+CNAME
+dev
+0aaa356dc04acad4.vercel-dns-017.com.
+As part of a planned IP range expansion, you may notice new records above. The old records of cname.vercel-dns.com and 76.76.21.21 will continue to work but we recommend you use the new ones.
+It might take some time for the DNS records to apply. Learn More
