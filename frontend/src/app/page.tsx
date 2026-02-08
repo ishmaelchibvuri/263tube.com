@@ -242,16 +242,24 @@ export default async function HomePage() {
       ? trendingCreators
       : allCreators.slice(0, 10);
 
-  // Get upcoming creators (joined YouTube in the past 2 years)
-  const twoYearsAgo = new Date();
-  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
-  const upcomingCreators = allCreators
-    .filter((c) => {
-      const startDate = c.metrics.channelStartDate;
-      if (!startDate) return false;
-      return new Date(startDate) >= twoYearsAgo;
-    })
-    .slice(0, 10);
+  // Get upcoming creators — "Hidden Gems": smaller creators with high engagement, randomized
+  const UPCOMING_REACH_MIN = 100;
+  const UPCOMING_REACH_CAP = 10_000;
+  const hiddenGemCandidates = allCreators
+    .filter((c) => c.metrics.totalReach >= UPCOMING_REACH_MIN && c.metrics.totalReach <= UPCOMING_REACH_CAP)
+    .map((c) => ({
+      creator: c,
+      engagement: calculateEngagementScore(c.metrics, c.platforms),
+    }))
+    .sort((a, b) => b.engagement.score - a.engagement.score)
+    .slice(0, 20) // take top 20 by engagement
+    .map((item) => item.creator);
+  // Shuffle so different creators appear each page load
+  for (let i = hiddenGemCandidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [hiddenGemCandidates[i], hiddenGemCandidates[j]] = [hiddenGemCandidates[j], hiddenGemCandidates[i]];
+  }
+  const upcomingCreators = hiddenGemCandidates.slice(0, 10);
 
   // Get trending creators for sidebar (use trending data or fallback)
   const sidebarTrending =
@@ -433,7 +441,7 @@ export default async function HomePage() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#FFD200]" />
               <h3 className="text-sm sm:text-lg font-semibold text-white">
-                Upcoming Creators
+                Hidden Gems
               </h3>
             </div>
             <Link
