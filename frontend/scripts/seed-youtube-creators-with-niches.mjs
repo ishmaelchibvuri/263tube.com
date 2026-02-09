@@ -35,6 +35,7 @@
  *   node scripts/seed-youtube-creators-with-niches.mjs --seed-only      # seed from cache (skip discovery)
  *   node scripts/seed-youtube-creators-with-niches.mjs --no-highlights  # skip video highlights (saves ~2 units/channel)
  *   node scripts/seed-youtube-creators-with-niches.mjs --quota-limit 8000 # cap quota usage
+ *   node scripts/seed-youtube-creators-with-niches.mjs --deep-crawl      # crawl all cached IDs for featured channels (brandingSettings only)
  */
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
@@ -86,6 +87,7 @@ const args = process.argv.slice(2);
 const FLAG_DISCOVER_ONLY = args.includes("--discover-only");
 const FLAG_SEED_ONLY = args.includes("--seed-only");
 const FLAG_WITH_HIGHLIGHTS = !args.includes("--no-highlights");
+const FLAG_DEEP_CRAWL = args.includes("--deep-crawl");
 const QUOTA_LIMIT = (() => {
   const idx = args.indexOf("--quota-limit");
   return idx !== -1 && args[idx + 1] ? parseInt(args[idx + 1]) : 9500;
@@ -969,6 +971,38 @@ async function processChannelBatch(channelIds, existingETags = {}) {
 }
 
 /**
+ * Deep Crawl batch — fetch only brandingSettings for a batch of channel IDs
+ * to collect featuredChannelsUrls. Uses 1 quota unit per batch of up to 50 IDs.
+ * Returns an array of featured channel IDs.
+ */
+async function deepCrawlBatch(channelIds) {
+  if (channelIds.length === 0) return [];
+
+  const url = `https://www.googleapis.com/youtube/v3/channels?id=${channelIds.join(
+    ",",
+  )}&part=brandingSettings&key=${YOUTUBE_API_KEY}`;
+
+  const res = await fetch(url);
+  trackQuota(1, "channels.list (deep crawl)");
+
+  if (!res.ok) {
+    console.warn(`  Deep crawl batch fetch failed: ${res.status}`);
+    return [];
+  }
+
+  const data = await res.json();
+  const featuredChannelIds = [];
+
+  for (const channel of data.items || []) {
+    const featured =
+      channel.brandingSettings?.channel?.featuredChannelsUrls || [];
+    featuredChannelIds.push(...featured);
+  }
+
+  return featuredChannelIds;
+}
+
+/**
  * Related Channel Crawl — discover new channels by checking the
  * featuredChannelsUrls from already-fetched channels. Fetches each
  * candidate in batches and validates with hasZimbabweanMarkers().
@@ -1542,6 +1576,8 @@ async function main() {
         ? "discover-only"
         : FLAG_SEED_ONLY
         ? "seed-only"
+        : FLAG_DEEP_CRAWL
+        ? "deep-crawl"
         : "full"
     } | Highlights: ${
       FLAG_WITH_HIGHLIGHTS ? "ON" : "OFF"
@@ -1647,49 +1683,84 @@ async function main() {
   }
 
   // ── Phase 2: Batch fetch channel data ──
-  console.log(
-    `Phase 2: Fetching channel data in batches of ${CHANNEL_BATCH_SIZE}...`,
-  );
   const allCreators = [];
   const allFeaturedIds = [];
   const knownChannelIds = new Set(channelIds);
   const totalBatches = Math.ceil(channelIds.length / CHANNEL_BATCH_SIZE);
   let etagSkipped = 0;
 
-  for (let i = 0; i < channelIds.length; i += CHANNEL_BATCH_SIZE) {
-    if (!hasQuota(1)) {
-      console.log(
-        `  Quota limit reached at batch ${
-          Math.floor(i / CHANNEL_BATCH_SIZE) + 1
-        }. Stopping fetch.`,
-      );
-      break;
-    }
-
-    const batch = channelIds.slice(i, i + CHANNEL_BATCH_SIZE);
-    const batchNum = Math.floor(i / CHANNEL_BATCH_SIZE) + 1;
-
-    const { creators, featuredChannelIds } = await processChannelBatch(
-      batch,
-      existingETags,
+  if (FLAG_DEEP_CRAWL) {
+    console.log(
+      `Phase 2 (Deep Crawl): Fetching brandingSettings only in batches of ${CHANNEL_BATCH_SIZE}...`,
     );
-    etagSkipped += batch.length - creators.length;
-    allCreators.push(...creators);
-    allFeaturedIds.push(...featuredChannelIds);
 
-    // Progress every 10 batches (500 channels)
-    if (batchNum % 10 === 0 || batchNum === totalBatches) {
-      console.log(
-        `  Batch ${batchNum}/${totalBatches}: ${allCreators.length} new/updated, ${etagSkipped} skipped`,
-      );
+    for (let i = 0; i < channelIds.length; i += CHANNEL_BATCH_SIZE) {
+      if (!hasQuota(1)) {
+        console.log(
+          `  Quota limit reached at batch ${
+            Math.floor(i / CHANNEL_BATCH_SIZE) + 1
+          }. Stopping fetch.`,
+        );
+        break;
+      }
+
+      const batch = channelIds.slice(i, i + CHANNEL_BATCH_SIZE);
+      const batchNum = Math.floor(i / CHANNEL_BATCH_SIZE) + 1;
+
+      const featuredIds = await deepCrawlBatch(batch);
+      allFeaturedIds.push(...featuredIds);
+
+      if (batchNum % 10 === 0 || batchNum === totalBatches) {
+        console.log(
+          `  Batch ${batchNum}/${totalBatches}: ${allFeaturedIds.length} featured IDs collected`,
+        );
+      }
+
+      await sleep(100);
     }
 
-    await sleep(100);
-  }
+    console.log(
+      `\nDeep crawl complete: ${allFeaturedIds.length} featured channel IDs collected\n`,
+    );
+  } else {
+    console.log(
+      `Phase 2: Fetching channel data in batches of ${CHANNEL_BATCH_SIZE}...`,
+    );
 
-  console.log(
-    `\nBatch fetch complete: ${allCreators.length} new/updated, ${etagSkipped} unchanged (ETag match)\n`,
-  );
+    for (let i = 0; i < channelIds.length; i += CHANNEL_BATCH_SIZE) {
+      if (!hasQuota(1)) {
+        console.log(
+          `  Quota limit reached at batch ${
+            Math.floor(i / CHANNEL_BATCH_SIZE) + 1
+          }. Stopping fetch.`,
+        );
+        break;
+      }
+
+      const batch = channelIds.slice(i, i + CHANNEL_BATCH_SIZE);
+      const batchNum = Math.floor(i / CHANNEL_BATCH_SIZE) + 1;
+
+      const { creators, featuredChannelIds } = await processChannelBatch(
+        batch,
+        existingETags,
+      );
+      etagSkipped += batch.length - creators.length;
+      allCreators.push(...creators);
+      allFeaturedIds.push(...featuredChannelIds);
+
+      if (batchNum % 10 === 0 || batchNum === totalBatches) {
+        console.log(
+          `  Batch ${batchNum}/${totalBatches}: ${allCreators.length} new/updated, ${etagSkipped} skipped`,
+        );
+      }
+
+      await sleep(100);
+    }
+
+    console.log(
+      `\nBatch fetch complete: ${allCreators.length} new/updated, ${etagSkipped} unchanged (ETag match)\n`,
+    );
+  }
 
   // ── Phase 2b: Related Channel Crawl ──
   if (allFeaturedIds.length > 0 && hasQuota(1)) {

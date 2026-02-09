@@ -41,12 +41,15 @@ function CreatorsGridSkeleton() {
 }
 
 export default async function CreatorsPage() {
-  // Fetch all active creators, categories, and admin status in parallel
-  const [creators, categories, adminStatus] = await Promise.all([
+  // Fetch all creators (all statuses), categories, and admin status in parallel
+  const [active, featured, pending, categories, adminStatus] = await Promise.all([
     getAllCreators("ACTIVE"),
+    getAllCreators("FEATURED"),
+    getAllCreators("PENDING_REVIEW"),
     getAllCategories(),
     isAdmin(),
   ]);
+  const creators = [...active, ...featured, ...pending];
 
   return (
     <div className="min-h-screen bg-[#09090b]">

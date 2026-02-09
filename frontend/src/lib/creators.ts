@@ -206,7 +206,7 @@ export const docClient = DynamoDBDocumentClient.from(dynamoClient, {
  * Uses GSI1 to query by status
  */
 export async function getAllCreators(
-  status: "ACTIVE" | "FEATURED" = "ACTIVE",
+  status: "ACTIVE" | "FEATURED" | "PENDING_REVIEW" = "ACTIVE",
   limit?: number
 ): Promise<Creator[]> {
   const tableName = getTableName();
@@ -335,9 +335,13 @@ export async function searchCreators(
   query: string,
   limit: number = 20
 ): Promise<Creator[]> {
-  // For now, get all active creators and filter client-side
-  // In production, use a proper search index
-  const allCreators = await getAllCreators("ACTIVE");
+  // Query all status partitions so every creator is searchable
+  const [active, featured, pending] = await Promise.all([
+    getAllCreators("ACTIVE"),
+    getAllCreators("FEATURED"),
+    getAllCreators("PENDING_REVIEW"),
+  ]);
+  const allCreators = [...active, ...featured, ...pending];
 
   const normalizedQuery = query.toLowerCase();
 

@@ -1053,7 +1053,7 @@ export async function getAllCreatorsForAdmin(): Promise<Creator[]> {
       joinedDate: item.joinedDate,
       contactEmail: item.contactEmail,
       bookingUrl: item.bookingUrl,
-    }));
+    })) as Creator[];
   } catch (error) {
     console.error("Error fetching creators for admin:", error);
     return [];

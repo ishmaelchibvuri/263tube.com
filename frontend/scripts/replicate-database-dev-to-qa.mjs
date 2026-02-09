@@ -1,7 +1,7 @@
 /**
  * Copy all data from 263tube-dev DynamoDB table to 263tube-qa
  *
- * Usage: node scripts/copy-dev-to-qa.mjs
+ * Usage: node scripts/replicate-database-dev-to-qa.mjs
  *
  * Prerequisites: AWS credentials configured with access to both tables
  */
@@ -13,8 +13,8 @@ import {
   BatchWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const SOURCE_TABLE = "263tube-qa";
-const TARGET_TABLE = "263tube-prod";
+const SOURCE_TABLE = "263tube-dev";
+const TARGET_TABLE = "263tube-qa";
 const REGION = "af-south-1";
 const BATCH_SIZE = 25; // DynamoDB BatchWrite max
 
