@@ -274,17 +274,18 @@ export async function seedCategories(): Promise<{
 }
 
 /**
- * Get total reach across all active creators.
- * Queries GSI1 (STATUS#ACTIVE) and sums totalReach from metrics.
+ * Get aggregated stats across all creators (active + featured).
+ * Returns total reach and unique niche count from actual creator data.
  * Cached for 5 minutes.
  */
-export const getTotalReach = unstable_cache(
-  async (): Promise<number> => {
+export const getCreatorAggregates = unstable_cache(
+  async (): Promise<{ totalReach: number; uniqueNiches: number }> => {
     const tableName = getTableName();
     let totalReach = 0;
-    let lastKey: Record<string, unknown> | undefined;
+    const niches = new Set<string>();
 
-    try {
+    const collectFromQuery = async (statusKey: string) => {
+      let lastKey: Record<string, unknown> | undefined;
       do {
         const result = await docClient.send(
           new QueryCommand({
@@ -292,23 +293,41 @@ export const getTotalReach = unstable_cache(
             IndexName: "GSI1",
             KeyConditionExpression: "gsi1pk = :pk",
             ExpressionAttributeValues: {
-              ":pk": "STATUS#ACTIVE",
+              ":pk": statusKey,
             },
-            ProjectionExpression: "metrics",
+            Select: "ALL_ATTRIBUTES",
             ExclusiveStartKey: lastKey,
           })
         );
 
         for (const item of result.Items || []) {
           totalReach += (item.metrics as Record<string, number>)?.totalReach || 0;
+          if (item.niche) niches.add(item.niche as string);
         }
 
         lastKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
       } while (lastKey);
+    };
+
+    try {
+      await Promise.all([
+        collectFromQuery("STATUS#ACTIVE"),
+        collectFromQuery("STATUS#FEATURED"),
+      ]);
     } catch (error) {
-      console.error("Error fetching total reach:", error);
+      console.error("Error fetching creator aggregates:", error);
     }
 
+    return { totalReach, uniqueNiches: niches.size };
+  },
+  ["creator-aggregates"],
+  { tags: ["category-stats"], revalidate: 300 }
+);
+
+/** @deprecated Use getCreatorAggregates() instead */
+export const getTotalReach = unstable_cache(
+  async (): Promise<number> => {
+    const { totalReach } = await getCreatorAggregates();
     return totalReach;
   },
   ["total-reach"],

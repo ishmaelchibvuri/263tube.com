@@ -13,8 +13,8 @@ import {
   BatchWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const SOURCE_TABLE = "263tube-dev";
-const TARGET_TABLE = "263tube-qa";
+const SOURCE_TABLE = "263tube-qa";
+const TARGET_TABLE = "263tube-prod";
 const REGION = "af-south-1";
 const BATCH_SIZE = 25; // DynamoDB BatchWrite max
 
@@ -69,7 +69,7 @@ async function batchWriteWithRetry(items, maxRetries = 3) {
   let totalWritten = 0;
 
   console.log(
-    `Writing ${items.length} items to ${TARGET_TABLE} in ${batches.length} batches...`
+    `Writing ${items.length} items to ${TARGET_TABLE} in ${batches.length} batches...`,
   );
 
   for (let i = 0; i < batches.length; i++) {
@@ -89,13 +89,14 @@ async function batchWriteWithRetry(items, maxRetries = 3) {
 
       const response = await docClient.send(command);
 
-      const failed =
-        response.UnprocessedItems?.[TARGET_TABLE] || [];
+      const failed = response.UnprocessedItems?.[TARGET_TABLE] || [];
 
       if (failed.length > 0) {
         attempt++;
         console.warn(
-          `  Batch ${i + 1}: ${failed.length} unprocessed items, retrying (attempt ${attempt})...`
+          `  Batch ${i + 1}: ${
+            failed.length
+          } unprocessed items, retrying (attempt ${attempt})...`,
         );
         unprocessed = failed;
         // Exponential backoff
@@ -107,13 +108,15 @@ async function batchWriteWithRetry(items, maxRetries = 3) {
 
     if (unprocessed.length > 0) {
       console.error(
-        `  Batch ${i + 1}: Failed to write ${unprocessed.length} items after ${maxRetries} retries`
+        `  Batch ${i + 1}: Failed to write ${
+          unprocessed.length
+        } items after ${maxRetries} retries`,
       );
     }
 
     totalWritten += batch.length - (unprocessed.length || 0);
     process.stdout.write(
-      `\r  Progress: ${totalWritten}/${items.length} items written`
+      `\r  Progress: ${totalWritten}/${items.length} items written`,
     );
   }
 
@@ -140,7 +143,9 @@ async function main() {
   const written = await batchWriteWithRetry(items);
 
   console.log(`\n=== Complete ===`);
-  console.log(`Copied ${written} items from ${SOURCE_TABLE} to ${TARGET_TABLE}`);
+  console.log(
+    `Copied ${written} items from ${SOURCE_TABLE} to ${TARGET_TABLE}`,
+  );
 }
 
 main().catch((err) => {

@@ -14,10 +14,12 @@ import {
   TrendingUp,
   LayoutGrid,
   Database,
+  Star,
 } from "lucide-react";
 import { syncAllCreatorStats, type DashboardStats } from "@/lib/actions/sync-engine";
 import { seedCategories } from "@/lib/actions/categories";
 import type { CategoryWithStats } from "@/lib/categories-shared";
+import { FeaturedCarouselModal } from "@/components/admin/FeaturedCarouselModal";
 
 interface DashboardContentProps {
   stats: DashboardStats;
@@ -27,6 +29,7 @@ interface DashboardContentProps {
 export function DashboardContent({ stats, categoryStats }: DashboardContentProps) {
   const [syncing, setSyncing] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [carouselModalOpen, setCarouselModalOpen] = useState(false);
   const [syncResult, setSyncResult] = useState<{
     type: "success" | "error";
     message: string;
@@ -275,6 +278,20 @@ export function DashboardContent({ stats, categoryStats }: DashboardContentProps
                 </p>
               </div>
             </button>
+
+            {/* Featured Carousel */}
+            <button
+              onClick={() => setCarouselModalOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FFD200]/10 border border-[#FFD200]/20 text-[#FFD200] hover:bg-[#FFD200]/20 transition-colors text-left"
+            >
+              <Star className="w-5 h-5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-sm">Featured Carousel</p>
+                <p className="text-xs text-[#FFD200]/60 mt-0.5">
+                  Handpick homepage creators
+                </p>
+              </div>
+            </button>
           </div>
 
           {/* Sync Result */}
@@ -413,6 +430,12 @@ export function DashboardContent({ stats, categoryStats }: DashboardContentProps
           )}
         </div>
       )}
+
+      {/* Featured Carousel Modal */}
+      <FeaturedCarouselModal
+        open={carouselModalOpen}
+        onOpenChange={setCarouselModalOpen}
+      />
     </div>
   );
 }

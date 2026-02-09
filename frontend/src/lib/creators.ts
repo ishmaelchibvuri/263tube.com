@@ -337,7 +337,7 @@ export async function searchCreators(
 ): Promise<Creator[]> {
   // For now, get all active creators and filter client-side
   // In production, use a proper search index
-  const allCreators = await getAllCreators("ACTIVE", 100);
+  const allCreators = await getAllCreators("ACTIVE");
 
   const normalizedQuery = query.toLowerCase();
 

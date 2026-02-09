@@ -123,7 +123,7 @@ export function FeaturedCarousel({ creators }: FeaturedCarouselProps) {
         <div className="flex items-center gap-2">
           <Flame className="w-4 h-4 text-[#DE2010]" />
           <h2 className="text-sm sm:text-lg font-bold text-white">
-            Most Engaging Creators
+            Featured Creators
           </h2>
         </div>
         <Link

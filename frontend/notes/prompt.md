@@ -1,40 +1,23 @@
-Master Prompt: S3 Infrastructure & Image Pipeline Refactor
-Context: I need to refactor my YouTube Seed Script (v3) to move from local image storage to Amazon S3. We are scaling to 5,000+ creators, and local storage is no longer viable. You have full access to AWS to create the necessary resources.
+PROMPT 1:##################################################
 
-Task 1: Infrastructure Setup (ensureS3Infrastructure)
+ensure this autocompletion from the homepage is also applied on the - http://localhost:3000/creator/xxxx page and the http://localhost:3000/creators pages so that all creators appear in the autocompletion
 
-Import @aws-sdk/client-s3 and @aws-sdk/lib-storage.
+PROMPT 2:##################################################
 
-Create a function that:
+Claude, please update the script to allow a 'Deep Crawl' of existing creators.
 
-Checks if process.env.S3_BUCKET_NAME exists. If not, creates it.
+In Phase 2, even if a channel is skipped due to an ETag match, its featuredChannelsUrls must still be collected and added to the allFeaturedIds list.
 
-Configures Public Access: Disables "Block Public Access" and applies a Bucket Policy allowing s3:GetObject for Principal: "\*".
+Ensure that Phase 2b (discoverRelatedChannels) runs even if allCreators.length is 0, as long as allFeaturedIds has content.
 
-Configures CORS: Allows GET requests from any origin (to ensure images load on our Next.js frontend).
+Add a CLI flag --deep-crawl. When active, Phase 2 should process every ID in the cache regardless of ETags (using part=brandingSettings only to save quota) just to gather featured channels for Phase 2b.
 
-Task 2: Refactor Image Handling (uploadToS3)
+PROMPT 3:##################################################
 
-Replace the current downloadImage function with a new uploadToS3(url, slug, type) function.
+Claude, I want to use my existing 5,020 creators to discover the remaining 5,000 through their featured networks. Please update the script with these changes:
 
-Logic: 1. Fetch the image from the YouTube URL. 2. Use the Upload class from @aws-sdk/lib-storage to stream the image directly to S3. 3. S3 Key Structure: creators/${slug}/${type}.jpg. 4. Content-Type: Set to image/jpeg.
+Persistent Featured Collection: In processChannelBatch, ensure that featuredChannelIds are collected for every channel in the batch, even if the channel is skipped because the ETag matches.
 
-Return Value: Return the full public S3 URL: https://${bucket}.s3.${region}.amazonaws.com/creators/${slug}/${type}.jpg.
+Phase 2b Trigger: Ensure Phase 2b (discoverRelatedChannels) runs even if allCreators.length is 0. It should run as long as allFeaturedIds has been populated from the cache.
 
-Task 3: Script Integration
-
-In the processChannelBatch and buildCreatorItem logic:
-
-Call uploadToS3 for the Profile Image and Banner Image.
-
-Update the DynamoDB item so profilePicUrl, primaryProfileImage, bannerUrl, and coverImageUrl all store these new S3 URLs.
-
-Error Handling: If an image fails to upload, fallback to the original YouTube URL in the database so the profile isn't broken.
-
-Task 4: Optimization & Quota Protection
-
-ETag Skip: Ensure that if a channel is skipped via the youtubeEtag check, we also skip the S3 upload to save bandwidth and time.
-
-Parallel Uploads: Ensure images are uploaded in parallel using Promise.all within each batch of 50 creators.
-
-Final Deliverable: Provide the complete, updated .mjs script including all new AWS SDK imports and the refined logic.
+Add Flag --deep-crawl: When this flag is used, the script should bypass the ETag check for Phase 2 just for the purpose of gathering featured IDs (you can use a smaller part=brandingSettings call to save quota if needed), then proceed to the crawl in Phase 2b.

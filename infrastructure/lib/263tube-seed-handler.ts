@@ -45,56 +45,9 @@ interface Creator {
   joinedDate?: string;
 }
 
-// Initial seed data
-const SEED_CREATORS: Creator[] = [
-  {
-    slug: "the-newbys",
-    name: "The Newbys",
-    bio: "A Zimbabwean family documenting their homesteading journey in rural Zimbabwe. From building their dream home to growing their own food, sharing the realities of returning to the land.",
-    niche: "Homesteading",
-    location: "Chegutu, Zimbabwe",
-    status: "FEATURED",
-    verified: true,
-    platforms: {
-      youtube: [{ label: "Main Channel", url: "https://youtube.com/@TheNewbys", handle: "TheNewbys" }],
-      instagram: [{ label: "Instagram", url: "https://instagram.com/thenewbys_zim", handle: "thenewbys_zim" }],
-    },
-    metrics: { totalReach: 150000, monthlyViews: 45000, engagement: 12.5, totalVideos: 120 },
-    referralStats: { currentWeek: 45, allTime: 1250 },
-    joinedDate: "2020",
-  },
-  {
-    slug: "madam-boss",
-    name: "Madam Boss",
-    bio: "Award-winning Zimbabwean comedian known for unique humor celebrating everyday Zimbabwean life.",
-    niche: "Comedy",
-    location: "Harare, Zimbabwe",
-    status: "FEATURED",
-    verified: true,
-    platforms: {
-      youtube: [{ label: "Main Channel", url: "https://youtube.com/@MadamBossComedy", handle: "MadamBossComedy" }],
-      instagram: [{ label: "Instagram", url: "https://instagram.com/maaboranana", handle: "maaboranana" }],
-    },
-    metrics: { totalReach: 4500000, monthlyViews: 2100000, engagement: 8.5, totalVideos: 450 },
-    referralStats: { currentWeek: 120, allTime: 5600 },
-    joinedDate: "2018",
-  },
-  {
-    slug: "munya-and-tupi",
-    name: "Munya & Tupi",
-    bio: "Teaching Zimbabwe how to farm! Practical farming tips, livestock management, and agricultural knowledge.",
-    niche: "Farming",
-    location: "Chinhoyi, Zimbabwe",
-    status: "ACTIVE",
-    verified: true,
-    platforms: {
-      youtube: [{ label: "Main Channel", url: "https://youtube.com/@MunyaAndTupi", handle: "MunyaAndTupi" }],
-    },
-    metrics: { totalReach: 950000, monthlyViews: 380000, engagement: 15.2, totalVideos: 280 },
-    referralStats: { currentWeek: 85, allTime: 3200 },
-    joinedDate: "2019",
-  },
-];
+// Seed creators are now managed via the discovery script
+// (seed-youtube-creators-with-niches.mjs) using real YouTube data.
+const SEED_CREATORS: Creator[] = [];
 
 async function seedCreator(creator: Creator): Promise<void> {
   const now = new Date().toISOString();

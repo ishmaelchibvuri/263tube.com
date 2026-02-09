@@ -78,6 +78,7 @@
     "zustand": "^4.4.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.985.0",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",

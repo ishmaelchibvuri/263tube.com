@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import {
   Search,
@@ -17,19 +17,31 @@ import {
   Save,
   AlertTriangle,
   Upload,
+  ChevronLeft,
+  ChevronRight,
+  Power,
+  Star,
+  ArrowUpDown,
 } from "lucide-react";
-import { toggleCreatorVerified } from "@/lib/actions/sync-engine";
+import { toggleCreatorVerified, toggleCreatorActive, toggleCreatorFeatured } from "@/lib/actions/sync-engine";
 import type { Creator } from "@/lib/creators";
 
 interface CreatorsManagementProps {
   creators: Creator[];
 }
 
+const ITEMS_PER_PAGE = 50;
+
 export function CreatorsManagement({ creators }: CreatorsManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [nicheFilter, setNicheFilter] = useState("all");
   const [verifiedFilter, setVerifiedFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("reach-desc");
+  const [currentPage, setCurrentPage] = useState(1);
   const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
+  const [togglingActiveSlug, setTogglingActiveSlug] = useState<string | null>(null);
+  const [togglingFeaturedSlug, setTogglingFeaturedSlug] = useState<string | null>(null);
   const [localCreators, setLocalCreators] = useState(creators);
   const [actionResult, setActionResult] = useState<{
     type: "success" | "error";
@@ -80,8 +92,69 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
       (verifiedFilter === "verified" && creator.verified) ||
       (verifiedFilter === "unverified" && !creator.verified);
 
-    return matchesSearch && matchesNiche && matchesVerified;
+    const matchesStatus =
+      statusFilter === "all" || creator.status === statusFilter;
+
+    return matchesSearch && matchesNiche && matchesVerified && matchesStatus;
   });
+
+  // Sort creators
+  const sortedCreators = useMemo(() => {
+    const sorted = [...filteredCreators];
+    switch (sortBy) {
+      case "reach-desc":
+        sorted.sort((a, b) => (b.metrics.totalReach || 0) - (a.metrics.totalReach || 0));
+        break;
+      case "reach-asc":
+        sorted.sort((a, b) => (a.metrics.totalReach || 0) - (b.metrics.totalReach || 0));
+        break;
+      case "name-asc":
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "name-desc":
+        sorted.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case "newest":
+        sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case "oldest":
+        sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case "niche-asc":
+        sorted.sort((a, b) => a.niche.localeCompare(b.niche) || a.name.localeCompare(b.name));
+        break;
+    }
+    return sorted;
+  }, [filteredCreators, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedCreators.length / ITEMS_PER_PAGE);
+  const paginatedCreators = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedCreators.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedCreators, currentPage]);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+  const handleNicheChange = (value: string) => {
+    setNicheFilter(value);
+    setCurrentPage(1);
+  };
+  const handleVerifiedChange = (value: string) => {
+    setVerifiedFilter(value);
+    setCurrentPage(1);
+  };
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
 
   const handleToggleVerified = async (slug: string, currentVerified: boolean) => {
     setTogglingSlug(slug);
@@ -106,6 +179,66 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
       });
     } finally {
       setTogglingSlug(null);
+    }
+  };
+
+  const handleToggleActive = async (slug: string, currentStatus: string) => {
+    setTogglingActiveSlug(slug);
+    setActionResult(null);
+
+    const makeActive = currentStatus !== "ACTIVE";
+
+    try {
+      const result = await toggleCreatorActive(slug, makeActive);
+      if (result.success) {
+        setLocalCreators((prev) =>
+          prev.map((c) =>
+            c.slug === slug
+              ? { ...c, status: makeActive ? "ACTIVE" : "INACTIVE" }
+              : c
+          )
+        );
+        setActionResult({ type: "success", message: result.message });
+      } else {
+        setActionResult({ type: "error", message: result.message });
+      }
+    } catch {
+      setActionResult({
+        type: "error",
+        message: "Failed to update active status.",
+      });
+    } finally {
+      setTogglingActiveSlug(null);
+    }
+  };
+
+  const handleToggleFeatured = async (slug: string, currentStatus: string) => {
+    setTogglingFeaturedSlug(slug);
+    setActionResult(null);
+
+    const makeFeatured = currentStatus !== "FEATURED";
+
+    try {
+      const result = await toggleCreatorFeatured(slug, makeFeatured);
+      if (result.success) {
+        setLocalCreators((prev) =>
+          prev.map((c) =>
+            c.slug === slug
+              ? { ...c, status: makeFeatured ? "FEATURED" : "ACTIVE" }
+              : c
+          )
+        );
+        setActionResult({ type: "success", message: result.message });
+      } else {
+        setActionResult({ type: "error", message: result.message });
+      }
+    } catch {
+      setActionResult({
+        type: "error",
+        message: "Failed to update featured status.",
+      });
+    } finally {
+      setTogglingFeaturedSlug(null);
     }
   };
 
@@ -302,7 +435,7 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
               type="text"
               placeholder="Search by name, slug, or niche..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white placeholder-slate-500 focus:outline-none focus:border-[#DE2010]/40 focus:ring-1 focus:ring-[#DE2010]/20 text-sm"
             />
           </div>
@@ -310,7 +443,7 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
           {/* Niche Filter */}
           <select
             value={nicheFilter}
-            onChange={(e) => setNicheFilter(e.target.value)}
+            onChange={(e) => handleNicheChange(e.target.value)}
             className="px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm focus:outline-none focus:border-[#DE2010]/40 appearance-none cursor-pointer"
           >
             <option value="all" className="bg-[#0f0f12]">
@@ -323,14 +456,34 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
             ))}
           </select>
 
-          {/* Verified Filter */}
+          {/* Status Filter */}
           <select
-            value={verifiedFilter}
-            onChange={(e) => setVerifiedFilter(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => handleStatusChange(e.target.value)}
             className="px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm focus:outline-none focus:border-[#DE2010]/40 appearance-none cursor-pointer"
           >
             <option value="all" className="bg-[#0f0f12]">
-              All Status
+              All Statuses
+            </option>
+            <option value="ACTIVE" className="bg-[#0f0f12]">
+              Active
+            </option>
+            <option value="INACTIVE" className="bg-[#0f0f12]">
+              Inactive
+            </option>
+            <option value="FEATURED" className="bg-[#0f0f12]">
+              Featured
+            </option>
+          </select>
+
+          {/* Verified Filter */}
+          <select
+            value={verifiedFilter}
+            onChange={(e) => handleVerifiedChange(e.target.value)}
+            className="px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm focus:outline-none focus:border-[#DE2010]/40 appearance-none cursor-pointer"
+          >
+            <option value="all" className="bg-[#0f0f12]">
+              All Verification
             </option>
             <option value="verified" className="bg-[#0f0f12]">
               Verified
@@ -339,10 +492,40 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
               Unverified
             </option>
           </select>
+
+          {/* Sort By */}
+          <select
+            value={sortBy}
+            onChange={(e) => handleSortChange(e.target.value)}
+            className="px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm focus:outline-none focus:border-[#DE2010]/40 appearance-none cursor-pointer"
+          >
+            <option value="reach-desc" className="bg-[#0f0f12]">
+              Reach: High to Low
+            </option>
+            <option value="reach-asc" className="bg-[#0f0f12]">
+              Reach: Low to High
+            </option>
+            <option value="name-asc" className="bg-[#0f0f12]">
+              Name: A-Z
+            </option>
+            <option value="name-desc" className="bg-[#0f0f12]">
+              Name: Z-A
+            </option>
+            <option value="newest" className="bg-[#0f0f12]">
+              Newest First
+            </option>
+            <option value="oldest" className="bg-[#0f0f12]">
+              Oldest First
+            </option>
+            <option value="niche-asc" className="bg-[#0f0f12]">
+              Niche: A-Z
+            </option>
+          </select>
         </div>
 
         <p className="text-xs text-slate-500 mt-3">
-          Showing {filteredCreators.length} of {localCreators.length} creators
+          Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedCreators.length)} of {sortedCreators.length} creators
+          {sortedCreators.length !== localCreators.length && ` (${localCreators.length} total)`}
         </p>
       </div>
 
@@ -363,7 +546,7 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredCreators.map((creator) => {
+          {paginatedCreators.map((creator) => {
             const isToggling = togglingSlug === creator.slug;
 
             return (
@@ -406,6 +589,8 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                           className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
                             creator.status === "FEATURED"
                               ? "bg-[#FFD200]/10 text-[#FFD200]"
+                              : creator.status === "INACTIVE"
+                              ? "bg-slate-500/10 text-slate-500"
                               : "bg-[#319E31]/10 text-[#319E31]"
                           }`}
                         >
@@ -432,6 +617,46 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                    {/* Active/Inactive Toggle */}
+                    {creator.status !== "FEATURED" && (
+                      <button
+                        onClick={() => handleToggleActive(creator.slug, creator.status)}
+                        disabled={togglingActiveSlug === creator.slug}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                          creator.status === "ACTIVE"
+                            ? "bg-[#319E31]/10 text-[#319E31] border border-[#319E31]/20 hover:bg-[#319E31]/20"
+                            : "bg-slate-500/10 text-slate-400 border border-slate-500/20 hover:bg-slate-500/20"
+                        }`}
+                      >
+                        {togglingActiveSlug === creator.slug ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Power className="w-3.5 h-3.5" />
+                        )}
+                        {creator.status === "ACTIVE" ? "Active" : "Inactive"}
+                      </button>
+                    )}
+
+                    {/* Featured Toggle */}
+                    {creator.status !== "INACTIVE" && (
+                      <button
+                        onClick={() => handleToggleFeatured(creator.slug, creator.status)}
+                        disabled={togglingFeaturedSlug === creator.slug}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                          creator.status === "FEATURED"
+                            ? "bg-[#FFD200]/10 text-[#FFD200] border border-[#FFD200]/20 hover:bg-[#FFD200]/20"
+                            : "bg-white/[0.05] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08] hover:text-[#FFD200]"
+                        }`}
+                      >
+                        {togglingFeaturedSlug === creator.slug ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Star className={`w-3.5 h-3.5 ${creator.status === "FEATURED" ? "fill-[#FFD200]" : ""}`} />
+                        )}
+                        {creator.status === "FEATURED" ? "Featured" : "Feature"}
+                      </button>
+                    )}
+
                     {/* View Profile Link */}
                     <a
                       href={`/creator/${creator.slug}`}
@@ -492,6 +717,63 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-3">
+          <button
+            onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((page) => {
+                // Show first, last, current, and neighbors
+                if (page === 1 || page === totalPages) return true;
+                if (Math.abs(page - currentPage) <= 2) return true;
+                return false;
+              })
+              .reduce<(number | "ellipsis")[]>((acc, page, idx, arr) => {
+                if (idx > 0 && page - (arr[idx - 1] as number) > 1) {
+                  acc.push("ellipsis");
+                }
+                acc.push(page);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "ellipsis" ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-slate-600 text-sm">...</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => { setCurrentPage(item); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                      currentPage === item
+                        ? "bg-[#DE2010] text-white"
+                        : "bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+          </div>
+
+          <button
+            onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       )}
 

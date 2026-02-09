@@ -17,7 +17,8 @@ import {
   Music2,
 } from "lucide-react";
 import { fetchAllCreators, fetchHiddenGems, fetchMostEngaging, fetchTopReferrers } from "@/lib/api-client";
-import { getCategoryStats, getTotalReach } from "@/lib/actions/categories";
+import { getCategoryStats, getCreatorAggregates } from "@/lib/actions/categories";
+import { getFeaturedCreators } from "@/lib/creators";
 import { getCategoryColors, type CategoryWithStats } from "@/lib/categories-shared";
 import type { Creator } from "@/lib/creators";
 import { HeroSearch } from "@/components/home/HeroSearch";
@@ -225,13 +226,14 @@ function CategoryCard({ category }: { category: CategoryWithStats }) {
 
 export default async function HomePage() {
   // Fetch data from API Gateway + categories in parallel
-  const [allCreators, hiddenGemCreators, mostEngagingCreators, trendingCreators, allCategoryStats, dbTotalReach] = await Promise.all([
+  const [allCreators, hiddenGemCreators, mostEngagingCreators, trendingCreators, allCategoryStats, creatorAggregates, dbFeaturedCreators] = await Promise.all([
     fetchAllCreators(),
     fetchHiddenGems(100, 10_000, 50),
     fetchMostEngaging(7.5, 50),
     fetchTopReferrers(10),
     getCategoryStats(),
-    getTotalReach(),
+    getCreatorAggregates(),
+    getFeaturedCreators(20),
   ]);
 
   // Take top 12 categories by creator count for homepage display
@@ -239,11 +241,13 @@ export default async function HomePage() {
     .sort((a, b) => b.creatorCount - a.creatorCount)
     .slice(0, 12);
 
-  // Get featured creators for carousel (top 10 by referrals)
+  // Get featured creators for carousel: DB featured > trending > fallback random
   const featuredCreators =
-    trendingCreators.length > 0
-      ? trendingCreators
-      : allCreators.slice(0, 10);
+    dbFeaturedCreators.length > 0
+      ? dbFeaturedCreators
+      : trendingCreators.length > 0
+        ? trendingCreators
+        : allCreators.slice(0, 10);
 
   // Get upcoming creators — "Hidden Gems": sort by engagement, shuffle, pick 10
   const hiddenGemCandidates = hiddenGemCreators
@@ -277,8 +281,8 @@ export default async function HomePage() {
 
   // Calculate total stats from DynamoDB directly (not limited by API Gateway)
   const totalCreators = allCategoryStats.reduce((sum, c) => sum + c.creatorCount, 0);
-  const totalReach = dbTotalReach;
-  const totalNiches = allCategoryStats.filter((c) => c.creatorCount > 0).length;
+  const totalReach = creatorAggregates.totalReach;
+  const totalNiches = creatorAggregates.uniqueNiches;
 
   return (
     <div className="min-h-screen bg-[#09090b]">
@@ -407,7 +411,7 @@ export default async function HomePage() {
               <Eye className="w-3.5 h-3.5 text-[#FFD200]" />
               <span>
                 <span className="text-white font-semibold">
-                  {formatNumber(totalReach || 50000000)}
+                  {totalReach > 0 ? formatNumber(totalReach) : "---"}
                 </span>{" "}
                 Reach
               </span>
@@ -416,7 +420,7 @@ export default async function HomePage() {
               <Heart className="w-3.5 h-3.5 text-[#319E31]" />
               <span>
                 <span className="text-white font-semibold">
-                  {totalNiches > 0 ? `${totalNiches}+` : "10+"}
+                  {totalNiches > 0 ? totalNiches : "---"}
                 </span>{" "}
                 Niches
               </span>

@@ -32,6 +32,7 @@ import { docClient } from "@/lib/creators";
 import {
   QueryCommand,
   BatchWriteCommand,
+  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
   loadSyncState,
@@ -56,6 +57,7 @@ const S3_REGION =
   process.env.NEXT_PUBLIC_AWS_REGION || process.env.AWS_REGION || "af-south-1";
 const CRON_SECRET = process.env.CRON_SECRET;
 
+const MIN_REACH = 100; // Skip creators with fewer than 100 subscribers
 const CHANNEL_BATCH_SIZE = 50; // YouTube channels.list max per request
 const CHUNK_SIZE = 100; // Channel IDs to process per tick
 const DYNAMO_BATCH_SIZE = 25;
@@ -71,7 +73,7 @@ const s3Client = new S3Client({ region: S3_REGION });
 // ============================================================================
 
 const SEARCH_QUERIES = [
-  // Homesteading & Building
+  // --- HOMESTEADING, BUILDING & PROPERTY ---
   "Zimbabwe Homesteading",
   "Building in Zimbabwe",
   "Rural Home Zimbabwe",
@@ -82,13 +84,36 @@ const SEARCH_QUERIES = [
   "Modern cottage Zim",
   "Relocating to Zimbabwe",
   "Zimbabwe land restoration",
-  // Agriculture & Farming
+  "Harare outskirts house tour",
+  "Modern rural home Zimbabwe",
+  "Murewa cottage project",
+  "Building in Dema Zimbabwe",
+  "Zim property development vlog",
+  "Solar power for rural Zim",
+  "Security fencing Harare rural",
+  "Harare outskirts stand prices",
+  "Dema and Murewa house tours",
+  "Goromonzi plot development vlogs",
+  "Domboshava Building in Zimbabwe",
+  "Ruwa lifestyle and building projects",
+  "VakaWise real estate Zimbabwe guide",
+  "The Elands building our dream home Zimbabwe",
+  "Harare Property Insider",
+  "Modern Zim Homestead",
+
+  // --- AGRICULTURE & FARMING ---
   "Zimbabwe Agriculture",
   "Zimbabwe farming",
   "pfumvudza farming Zimbabwe",
   "Zimbabwe livestock farming",
   "Zimbabwe gardening tips",
-  // Music
+  "Poultry project Dema Zimbabwe",
+  "Road runner chicken farming Zim",
+  "Rural homestead Zimbabwe tour",
+  "Mwana Wevhu Zim untold",
+  "Arizona Poultry & Horticultural Produce",
+
+  // --- MUSIC & ARTS ---
   "ZimDancehall music",
   "Zimbabwe music artist",
   "Zim gospel music",
@@ -96,21 +121,64 @@ const SEARCH_QUERIES = [
   "Zim Afrobeats",
   "sungura music Zimbabwe",
   "Zim amapiano",
-  // Comedy & Entertainment
+  "Zim-dancehall riddim",
+  "Enzo Ishall",
+  "Winky D",
+  "Jah Prayzah",
+  "Baba Harare",
+  "Janet Manyowa",
+  "Minister Mahendere",
+  "Holy Ten",
+  "Voltz JT",
+  "Killer T",
+  "Feli Nandi",
+  "Gemma Griffiths",
+  "CKay",
+  "Busiswa",
+  "Stunner",
+  "Mudiwa Hood",
+  "EarGROUND",
+  "iTAP Media",
+  "NashTV",
+
+  // --- COMEDY & ENTERTAINMENT ---
   "Zim Comedy skits",
   "Zimbabwe comedy",
   "Zimbabwe entertainment",
   "Zim pranks funny",
-  // News & Current Affairs
+  "Prosper the Comic Pastor",
+  "Madam Boss",
+  "Mai TT",
+  "Tyra Chikocho",
+  "Supa Kasu",
+  "Naiza Boom",
+  "Zimcelebs",
+
+  // --- NEWS, POLITICS & CURRENT AFFAIRS ---
   "Zimbabwe News channel",
   "Zimbabwe politics",
   "Zimbabwe current affairs",
   "Zim diaspora news",
-  // Technology
+  "Hopewell Chin'ono",
+  "H-Metro",
+  "Kukurigo",
+  "Pindula",
+  "ZBC News Online",
+  "Zimbuzz",
+
+  // --- TECHNOLOGY & BUSINESS ---
   "Zim Tech reviews",
   "Zimbabwe technology",
   "tech in Zimbabwe",
-  // Vlogs & Lifestyle
+  "Zimbabwe business",
+  "Zimbabwe economy finance",
+  "Zimbabwe investment",
+  "TechnoMag",
+  "Techzim",
+  "ZimPriceCheck",
+  "Tinashe Mutarisi",
+
+  // --- LIFESTYLE, FOOD & VLOGS ---
   "Harare Vlogs",
   "Zimbabwe vlogs daily",
   "life in Zimbabwe",
@@ -118,42 +186,73 @@ const SEARCH_QUERIES = [
   "Zimbabwe food cooking",
   "Bulawayo vlogs",
   "Zimbabwe lifestyle",
-  // Education
+  "Zimbo Kitchen",
+  "Arthur C. Evans",
+  "Tashas World",
+  "MisRed",
+  "Zim Returnee Diaries",
+  "Village Life with Vusa",
+
+  // --- EDUCATION & VERNACULAR ---
   "Zimbabwe education channel",
   "learn Shona language",
   "Zimbabwe tutorials",
-  // Sports
-  "Zimbabwe cricket",
-  "Zimbabwe football soccer",
-  "Zimbabwe sports",
-  // Business & Finance
-  "Zimbabwe business",
-  "Zimbabwe economy finance",
-  "Zimbabwe investment",
-  // Culture & Heritage
-  "Zimbabwe culture heritage",
+  "Learn Shona",
+  "Learn Zim Ndebele",
   "Shona culture traditions",
   "Ndebele culture",
   "Zimbabwe history documentary",
-  // Diaspora
-  "Zimbabwean in UK",
-  "Zimbabwean in South Africa",
-  "Zimbabwean in USA",
-  "Zimbabwean in Australia",
-  "Zim diaspora life",
-  // Beauty & Fashion
+  "Zimbabwe culture heritage",
+
+  // --- BEAUTY, FASHION & CELEBRITY ---
   "Zimbabwe beauty fashion",
   "Zim makeup tutorial",
-  // Motivation & Religion
+  "Jacque Mgido",
+  "Pokello Nare",
+  "Olinda Chapel",
+
+  // --- RELIGION & MOTIVATION ---
   "Zimbabwe motivational speaker",
   "Zimbabwe pastor sermon",
   "Zim church worship",
-  // Cultural & Vernacular (Diaspora reach)
-  "Learn Shona",
-  "Learn Zim Ndebele",
-  "Zim Diaspora stories",
-  "Kumusha lifestyle",
-  "Zim-dancehall riddim",
+  "Prophet Magaya",
+  "Prophet Makandiwa",
+  "Apostle Chiwenga",
+  "Prophet Passion Java",
+  "Baba Guti",
+  "Dj Sparks Zw",
+
+  // --- SPORTS ---
+  "Zimbabwe cricket",
+  "Zimbabwe football soccer",
+  "Zimbabwe sports",
+
+  // --- KEY INFLUENCERS & BRANDS (Direct Search) ---
+  "Taste of Home in SA",
+  "Shelton and Charmaine",
+  "Tari Mac",
+  "VakaWise",
+  "Mugove and Wife",
+  "Kim and Tanaka",
+  "Kundai Chitima",
+  "Mhiribidi House",
+  "Godwin Chirume",
+  "Mapepa Homestead",
+  "Kaya's Gogo",
+  "Lynn Matsa",
+  "Kudzie Nicolle Mapiye",
+  "Clara & Wellington",
+  "Mwana Wevhu",
+  "Drewmas Media",
+  "Miss Vee",
+  "Kelvin Birioti",
+  "Sirkund",
+  "Mr Chipangamazano",
+  "Outback Homestead",
+  "Homesteading with Grace",
+  "Saruh Pamoja",
+  "Trend Setter Guy",
+  "Building with the Sibandas",
 ];
 
 const DIASPORA_QUERIES = [
@@ -164,10 +263,27 @@ const DIASPORA_QUERIES = [
   "Zim diaspora life",
   "Zim Diaspora stories",
   "Zim Diaspora Building",
-  "Learn Shona",
-  "Learn Zim Ndebele",
   "Kumusha lifestyle",
-  "Relocating to Zimbabwe",
+  "Relocating to Zimbabwe mistakes",
+  "Hard truths about moving back to Zim",
+  "Zimbabwean diaspora returnee stories",
+  "Shipping a car from UK to Zimbabwe vlogs",
+  "Life in Zimbabwe after 20 years abroad",
+  "Building in Zimbabwe from the UK lessons",
+  "Diaspora dream vs reality Zimbabwe building",
+  "Remote project management Zimbabwe tips",
+  "Buying land in Zimbabwe from the diaspora",
+  "Zimbabwe house finishing costs",
+  "Zimbabwean nurse in Australia building vlogs",
+  "Zimbabwean teacher in USA relocating home",
+  "Zimbos in Canada investing back home",
+  "Groceries to Zim from SA logistics",
+  "Cross-border investment for Zimbabweans",
+  "Zimbabwean couple building back home",
+  "Relocating from SA to Zimbabwe homestead",
+  "Zimbos in UK building modern cottages",
+  "Diaspora house projects Zimbabwe",
+  "Investing in Zimbabwe property vlogs",
 ];
 
 // ============================================================================
@@ -364,9 +480,12 @@ interface CreatorItem {
   _youtubeProfileUrl?: string | null;
   _youtubeBannerUrl?: string | null;
   _uploadsPlaylistId?: string;
+  _isUpdate?: boolean;
+  _existingPk?: string;
+  _existingSk?: string;
 }
 
-function buildCreatorItem(channel: YouTubeChannel): CreatorItem & { _uploadsPlaylistId?: string } {
+function buildCreatorItem(channel: YouTubeChannel): (CreatorItem & { _uploadsPlaylistId?: string }) | null {
   const { snippet, statistics, brandingSettings } = channel;
   const channelId = channel.id;
   const name = snippet.title;
@@ -387,6 +506,10 @@ function buildCreatorItem(channel: YouTubeChannel): CreatorItem & { _uploadsPlay
 
   const now = new Date().toISOString();
   const totalReach = parseInt(statistics.subscriberCount || "0");
+
+  // Skip creators with reach below minimum threshold
+  if (totalReach < MIN_REACH) return null;
+
   const reachSortKey = `${String(totalReach).padStart(12, "0")}#${slug}`;
 
   const youtubeUrl = youtubeHandle
@@ -566,6 +689,7 @@ async function loadExistingETags(): Promise<Record<string, ETagEntry>> {
   const partitions = [
     "STATUS#ACTIVE",
     "STATUS#FEATURED",
+    "STATUS#INACTIVE",
     "STATUS#PENDING_REVIEW",
   ];
 
@@ -646,7 +770,14 @@ async function processChannelBatch(
     }
 
     const creator = buildCreatorItem(channel);
+    if (!creator) continue; // Skip low-reach creators
     creator.youtubeEtag = itemEtag;
+    // Tag as update if this channel already exists in the database
+    if (existingETags[channelId]) {
+      creator._isUpdate = true;
+      creator._existingPk = existingETags[channelId].pk;
+      creator._existingSk = existingETags[channelId].sk;
+    }
     creators.push(creator);
   }
 
@@ -671,15 +802,86 @@ async function processChannelBatch(
 }
 
 // ============================================================================
-// Batch Write to DynamoDB (25 items per BatchWriteCommand)
+// Write to DynamoDB — update existing, insert new
 // ============================================================================
 
+/**
+ * Update an existing creator in DynamoDB, preserving admin-managed fields
+ * (status, gsi1pk, verified, createdAt) while updating YouTube-sourced data.
+ */
+async function updateExistingCreator(creator: CreatorItem): Promise<void> {
+  const { _existingPk, _existingSk } = creator;
+  if (!_existingPk || !_existingSk) return;
+
+  // Use the existing slug (from pk) for sort key consistency
+  const existingSlug = _existingPk.replace("CREATOR#", "");
+  const totalReach = (creator.metrics as Record<string, number>)?.totalReach || 0;
+  const reachSortKey = `${String(totalReach).padStart(12, "0")}#${existingSlug}`;
+
+  const now = new Date().toISOString();
+
+  const setClauses = [
+    "#n = :name",
+    "bio = :bio",
+    "profilePicUrl = :profilePicUrl",
+    "primaryProfileImage = :primaryProfileImage",
+    "bannerUrl = :bannerUrl",
+    "coverImageUrl = :coverImageUrl",
+    "niche = :niche",
+    "zimScore = :zimScore",
+    "gsi1sk = :gsi1sk",
+    "gsi2pk = :gsi2pk",
+    "gsi2sk = :gsi2sk",
+    "metrics = :metrics",
+    "platforms = :platforms",
+    "verifiedLinks = :verifiedLinks",
+    "youtubeEtag = :youtubeEtag",
+    "updatedAt = :updatedAt",
+  ];
+
+  const expressionValues: Record<string, unknown> = {
+    ":name": creator.name,
+    ":bio": creator.bio,
+    ":profilePicUrl": creator.profilePicUrl,
+    ":primaryProfileImage": creator.primaryProfileImage,
+    ":bannerUrl": creator.bannerUrl,
+    ":coverImageUrl": creator.coverImageUrl,
+    ":niche": creator.niche,
+    ":zimScore": creator.zimScore,
+    ":gsi1sk": reachSortKey,
+    ":gsi2pk": `CATEGORY#${creator.niche}`,
+    ":gsi2sk": reachSortKey,
+    ":metrics": creator.metrics,
+    ":platforms": creator.platforms,
+    ":verifiedLinks": creator.verifiedLinks,
+    ":youtubeEtag": creator.youtubeEtag,
+    ":updatedAt": now,
+  };
+
+  if (creator.videoHighlights) {
+    setClauses.push("videoHighlights = :videoHighlights");
+    expressionValues[":videoHighlights"] = creator.videoHighlights;
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { pk: _existingPk, sk: _existingSk },
+      UpdateExpression: `SET ${setClauses.join(", ")}`,
+      ExpressionAttributeNames: { "#n": "name" },
+      ExpressionAttributeValues: expressionValues,
+    })
+  );
+}
+
 async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
-  let written = 0;
+  let inserted = 0;
+  let updated = 0;
 
   // Pre-write validation: filter out creators with invalid key fields
   const KEY_FIELDS = ["pk", "sk", "gsi1pk", "gsi1sk"] as const;
-  const validCreators: CreatorItem[] = [];
+  const newCreators: CreatorItem[] = [];
+  const existingCreators: CreatorItem[] = [];
   let validationSkipped = 0;
 
   for (const creator of creators) {
@@ -693,18 +895,44 @@ async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
       );
       continue;
     }
-    validCreators.push(creator);
+
+    if (creator._isUpdate) {
+      existingCreators.push(creator);
+    } else {
+      newCreators.push(creator);
+    }
   }
 
   if (validationSkipped > 0) {
     console.warn(`Validation: skipped ${validationSkipped} creators with invalid keys`);
   }
+  console.log(`Split: ${newCreators.length} new inserts, ${existingCreators.length} updates`);
 
-  for (let i = 0; i < validCreators.length; i += DYNAMO_BATCH_SIZE) {
-    const batch = validCreators.slice(i, i + DYNAMO_BATCH_SIZE);
-    const putRequests = batch.map((item) => ({
-      PutRequest: { Item: item },
-    }));
+  // --- Update existing creators (preserve admin fields like status, verified) ---
+  for (const creator of existingCreators) {
+    try {
+      await updateExistingCreator(creator);
+      updated++;
+    } catch (err) {
+      const error = err as Error;
+      console.error(`Update failed for "${creator.slug}": ${error.message}`);
+    }
+  }
+  if (existingCreators.length > 0) {
+    console.log(`Updates complete: ${updated}/${existingCreators.length}`);
+  }
+
+  // --- Insert new creators (full item write) ---
+  for (let i = 0; i < newCreators.length; i += DYNAMO_BATCH_SIZE) {
+    const batch = newCreators.slice(i, i + DYNAMO_BATCH_SIZE);
+    const putRequests = batch.map((item) => {
+      // Clean up internal tagging fields before DB write
+      const clean = { ...item };
+      delete clean._isUpdate;
+      delete clean._existingPk;
+      delete clean._existingSk;
+      return { PutRequest: { Item: clean } };
+    });
 
     try {
       let unprocessed: Record<string, unknown[]> | undefined = {
@@ -717,7 +945,7 @@ async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
           new BatchWriteCommand({ RequestItems: unprocessed as never })
         );
         const remaining = result.UnprocessedItems?.[TABLE_NAME]?.length ?? 0;
-        written += (unprocessed![TABLE_NAME]?.length ?? 0) - remaining;
+        inserted += (unprocessed![TABLE_NAME]?.length ?? 0) - remaining;
         unprocessed = result.UnprocessedItems as Record<string, unknown[]> | undefined;
 
         if ((unprocessed?.[TABLE_NAME]?.length ?? 0) > 0) {
@@ -748,7 +976,8 @@ async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
     }
   }
 
-  return written;
+  console.log(`Write complete: ${inserted} inserted, ${updated} updated`);
+  return inserted + updated;
 }
 
 // ============================================================================

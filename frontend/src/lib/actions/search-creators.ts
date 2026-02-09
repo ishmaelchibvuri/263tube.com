@@ -39,6 +39,34 @@ export async function suggestCreators(
   }
 }
 
+/**
+ * Fetch minimal creator info for a list of slugs.
+ * Used by the FeaturedCarouselModal to display currently-selected creators.
+ */
+export async function getCreatorSummariesBySlugs(
+  slugs: string[]
+): Promise<CreatorSuggestion[]> {
+  if (!slugs || slugs.length === 0) return [];
+
+  try {
+    const results = await Promise.all(
+      slugs.map((slug) => getCreatorBySlug(slug))
+    );
+
+    return results
+      .filter((c): c is Creator => c !== null)
+      .map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        niche: c.niche,
+        profilePicUrl: c.profilePicUrl,
+      }));
+  } catch (error) {
+    console.error("Error fetching creator summaries by slugs:", error);
+    return [];
+  }
+}
+
 export interface ClaimCreatorResult {
   slug: string;
   name: string;

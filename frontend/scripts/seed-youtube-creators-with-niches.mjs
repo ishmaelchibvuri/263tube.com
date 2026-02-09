@@ -46,6 +46,7 @@ import {
   BatchWriteCommand,
   DeleteCommand,
   QueryCommand,
+  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
   S3Client,
@@ -95,7 +96,7 @@ const QUOTA_LIMIT = (() => {
 // ============================================================================
 
 const SEARCH_QUERIES = [
-  // Homesteading & Building
+  // --- HOMESTEADING, BUILDING & PROPERTY ---
   "Zimbabwe Homesteading",
   "Building in Zimbabwe",
   "Rural Home Zimbabwe",
@@ -106,13 +107,36 @@ const SEARCH_QUERIES = [
   "Modern cottage Zim",
   "Relocating to Zimbabwe",
   "Zimbabwe land restoration",
-  // Agriculture & Farming
+  "Harare outskirts house tour",
+  "Modern rural home Zimbabwe",
+  "Murewa cottage project",
+  "Building in Dema Zimbabwe",
+  "Zim property development vlog",
+  "Solar power for rural Zim",
+  "Security fencing Harare rural",
+  "Harare outskirts stand prices",
+  "Dema and Murewa house tours",
+  "Goromonzi plot development vlogs",
+  "Domboshava Building in Zimbabwe",
+  "Ruwa lifestyle and building projects",
+  "VakaWise real estate Zimbabwe guide",
+  "The Elands building our dream home Zimbabwe",
+  "Harare Property Insider",
+  "Modern Zim Homestead",
+
+  // --- AGRICULTURE & FARMING ---
   "Zimbabwe Agriculture",
   "Zimbabwe farming",
   "pfumvudza farming Zimbabwe",
   "Zimbabwe livestock farming",
   "Zimbabwe gardening tips",
-  // Music
+  "Poultry project Dema Zimbabwe",
+  "Road runner chicken farming Zim",
+  "Rural homestead Zimbabwe tour",
+  "Mwana Wevhu Zim untold",
+  "Arizona Poultry & Horticultural Produce",
+
+  // --- MUSIC & ARTS ---
   "ZimDancehall music",
   "Zimbabwe music artist",
   "Zim gospel music",
@@ -120,21 +144,64 @@ const SEARCH_QUERIES = [
   "Zim Afrobeats",
   "sungura music Zimbabwe",
   "Zim amapiano",
-  // Comedy & Entertainment
+  "Zim-dancehall riddim",
+  "Enzo Ishall",
+  "Winky D",
+  "Jah Prayzah",
+  "Baba Harare",
+  "Janet Manyowa",
+  "Minister Mahendere",
+  "Holy Ten",
+  "Voltz JT",
+  "Killer T",
+  "Feli Nandi",
+  "Gemma Griffiths",
+  "CKay",
+  "Busiswa",
+  "Stunner",
+  "Mudiwa Hood",
+  "EarGROUND",
+  "iTAP Media",
+  "NashTV",
+
+  // --- COMEDY & ENTERTAINMENT ---
   "Zim Comedy skits",
   "Zimbabwe comedy",
   "Zimbabwe entertainment",
   "Zim pranks funny",
-  // News & Current Affairs
+  "Prosper the Comic Pastor",
+  "Madam Boss",
+  "Mai TT",
+  "Tyra Chikocho",
+  "Supa Kasu",
+  "Naiza Boom",
+  "Zimcelebs",
+
+  // --- NEWS, POLITICS & CURRENT AFFAIRS ---
   "Zimbabwe News channel",
   "Zimbabwe politics",
   "Zimbabwe current affairs",
   "Zim diaspora news",
-  // Technology
+  "Hopewell Chin'ono",
+  "H-Metro",
+  "Kukurigo",
+  "Pindula",
+  "ZBC News Online",
+  "Zimbuzz",
+
+  // --- TECHNOLOGY & BUSINESS ---
   "Zim Tech reviews",
   "Zimbabwe technology",
   "tech in Zimbabwe",
-  // Vlogs & Lifestyle
+  "Zimbabwe business",
+  "Zimbabwe economy finance",
+  "Zimbabwe investment",
+  "TechnoMag",
+  "Techzim",
+  "ZimPriceCheck",
+  "Tinashe Mutarisi",
+
+  // --- LIFESTYLE, FOOD & VLOGS ---
   "Harare Vlogs",
   "Zimbabwe vlogs daily",
   "life in Zimbabwe",
@@ -142,47 +209,101 @@ const SEARCH_QUERIES = [
   "Zimbabwe food cooking",
   "Bulawayo vlogs",
   "Zimbabwe lifestyle",
-  // Education
+  "Zimbo Kitchen",
+  "Arthur C. Evans",
+  "Tashas World",
+  "MisRed",
+  "Zim Returnee Diaries",
+  "Village Life with Vusa",
+
+  // --- EDUCATION & VERNACULAR ---
   "Zimbabwe education channel",
   "learn Shona language",
   "Zimbabwe tutorials",
-  // Sports
-  "Zimbabwe cricket",
-  "Zimbabwe football soccer",
-  "Zimbabwe sports",
-  // Business & Finance
-  "Zimbabwe business",
-  "Zimbabwe economy finance",
-  "Zimbabwe investment",
-  // Culture & Heritage
-  "Zimbabwe culture heritage",
+  "Learn Shona",
+  "Learn Zim Ndebele",
   "Shona culture traditions",
   "Ndebele culture",
   "Zimbabwe history documentary",
-  // Diaspora
-  "Zimbabwean in UK",
-  "Zimbabwean in South Africa",
-  "Zimbabwean in USA",
-  "Zimbabwean in Australia",
-  "Zim diaspora life",
-  // Beauty & Fashion
+  "Zimbabwe culture heritage",
+
+  // --- BEAUTY, FASHION & CELEBRITY ---
   "Zimbabwe beauty fashion",
   "Zim makeup tutorial",
-  // Motivation & Religion
+  "Jacque Mgido",
+  "Pokello Nare",
+  "Olinda Chapel",
+
+  // --- RELIGION & MOTIVATION ---
   "Zimbabwe motivational speaker",
   "Zimbabwe pastor sermon",
   "Zim church worship",
-  // Cultural & Vernacular (Diaspora reach)
-  "Learn Shona",
-  "Learn Zim Ndebele",
-  "Zim Diaspora stories",
-  "Kumusha lifestyle",
-  "Zim-dancehall riddim",
+  "Prophet Magaya",
+  "Prophet Makandiwa",
+  "Apostle Chiwenga",
+  "Prophet Passion Java",
+  "Baba Guti",
+  "Dj Sparks Zw",
+
+  // --- SPORTS ---
+  "Zimbabwe cricket",
+  "Zimbabwe football soccer",
+  "Zimbabwe sports",
+
+  // --- KEY INFLUENCERS & BRANDS (Direct Search) ---
+  "Taste of Home in SA",
+  "Shelton and Charmaine",
+  "Tari Mac",
+  "VakaWise",
+  "Mugove and Wife",
+  "Kim and Tanaka",
+  "Kundai Chitima",
+  "Mhiribidi House",
+  "Godwin Chirume",
+  "Mapepa Homestead",
+  "Kaya’s Gogo",
+  "Lynn Matsa",
+  "Kudzie Nicolle Mapiye",
+  "Clara & Wellington",
+  "Mwana Wevhu",
+  "Drewmas Media",
+  "Miss Vee",
+  "Kelvin Birioti",
+  "Sirkund",
+  "Mr Chipangamazano",
+  "Outback Homestead",
+  "Homesteading with Grace",
+  "Saruh Pamoja",
+  "Trend Setter Guy",
+  "Building with the Sibandas",
+
+  // --- High-Yield Volume Hubs ---
+  "Zimbo YouTubers 2026",
+  "Zimbabwean family vlogs",
+  "Shona music playlist 2026",
+  "Bulawayo arts and culture",
+  "Harare city vlogs",
+  "Zimbabwean podcast episodes",
+  "Zim dancehall mixtapes",
+  "Life in the highfields Harare",
+  "Zimbabwean street interview",
+  "Zimbo cooking recipes",
+  "Zimbabwean church choir",
+  "Zim comedy 2026 full",
+  "Zimbabwean wedding highlights",
+  "Zim school vlogs",
+  "University of Zimbabwe life",
+
+  // --- Common Surname "Spider" Searches ---
+  // Searching surnames often finds family-run channels that niche keywords miss.
+  "The Moyo family Zimbabwe",
+  "The Sibanda family vlogs",
+  "The Ncube family projects",
+  "The Maphosa family vlogs",
+  "The Mtukudzi legacy",
+  "Mhofu",
 ];
 
-// Diaspora-specific queries that run WITHOUT regionCode so they capture
-// Zimbabwean creators based anywhere in the world. Results are validated
-// with hasZimbabweanMarkers() before being added to the discovery pool.
 const DIASPORA_QUERIES = [
   "Zimbabwean in UK",
   "Zimbabwean in South Africa",
@@ -191,14 +312,32 @@ const DIASPORA_QUERIES = [
   "Zim diaspora life",
   "Zim Diaspora stories",
   "Zim Diaspora Building",
-  "Learn Shona",
-  "Learn Zim Ndebele",
   "Kumusha lifestyle",
-  "Relocating to Zimbabwe",
+  "Relocating to Zimbabwe mistakes",
+  "Hard truths about moving back to Zim",
+  "Zimbabwean diaspora returnee stories",
+  "Shipping a car from UK to Zimbabwe vlogs",
+  "Life in Zimbabwe after 20 years abroad",
+  "Building in Zimbabwe from the UK lessons",
+  "Diaspora dream vs reality Zimbabwe building",
+  "Remote project management Zimbabwe tips",
+  "Buying land in Zimbabwe from the diaspora",
+  "Zimbabwe house finishing costs",
+  "Zimbabwean nurse in Australia building vlogs",
+  "Zimbabwean teacher in USA relocating home",
+  "Zimbos in Canada investing back home",
+  "Groceries to Zim from SA logistics",
+  "Cross-border investment for Zimbabweans",
+  "Zimbabwean couple building back home",
+  "Relocating from SA to Zimbabwe homestead",
+  "Zimbos in UK building modern cottages",
+  "Diaspora house projects Zimbabwe",
+  "Investing in Zimbabwe property vlogs",
 ];
 
 const DISCOVERY_LIMIT = 10000;
-const PAGES_PER_QUERY = 3; // 3 pages x 50 results = 150 per query max
+const MIN_REACH = 100; // Skip creators with fewer than 100 subscribers
+const PAGES_PER_QUERY = 5; // 3 pages x 50 results = 150 per query max
 const CHANNEL_BATCH_SIZE = 50; // YouTube channels.list max per request
 const DYNAMO_BATCH_SIZE = 25; // DynamoDB BatchWriteItem max
 const VIDEO_CONCURRENCY = 5; // Parallel video highlight fetches
@@ -217,7 +356,7 @@ const docClient = DynamoDBDocumentClient.from(
       convertClassInstanceToMap: true,
     },
     unmarshallOptions: { wrapNumbers: false },
-  }
+  },
 );
 
 const s3Client = new S3Client({ region: S3_REGION });
@@ -257,7 +396,7 @@ async function ensureS3Infrastructure() {
         new CreateBucketCommand({
           Bucket: bucket,
           CreateBucketConfiguration: { LocationConstraint: S3_REGION },
-        })
+        }),
       );
       console.log(`  Bucket "${bucket}" created.`);
     } else {
@@ -287,7 +426,7 @@ async function ensureS3Infrastructure() {
     new PutBucketPolicyCommand({
       Bucket: bucket,
       Policy: JSON.stringify(policy),
-    })
+    }),
   );
 
   // Configure CORS for Next.js frontend
@@ -305,7 +444,7 @@ async function ensureS3Infrastructure() {
           },
         ],
       },
-    })
+    }),
   );
 
   console.log(`  S3 infrastructure ready: ${bucket}\n`);
@@ -615,7 +754,7 @@ async function discoverAllChannelIds() {
     console.log(
       `  Resuming from cache: ${uniqueIds.size} IDs, ${completedQueries.size}/${
         SEARCH_QUERIES.length + DIASPORA_QUERIES.length
-      } queries completed`
+      } queries completed`,
     );
   }
 
@@ -628,7 +767,7 @@ async function discoverAllChannelIds() {
     uniqueIds,
     completedQueries,
     searchCalls,
-    { regionCode: "ZW" }
+    { regionCode: "ZW" },
   );
 
   // ── Pass 2: Global diaspora queries (NO regionCode) ──
@@ -640,14 +779,14 @@ async function discoverAllChannelIds() {
     uniqueIds,
     completedQueries,
     searchCalls,
-    { regionCode: null, validateMarkers: true }
+    { regionCode: null, validateMarkers: true },
   );
 
   saveDiscoveryCache(uniqueIds, completedQueries);
 
   const ids = Array.from(uniqueIds).slice(0, DISCOVERY_LIMIT);
   console.log(
-    `\nDiscovery complete: ${ids.length} unique channel IDs (${searchCalls} search calls, ${quotaUsed} quota units)\n`
+    `\nDiscovery complete: ${ids.length} unique channel IDs (${searchCalls} search calls, ${quotaUsed} quota units)\n`,
   );
   return ids;
 }
@@ -664,14 +803,14 @@ async function _runSearchPass(
   uniqueIds,
   completedQueries,
   searchCalls,
-  { regionCode = "ZW", validateMarkers = false } = {}
+  { regionCode = "ZW", validateMarkers = false } = {},
 ) {
   for (const query of queries) {
     if (uniqueIds.size >= DISCOVERY_LIMIT) break;
     if (completedQueries.has(query)) continue;
     if (!hasQuota(100)) {
       console.log(
-        `  Quota limit reached (${quotaUsed}/${QUOTA_LIMIT}). Saving progress...`
+        `  Quota limit reached (${quotaUsed}/${QUOTA_LIMIT}). Saving progress...`,
       );
       break;
     }
@@ -700,21 +839,21 @@ async function _runSearchPass(
       if (pageToken) params.set("pageToken", pageToken);
 
       const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?${params}`
+        `https://www.googleapis.com/youtube/v3/search?${params}`,
       );
       trackQuota(
         100,
-        `search: "${query}" p${page}${regionCode ? "" : " (global)"}`
+        `search: "${query}" p${page}${regionCode ? "" : " (global)"}`,
       );
       searchCalls++;
 
       if (!res.ok) {
         console.warn(
-          `  Search failed for "${query}" page ${page}: ${res.status}`
+          `  Search failed for "${query}" page ${page}: ${res.status}`,
         );
         if (res.status === 403) {
           console.error(
-            "  YouTube API quota exceeded. Re-run tomorrow to continue."
+            "  YouTube API quota exceeded. Re-run tomorrow to continue.",
           );
           saveDiscoveryCache(uniqueIds, completedQueries);
           return searchCalls;
@@ -749,7 +888,7 @@ async function _runSearchPass(
     if (queryDone) completedQueries.add(query);
 
     console.log(
-      `  "${query}" -> ${uniqueIds.size} unique IDs (${searchCalls} API calls)`
+      `  "${query}" -> ${uniqueIds.size} unique IDs (${searchCalls} API calls)`,
     );
 
     // Save cache every 5 queries in case of interruption
@@ -775,7 +914,7 @@ async function processChannelBatch(channelIds, existingETags = {}) {
   if (channelIds.length === 0) return { creators: [], featuredChannelIds: [] };
 
   const url = `https://www.googleapis.com/youtube/v3/channels?id=${channelIds.join(
-    ","
+    ",",
   )}&part=snippet,statistics,brandingSettings,contentDetails&key=${YOUTUBE_API_KEY}`;
 
   const res = await fetch(url);
@@ -808,6 +947,12 @@ async function processChannelBatch(channelIds, existingETags = {}) {
     const creator = buildCreatorItem(channel);
     if (creator) {
       creator.youtubeEtag = itemEtag;
+      // Tag as update if this channel already exists in the database
+      if (existingETags[channelId]) {
+        creator._isUpdate = true;
+        creator._existingPk = existingETags[channelId].pk;
+        creator._existingSk = existingETags[channelId].sk;
+      }
       // Temp fields for video highlight enrichment (cleaned up before DB write)
       creator._uploadsPlaylistId =
         channel.contentDetails?.relatedPlaylists?.uploads;
@@ -832,17 +977,17 @@ async function processChannelBatch(channelIds, existingETags = {}) {
 async function discoverRelatedChannels(
   featuredIds,
   knownChannelIds,
-  existingETags = {}
+  existingETags = {},
 ) {
   // Deduplicate and exclude already-known channels
   const candidateIds = [...new Set(featuredIds)].filter(
-    (id) => !knownChannelIds.has(id)
+    (id) => !knownChannelIds.has(id),
   );
 
   if (candidateIds.length === 0) return { newCreators: [], newIds: [] };
 
   console.log(
-    `  Related channel crawl: ${candidateIds.length} candidates from featured channels...`
+    `  Related channel crawl: ${candidateIds.length} candidates from featured channels...`,
   );
 
   const newCreators = [];
@@ -856,7 +1001,7 @@ async function discoverRelatedChannels(
 
     const batch = candidateIds.slice(i, i + CHANNEL_BATCH_SIZE);
     const url = `https://www.googleapis.com/youtube/v3/channels?id=${batch.join(
-      ","
+      ",",
     )}&part=snippet,statistics,brandingSettings,contentDetails&key=${YOUTUBE_API_KEY}`;
 
     const res = await fetch(url);
@@ -885,6 +1030,12 @@ async function discoverRelatedChannels(
       const creator = buildCreatorItem(channel);
       if (creator) {
         creator.youtubeEtag = itemEtag;
+        // Tag as update if this channel already exists in the database
+        if (existingETags[channelId]) {
+          creator._isUpdate = true;
+          creator._existingPk = existingETags[channelId].pk;
+          creator._existingSk = existingETags[channelId].sk;
+        }
         creator._uploadsPlaylistId =
           channel.contentDetails?.relatedPlaylists?.uploads;
         batchCreators.push(creator);
@@ -901,7 +1052,7 @@ async function discoverRelatedChannels(
   }
 
   console.log(
-    `  Related crawl: ${newIds.length} new Zim channels found, ${newCreators.length} new/updated creators`
+    `  Related crawl: ${newIds.length} new Zim channels found, ${newCreators.length} new/updated creators`,
   );
   return { newCreators, newIds };
 }
@@ -931,6 +1082,10 @@ function buildCreatorItem(channel) {
 
   const now = new Date().toISOString();
   const totalReach = parseInt(statistics.subscriberCount || "0");
+
+  // Skip creators with reach below minimum threshold
+  if (totalReach < MIN_REACH) return null;
+
   const reachSortKey = `${String(totalReach).padStart(12, "0")}#${slug}`;
 
   const youtubeUrl = youtubeHandle
@@ -1005,7 +1160,7 @@ async function enrichWithVideoHighlights(creators) {
   for (let i = 0; i < creators.length; i += VIDEO_CONCURRENCY) {
     if (!hasQuota(VIDEO_CONCURRENCY * 2)) {
       console.log(
-        `  Quota limit reached at ${enriched}/${creators.length} highlights. Stopping enrichment.`
+        `  Quota limit reached at ${enriched}/${creators.length} highlights. Stopping enrichment.`,
       );
       break;
     }
@@ -1016,19 +1171,19 @@ async function enrichWithVideoHighlights(creators) {
         if (!creator._uploadsPlaylistId) return;
         if (!hasQuota(2)) return;
         const highlights = await fetchVideoHighlights(
-          creator._uploadsPlaylistId
+          creator._uploadsPlaylistId,
         );
         if (highlights.length > 0) {
           creator.videoHighlights = highlights;
           enriched++;
         }
-      })
+      }),
     );
 
     // Progress every 50 creators
     if ((i + VIDEO_CONCURRENCY) % 50 < VIDEO_CONCURRENCY) {
       console.log(
-        `  Highlights: ${enriched} enriched, ${quotaUsed} quota used`
+        `  Highlights: ${enriched} enriched, ${quotaUsed} quota used`,
       );
     }
   }
@@ -1054,7 +1209,7 @@ async function fetchVideoHighlights(uploadsPlaylistId) {
     if (videoIds.length === 0) return [];
 
     const vUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(
-      ","
+      ",",
     )}&key=${YOUTUBE_API_KEY}`;
     const vRes = await fetch(vUrl);
     trackQuota(1, "videos.list");
@@ -1082,13 +1237,13 @@ async function fetchVideoHighlights(uploadsPlaylistId) {
     addUnique([...videos].sort((a, b) => b.likes - a.likes)[0]);
     addUnique(
       [...videos].sort(
-        (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
-      )[0]
+        (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt),
+      )[0],
     );
     addUnique(
       [...videos].sort(
-        (a, b) => new Date(a.publishedAt) - new Date(b.publishedAt)
-      )[0]
+        (a, b) => new Date(a.publishedAt) - new Date(b.publishedAt),
+      )[0],
     );
 
     return highlights;
@@ -1098,19 +1253,93 @@ async function fetchVideoHighlights(uploadsPlaylistId) {
 }
 
 // ============================================================================
-// Phase 3: Batch Write to DynamoDB (25 items per BatchWriteCommand)
+// Phase 3: Write to DynamoDB — update existing, insert new
 // ============================================================================
 
+/**
+ * Update an existing creator in DynamoDB, preserving admin-managed fields
+ * (status, gsi1pk, verified, createdAt) while updating YouTube-sourced data.
+ */
+async function updateExistingCreator(creator) {
+  const { _existingPk, _existingSk } = creator;
+
+  // Use the existing slug (from pk) for sort key consistency
+  const existingSlug = _existingPk.replace("CREATOR#", "");
+  const totalReach = creator.metrics?.totalReach || 0;
+  const reachSortKey = `${String(totalReach).padStart(
+    12,
+    "0",
+  )}#${existingSlug}`;
+
+  const now = new Date().toISOString();
+
+  const setClauses = [
+    "#n = :name",
+    "bio = :bio",
+    "profilePicUrl = :profilePicUrl",
+    "primaryProfileImage = :primaryProfileImage",
+    "bannerUrl = :bannerUrl",
+    "coverImageUrl = :coverImageUrl",
+    "niche = :niche",
+    "zimScore = :zimScore",
+    "gsi1sk = :gsi1sk",
+    "gsi2pk = :gsi2pk",
+    "gsi2sk = :gsi2sk",
+    "metrics = :metrics",
+    "platforms = :platforms",
+    "verifiedLinks = :verifiedLinks",
+    "youtubeEtag = :youtubeEtag",
+    "updatedAt = :updatedAt",
+  ];
+
+  const expressionValues = {
+    ":name": creator.name,
+    ":bio": creator.bio,
+    ":profilePicUrl": creator.profilePicUrl,
+    ":primaryProfileImage": creator.primaryProfileImage,
+    ":bannerUrl": creator.bannerUrl,
+    ":coverImageUrl": creator.coverImageUrl,
+    ":niche": creator.niche,
+    ":zimScore": creator.zimScore,
+    ":gsi1sk": reachSortKey,
+    ":gsi2pk": `CATEGORY#${creator.niche}`,
+    ":gsi2sk": reachSortKey,
+    ":metrics": creator.metrics,
+    ":platforms": creator.platforms,
+    ":verifiedLinks": creator.verifiedLinks,
+    ":youtubeEtag": creator.youtubeEtag,
+    ":updatedAt": now,
+  };
+
+  if (creator.videoHighlights) {
+    setClauses.push("videoHighlights = :videoHighlights");
+    expressionValues[":videoHighlights"] = creator.videoHighlights;
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { pk: _existingPk, sk: _existingSk },
+      UpdateExpression: `SET ${setClauses.join(", ")}`,
+      ExpressionAttributeNames: { "#n": "name" },
+      ExpressionAttributeValues: expressionValues,
+    }),
+  );
+}
+
 async function seedCreatorsToDynamo(creators) {
-  let written = 0;
+  let inserted = 0;
+  let updated = 0;
   let skipped = 0;
 
   // Pre-write validation: filter out creators with invalid key fields
-  const validCreators = [];
   const KEY_FIELDS = ["pk", "sk", "gsi1pk", "gsi1sk"];
+  const newCreators = [];
+  const existingCreators = [];
+
   for (const creator of creators) {
     const invalidFields = KEY_FIELDS.filter(
-      (f) => typeof creator[f] !== "string" || creator[f].trim() === ""
+      (f) => typeof creator[f] !== "string" || creator[f].trim() === "",
     );
     if (invalidFields.length > 0) {
       skipped++;
@@ -1118,25 +1347,57 @@ async function seedCreatorsToDynamo(creators) {
         `  [SKIP] Creator "${
           creator.slug || "unknown"
         }" has invalid key fields: ${invalidFields.join(
-          ", "
+          ", ",
         )} — values: ${invalidFields
           .map((f) => JSON.stringify(creator[f]))
-          .join(", ")}`
+          .join(", ")}`,
       );
       continue;
     }
-    validCreators.push(creator);
+
+    if (creator._isUpdate) {
+      existingCreators.push(creator);
+    } else {
+      newCreators.push(creator);
+    }
   }
 
   if (skipped > 0) {
     console.warn(`  Validation: skipped ${skipped} creators with invalid keys`);
   }
+  console.log(
+    `  Split: ${newCreators.length} new inserts, ${existingCreators.length} updates`,
+  );
 
-  for (let i = 0; i < validCreators.length; i += DYNAMO_BATCH_SIZE) {
-    const batch = validCreators.slice(i, i + DYNAMO_BATCH_SIZE);
-    const putRequests = batch.map((item) => ({
-      PutRequest: { Item: item },
-    }));
+  // --- Update existing creators (preserve admin fields like status, verified) ---
+  for (const creator of existingCreators) {
+    try {
+      await updateExistingCreator(creator);
+      updated++;
+    } catch (err) {
+      console.error(
+        `  Update failed for "${creator.slug}": ${err.name}: ${err.message}`,
+      );
+    }
+    if (updated % 100 === 0 && updated > 0) {
+      console.log(`  Updates: ${updated}/${existingCreators.length}...`);
+    }
+  }
+  if (existingCreators.length > 0) {
+    console.log(`  Updates complete: ${updated}/${existingCreators.length}`);
+  }
+
+  // --- Insert new creators (full item write) ---
+  for (let i = 0; i < newCreators.length; i += DYNAMO_BATCH_SIZE) {
+    const batch = newCreators.slice(i, i + DYNAMO_BATCH_SIZE);
+    const putRequests = batch.map((item) => {
+      // Clean up internal tagging fields before DB write
+      const clean = { ...item };
+      delete clean._isUpdate;
+      delete clean._existingPk;
+      delete clean._existingSk;
+      return { PutRequest: { Item: clean } };
+    });
 
     try {
       let unprocessed = { [TABLE_NAME]: putRequests };
@@ -1145,10 +1406,10 @@ async function seedCreatorsToDynamo(creators) {
       // Retry unprocessed items with exponential backoff
       while (unprocessed[TABLE_NAME]?.length > 0 && retries < 3) {
         const result = await docClient.send(
-          new BatchWriteCommand({ RequestItems: unprocessed })
+          new BatchWriteCommand({ RequestItems: unprocessed }),
         );
         const remaining = result.UnprocessedItems?.[TABLE_NAME]?.length || 0;
-        written += (unprocessed[TABLE_NAME]?.length || 0) - remaining;
+        inserted += (unprocessed[TABLE_NAME]?.length || 0) - remaining;
         unprocessed = result.UnprocessedItems || {};
 
         if (unprocessed[TABLE_NAME]?.length > 0) {
@@ -1159,7 +1420,7 @@ async function seedCreatorsToDynamo(creators) {
 
       if (unprocessed[TABLE_NAME]?.length > 0) {
         console.warn(
-          `  ${unprocessed[TABLE_NAME].length} items failed after retries at offset ${i}`
+          `  ${unprocessed[TABLE_NAME].length} items failed after retries at offset ${i}`,
         );
       }
     } catch (err) {
@@ -1170,7 +1431,6 @@ async function seedCreatorsToDynamo(creators) {
         console.error(`    HTTP status: ${err.$metadata.httpStatusCode}`);
         console.error(`    Request ID: ${err.$metadata.requestId}`);
       }
-      // Log first item details to help diagnose size/validation issues
       const firstItem = batch[0];
       if (firstItem) {
         const itemJson = JSON.stringify(firstItem);
@@ -1178,18 +1438,21 @@ async function seedCreatorsToDynamo(creators) {
         console.error(
           `    First item JSON size: ${itemJson.length} bytes (${(
             itemJson.length / 1024
-          ).toFixed(1)} KB, limit 400 KB)`
+          ).toFixed(1)} KB, limit 400 KB)`,
         );
       }
     }
 
     // Progress every 250 items
     if ((i + DYNAMO_BATCH_SIZE) % 250 < DYNAMO_BATCH_SIZE) {
-      console.log(`  DynamoDB: ${written}/${validCreators.length} written...`);
+      console.log(`  DynamoDB: ${inserted}/${newCreators.length} inserted...`);
     }
   }
 
-  return written;
+  console.log(
+    `  Write complete: ${inserted} inserted, ${updated} updated, ${skipped} skipped`,
+  );
+  return inserted + updated;
 }
 
 // ============================================================================
@@ -1223,13 +1486,13 @@ async function loadExistingETags() {
             ExpressionAttributeValues: { ":pk": partition },
             ProjectionExpression: "pk, sk, youtubeEtag, verifiedLinks",
             ExclusiveStartKey: lastKey,
-          })
+          }),
         );
 
         for (const item of result.Items || []) {
           if (!item.youtubeEtag) continue;
           const ytLink = (item.verifiedLinks || []).find(
-            (l) => l.platform === "youtube"
+            (l) => l.platform === "youtube",
           );
           if (ytLink?.channelId) {
             etagMap[ytLink.channelId] = {
@@ -1246,7 +1509,7 @@ async function loadExistingETags() {
   } catch (err) {
     console.warn(
       "Could not load existing ETags (table may be empty):",
-      err.message
+      err.message,
     );
   }
 
@@ -1282,7 +1545,7 @@ async function main() {
         : "full"
     } | Highlights: ${
       FLAG_WITH_HIGHLIGHTS ? "ON" : "OFF"
-    } | Quota limit: ${QUOTA_LIMIT}\n`
+    } | Quota limit: ${QUOTA_LIMIT}\n`,
   );
 
   // Estimate quota cost
@@ -1292,20 +1555,20 @@ async function main() {
   const estHighlights = FLAG_WITH_HIGHLIGHTS ? DISCOVERY_LIMIT * 2 : 0;
   console.log("Estimated max quota cost:");
   console.log(
-    `  Discovery:  ~${estDiscovery} units (${totalQueries} queries x ${PAGES_PER_QUERY} pages x 100)`
+    `  Discovery:  ~${estDiscovery} units (${totalQueries} queries x ${PAGES_PER_QUERY} pages x 100)`,
   );
   console.log(
     `  Channels:   ~${estChannelFetch} units (${Math.ceil(
-      DISCOVERY_LIMIT / CHANNEL_BATCH_SIZE
-    )} batches x 1)`
+      DISCOVERY_LIMIT / CHANNEL_BATCH_SIZE,
+    )} batches x 1)`,
   );
   if (FLAG_WITH_HIGHLIGHTS) {
     console.log(
-      `  Highlights: ~${estHighlights} units (${DISCOVERY_LIMIT} channels x 2)`
+      `  Highlights: ~${estHighlights} units (${DISCOVERY_LIMIT} channels x 2)`,
     );
   }
   console.log(
-    `  Total max:  ~${estDiscovery + estChannelFetch + estHighlights} units\n`
+    `  Total max:  ~${estDiscovery + estChannelFetch + estHighlights} units\n`,
   );
 
   // ── Phase 1: Discovery ──
@@ -1317,7 +1580,7 @@ async function main() {
     console.log(
       `Loaded ${channelIds.length} channel IDs from cache (last run: ${
         cache.lastRun || "never"
-      })\n`
+      })\n`,
     );
   } else {
     console.log("Phase 1: Discovering channel IDs via search.list...");
@@ -1331,7 +1594,7 @@ async function main() {
 
   if (FLAG_DISCOVER_ONLY) {
     console.log(
-      `\nDiscovery-only mode complete. ${channelIds.length} IDs cached.`
+      `\nDiscovery-only mode complete. ${channelIds.length} IDs cached.`,
     );
     console.log(`Quota used: ${quotaUsed} units`);
     console.log("Run without --discover-only to seed to DynamoDB.");
@@ -1366,7 +1629,7 @@ async function main() {
             new DeleteCommand({
               TableName: TABLE_NAME,
               Key: { pk: existing.pk, sk: existing.sk },
-            })
+            }),
           );
           deletedFromDb++;
           delete existingETags[id];
@@ -1377,7 +1640,7 @@ async function main() {
     }
     if (deletedFromDb > 0) {
       console.log(
-        `  Blacklist: deleted ${deletedFromDb} existing creators from DynamoDB`
+        `  Blacklist: deleted ${deletedFromDb} existing creators from DynamoDB`,
       );
     }
     console.log("");
@@ -1385,7 +1648,7 @@ async function main() {
 
   // ── Phase 2: Batch fetch channel data ──
   console.log(
-    `Phase 2: Fetching channel data in batches of ${CHANNEL_BATCH_SIZE}...`
+    `Phase 2: Fetching channel data in batches of ${CHANNEL_BATCH_SIZE}...`,
   );
   const allCreators = [];
   const allFeaturedIds = [];
@@ -1398,7 +1661,7 @@ async function main() {
       console.log(
         `  Quota limit reached at batch ${
           Math.floor(i / CHANNEL_BATCH_SIZE) + 1
-        }. Stopping fetch.`
+        }. Stopping fetch.`,
       );
       break;
     }
@@ -1408,7 +1671,7 @@ async function main() {
 
     const { creators, featuredChannelIds } = await processChannelBatch(
       batch,
-      existingETags
+      existingETags,
     );
     etagSkipped += batch.length - creators.length;
     allCreators.push(...creators);
@@ -1417,7 +1680,7 @@ async function main() {
     // Progress every 10 batches (500 channels)
     if (batchNum % 10 === 0 || batchNum === totalBatches) {
       console.log(
-        `  Batch ${batchNum}/${totalBatches}: ${allCreators.length} new/updated, ${etagSkipped} skipped`
+        `  Batch ${batchNum}/${totalBatches}: ${allCreators.length} new/updated, ${etagSkipped} skipped`,
       );
     }
 
@@ -1425,7 +1688,7 @@ async function main() {
   }
 
   console.log(
-    `\nBatch fetch complete: ${allCreators.length} new/updated, ${etagSkipped} unchanged (ETag match)\n`
+    `\nBatch fetch complete: ${allCreators.length} new/updated, ${etagSkipped} unchanged (ETag match)\n`,
   );
 
   // ── Phase 2b: Related Channel Crawl ──
@@ -1434,12 +1697,12 @@ async function main() {
     const { newCreators, newIds } = await discoverRelatedChannels(
       allFeaturedIds,
       knownChannelIds,
-      existingETags
+      existingETags,
     );
     allCreators.push(...newCreators);
     for (const id of newIds) knownChannelIds.add(id);
     console.log(
-      `  Total after crawl: ${allCreators.length} creators, ${knownChannelIds.size} known IDs\n`
+      `  Total after crawl: ${allCreators.length} creators, ${knownChannelIds.size} known IDs\n`,
     );
   }
 
@@ -1452,7 +1715,7 @@ async function main() {
   // ── Enrich with video highlights (opt-in) ──
   if (FLAG_WITH_HIGHLIGHTS) {
     console.log(
-      `Fetching video highlights for ${allCreators.length} creators (${VIDEO_CONCURRENCY} parallel)...`
+      `Fetching video highlights for ${allCreators.length} creators (${VIDEO_CONCURRENCY} parallel)...`,
     );
     const enriched = await enrichWithVideoHighlights(allCreators);
     console.log(`Video highlights complete: ${enriched} enriched\n`);
@@ -1464,13 +1727,13 @@ async function main() {
       delete creator._youtubeBannerUrl;
     }
     console.log(
-      "Skipping video highlights (remove --no-highlights to enable)\n"
+      "Skipping video highlights (remove --no-highlights to enable)\n",
     );
   }
 
   // ── Phase 3: Batch write to DynamoDB ──
   console.log(
-    `Phase 3: Writing ${allCreators.length} creators to DynamoDB in batches of ${DYNAMO_BATCH_SIZE}...`
+    `Phase 3: Writing ${allCreators.length} creators to DynamoDB in batches of ${DYNAMO_BATCH_SIZE}...`,
   );
   const written = await seedCreatorsToDynamo(allCreators);
 
@@ -1496,7 +1759,7 @@ async function main() {
 
   if (channelIds.length < DISCOVERY_LIMIT) {
     console.log(
-      `\nTip: ${channelIds.length}/${DISCOVERY_LIMIT} IDs discovered. Run again tomorrow to discover more (cache is cumulative).`
+      `\nTip: ${channelIds.length}/${DISCOVERY_LIMIT} IDs discovered. Run again tomorrow to discover more (cache is cumulative).`,
     );
   }
 }

@@ -778,9 +778,10 @@ export async function syncSingleCreator(slug: string): Promise<SyncResult> {
       };
     }
 
+    const detail = error?.message || error?.name || String(error);
     return {
       success: false,
-      message: `Failed to sync "${slug}". Please try again.`,
+      message: `Failed to sync "${slug}": ${detail}`,
     };
   }
 }
@@ -851,6 +852,135 @@ export async function toggleCreatorVerified(
   }
 }
 
+export async function toggleCreatorActive(
+  slug: string,
+  active: boolean
+): Promise<ToggleVerifiedResult> {
+  try {
+    await requireAdmin();
+
+    const tableName = getTableName();
+    const now = new Date().toISOString();
+    const newStatus = active ? "ACTIVE" : "INACTIVE";
+
+    await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: {
+          pk: `CREATOR#${slug}`,
+          sk: "METADATA",
+        },
+        UpdateExpression:
+          "SET #status = :status, gsi1pk = :gsi1pk, updatedAt = :now",
+        ExpressionAttributeNames: {
+          "#status": "status",
+        },
+        ExpressionAttributeValues: {
+          ":status": newStatus,
+          ":gsi1pk": `STATUS#${newStatus}`,
+          ":now": now,
+        },
+        ConditionExpression: "attribute_exists(pk)",
+      })
+    );
+
+    revalidatePath("/admin/creators");
+    revalidatePath(`/creator/${slug}`);
+    revalidatePath("/creators");
+
+    return {
+      success: true,
+      message: `Creator "${slug}" is now ${active ? "active" : "inactive"}.`,
+    };
+  } catch (error: any) {
+    console.error("Error toggling active status:", error);
+
+    if (error.name === "ConditionalCheckFailedException") {
+      return { success: false, message: "Creator not found." };
+    }
+
+    if (
+      error.message?.includes("UNAUTHORIZED") ||
+      error.message?.includes("FORBIDDEN")
+    ) {
+      return {
+        success: false,
+        message: "You are not authorized to perform this action.",
+      };
+    }
+
+    return {
+      success: false,
+      message: "Failed to update active status.",
+    };
+  }
+}
+
+export async function toggleCreatorFeatured(
+  slug: string,
+  featured: boolean
+): Promise<ToggleVerifiedResult> {
+  try {
+    await requireAdmin();
+
+    const tableName = getTableName();
+    const now = new Date().toISOString();
+    const newStatus = featured ? "FEATURED" : "ACTIVE";
+
+    await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: {
+          pk: `CREATOR#${slug}`,
+          sk: "METADATA",
+        },
+        UpdateExpression:
+          "SET #status = :status, gsi1pk = :gsi1pk, updatedAt = :now",
+        ExpressionAttributeNames: {
+          "#status": "status",
+        },
+        ExpressionAttributeValues: {
+          ":status": newStatus,
+          ":gsi1pk": `STATUS#${newStatus}`,
+          ":now": now,
+        },
+        ConditionExpression: "attribute_exists(pk)",
+      })
+    );
+
+    revalidatePath("/admin/creators");
+    revalidatePath(`/creator/${slug}`);
+    revalidatePath("/creators");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `Creator "${slug}" is now ${featured ? "featured" : "unfeatured"}.`,
+    };
+  } catch (error: any) {
+    console.error("Error toggling featured status:", error);
+
+    if (error.name === "ConditionalCheckFailedException") {
+      return { success: false, message: "Creator not found." };
+    }
+
+    if (
+      error.message?.includes("UNAUTHORIZED") ||
+      error.message?.includes("FORBIDDEN")
+    ) {
+      return {
+        success: false,
+        message: "You are not authorized to perform this action.",
+      };
+    }
+
+    return {
+      success: false,
+      message: "Failed to update featured status.",
+    };
+  }
+}
+
 // ============================================================================
 // Admin Creator Listing
 // ============================================================================
@@ -864,36 +994,42 @@ export async function getAllCreatorsForAdmin(): Promise<Creator[]> {
   const tableName = getTableName();
 
   try {
-    // Get active + featured creators
-    const [activeResult, featuredResult] = await Promise.all([
-      docClient.send(
-        new QueryCommand({
-          TableName: tableName,
-          IndexName: "GSI1",
-          KeyConditionExpression: "gsi1pk = :pk",
-          ExpressionAttributeValues: {
-            ":pk": "STATUS#ACTIVE",
-          },
-          ScanIndexForward: false,
-        })
-      ),
-      docClient.send(
-        new QueryCommand({
-          TableName: tableName,
-          IndexName: "GSI1",
-          KeyConditionExpression: "gsi1pk = :pk",
-          ExpressionAttributeValues: {
-            ":pk": "STATUS#FEATURED",
-          },
-          ScanIndexForward: false,
-        })
-      ),
+    // Helper to paginate through all DynamoDB query results
+    async function queryAll(statusKey: string) {
+      const items: Record<string, unknown>[] = [];
+      let exclusiveStartKey: Record<string, unknown> | undefined;
+
+      do {
+        const result = await docClient.send(
+          new QueryCommand({
+            TableName: tableName,
+            IndexName: "GSI1",
+            KeyConditionExpression: "gsi1pk = :pk",
+            ExpressionAttributeValues: {
+              ":pk": statusKey,
+            },
+            ScanIndexForward: false,
+            ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+          })
+        );
+
+        if (result.Items) {
+          items.push(...result.Items);
+        }
+        exclusiveStartKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
+      } while (exclusiveStartKey);
+
+      return items;
+    }
+
+    // Get active + featured + inactive creators (paginated)
+    const [activeItems, featuredItems, inactiveItems] = await Promise.all([
+      queryAll("STATUS#ACTIVE"),
+      queryAll("STATUS#FEATURED"),
+      queryAll("STATUS#INACTIVE"),
     ]);
 
-    const allItems = [
-      ...(activeResult.Items || []),
-      ...(featuredResult.Items || []),
-    ];
+    const allItems = [...activeItems, ...featuredItems, ...inactiveItems];
 
     return allItems.map((item) => ({
       slug: item.slug,
