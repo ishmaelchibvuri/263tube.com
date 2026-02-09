@@ -63,7 +63,7 @@ const CHUNK_SIZE = 100; // Channel IDs to process per tick
 const DYNAMO_BATCH_SIZE = 25;
 const TIME_BUDGET_MS = 240_000; // 4 minutes — leave 1 min buffer
 const DISCOVERY_LIMIT = 10000;
-const PAGES_PER_QUERY = 3;
+const PAGES_PER_QUERY = 5;
 const QUOTA_LIMIT = 9500;
 
 const s3Client = new S3Client({ region: S3_REGION });
@@ -253,6 +253,32 @@ const SEARCH_QUERIES = [
   "Saruh Pamoja",
   "Trend Setter Guy",
   "Building with the Sibandas",
+
+  // --- High-Yield Volume Hubs ---
+  "Zimbo YouTubers 2026",
+  "Zimbabwean family vlogs",
+  "Shona music playlist 2026",
+  "Bulawayo arts and culture",
+  "Harare city vlogs",
+  "Zimbabwean podcast episodes",
+  "Zim dancehall mixtapes",
+  "Life in the highfields Harare",
+  "Zimbabwean street interview",
+  "Zimbo cooking recipes",
+  "Zimbabwean church choir",
+  "Zim comedy 2026 full",
+  "Zimbabwean wedding highlights",
+  "Zim school vlogs",
+  "University of Zimbabwe life",
+
+  // --- Common Surname "Spider" Searches ---
+  // Searching surnames often finds family-run channels that niche keywords miss.
+  "The Moyo family Zimbabwe",
+  "The Sibanda family vlogs",
+  "The Ncube family projects",
+  "The Maphosa family vlogs",
+  "The Mtukudzi legacy",
+  "Mhofu",
 ];
 
 const DIASPORA_QUERIES = [
