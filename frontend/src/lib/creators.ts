@@ -106,7 +106,7 @@ export interface Creator {
   location?: string;
 
   // Status
-  status: "ACTIVE" | "PENDING" | "FEATURED" | "INACTIVE";
+  status: "ACTIVE" | "PENDING" | "PENDING_REVIEW" | "FEATURED" | "INACTIVE";
   verified: boolean;
 
   // Ownership — userId of the account that claimed this profile
