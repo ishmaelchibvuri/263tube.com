@@ -28,7 +28,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { docClient } from "@/lib/creators";
+import { docClient, getBlacklistedChannelIds } from "@/lib/creators";
 import {
   QueryCommand,
   BatchWriteCommand,
@@ -1011,7 +1011,8 @@ async function batchWriteCreators(creators: CreatorItem[]): Promise<number> {
 // ============================================================================
 
 async function runDiscoveryTick(
-  state: SyncJobState
+  state: SyncJobState,
+  blacklist: Set<string>
 ): Promise<{ ids: string[]; completedQueries: string[]; done: boolean }> {
   const uniqueIds = new Set<string>(state.channelIds);
   const completedQueries = new Set<string>(state.completedQueries);
@@ -1071,6 +1072,9 @@ async function runDiscoveryTick(
         const id =
           item.snippet?.channelId || item.id?.channelId;
         if (!id) continue;
+
+        // Skip blacklisted channels
+        if (blacklist.has(id)) continue;
 
         if (validate) {
           const desc = item.snippet?.description || "";
@@ -1194,6 +1198,18 @@ export async function POST(req: NextRequest) {
     // ── Load persisted state ──
     let state = await loadSyncState();
 
+    // ── Load blacklist from DynamoDB ──
+    let blacklist: Set<string>;
+    try {
+      blacklist = await getBlacklistedChannelIds();
+      if (blacklist.size > 0) {
+        console.log(`[Blacklist] Loaded ${blacklist.size} blacklisted channel IDs`);
+      }
+    } catch (err) {
+      console.warn("[Blacklist] Failed to load, continuing without:", err);
+      blacklist = new Set();
+    }
+
     // ── Fresh run: reset state if starting from scratch ──
     if (currentIdIndex === 0 && discoveryMode) {
       state = {
@@ -1219,7 +1235,7 @@ export async function POST(req: NextRequest) {
     if (discoveryMode && !state.discoveryComplete) {
       state.status = "discovering";
 
-      const result = await runDiscoveryTick(state);
+      const result = await runDiscoveryTick(state, blacklist);
 
       state.channelIds = result.ids;
       state.completedQueries = result.completedQueries;
@@ -1257,6 +1273,16 @@ export async function POST(req: NextRequest) {
     // ════════════════════════════════════════════════════════════════════
     state.status = "syncing";
     state.currentIndex = currentIdIndex;
+
+    // Filter blacklisted IDs from the channel list before syncing
+    if (blacklist.size > 0) {
+      const before = state.channelIds.length;
+      state.channelIds = state.channelIds.filter((id) => !blacklist.has(id));
+      const removed = before - state.channelIds.length;
+      if (removed > 0) {
+        console.log(`[Blacklist] Filtered ${removed} blacklisted IDs from sync queue`);
+      }
+    }
 
     if (state.channelIds.length === 0) {
       state.status = "complete";

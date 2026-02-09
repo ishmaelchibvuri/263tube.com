@@ -1022,14 +1022,15 @@ export async function getAllCreatorsForAdmin(): Promise<Creator[]> {
       return items;
     }
 
-    // Get active + featured + inactive creators (paginated)
-    const [activeItems, featuredItems, inactiveItems] = await Promise.all([
+    // Get active + featured + inactive + pending review creators (paginated)
+    const [activeItems, featuredItems, inactiveItems, pendingItems] = await Promise.all([
       queryAll("STATUS#ACTIVE"),
       queryAll("STATUS#FEATURED"),
       queryAll("STATUS#INACTIVE"),
+      queryAll("STATUS#PENDING_REVIEW"),
     ]);
 
-    const allItems = [...activeItems, ...featuredItems, ...inactiveItems];
+    const allItems = [...activeItems, ...featuredItems, ...inactiveItems, ...pendingItems];
 
     return allItems.map((item) => ({
       slug: item.slug,

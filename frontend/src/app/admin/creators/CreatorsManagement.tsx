@@ -22,6 +22,9 @@ import {
   Power,
   Star,
   ArrowUpDown,
+  CheckCircle,
+  Square,
+  CheckSquare,
 } from "lucide-react";
 import { toggleCreatorVerified, toggleCreatorActive, toggleCreatorFeatured } from "@/lib/actions/sync-engine";
 import type { Creator } from "@/lib/creators";
@@ -47,6 +50,14 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  const [approvingSlug, setApprovingSlug] = useState<string | null>(null);
+
+  // Batch selection state
+  const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set());
+  const [batchAction, setBatchAction] = useState<string | null>(null);
+  const [batchConfirmAction, setBatchConfirmAction] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
 
   // Delete state
   const [deleteConfirmSlug, setDeleteConfirmSlug] = useState<string | null>(null);
@@ -242,6 +253,29 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
     }
   };
 
+  const handleApprove = async (slug: string) => {
+    setApprovingSlug(slug);
+    setActionResult(null);
+
+    try {
+      const result = await toggleCreatorActive(slug, true);
+      if (result.success) {
+        setLocalCreators((prev) =>
+          prev.map((c) =>
+            c.slug === slug ? { ...c, status: "ACTIVE" } : c
+          )
+        );
+        setActionResult({ type: "success", message: `Creator "${slug}" approved and set to active.` });
+      } else {
+        setActionResult({ type: "error", message: result.message });
+      }
+    } catch {
+      setActionResult({ type: "error", message: "Failed to approve creator." });
+    } finally {
+      setApprovingSlug(null);
+    }
+  };
+
   const handleDelete = async (slug: string) => {
     setDeletingSlug(slug);
     setActionResult(null);
@@ -392,8 +426,131 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
     });
   };
 
+  // Batch selection helpers
+  const toggleSelectSlug = (slug: string) => {
+    setSelectedSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  };
+
+  const allOnPageSelected =
+    paginatedCreators.length > 0 &&
+    paginatedCreators.every((c) => selectedSlugs.has(c.slug));
+
+  const toggleSelectAllOnPage = () => {
+    setSelectedSlugs((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) {
+        paginatedCreators.forEach((c) => next.delete(c.slug));
+      } else {
+        paginatedCreators.forEach((c) => next.add(c.slug));
+      }
+      return next;
+    });
+  };
+
+  const handleBatchAction = async (action: string) => {
+    const slugs = Array.from(selectedSlugs);
+    if (slugs.length === 0) return;
+
+    setBatchAction(action);
+    setBatchProgress({ done: 0, total: slugs.length });
+    setActionResult(null);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Process in parallel with Promise.allSettled, tracking progress
+    const promises = slugs.map(async (slug) => {
+      try {
+        let result: { success: boolean; message: string };
+        switch (action) {
+          case "approve":
+          case "activate":
+            result = await toggleCreatorActive(slug, true);
+            if (result.success) {
+              setLocalCreators((prev) =>
+                prev.map((c) => (c.slug === slug ? { ...c, status: "ACTIVE" } : c))
+              );
+            }
+            break;
+          case "deactivate":
+            result = await toggleCreatorActive(slug, false);
+            if (result.success) {
+              setLocalCreators((prev) =>
+                prev.map((c) => (c.slug === slug ? { ...c, status: "INACTIVE" } : c))
+              );
+            }
+            break;
+          case "feature":
+            result = await toggleCreatorFeatured(slug, true);
+            if (result.success) {
+              setLocalCreators((prev) =>
+                prev.map((c) => (c.slug === slug ? { ...c, status: "FEATURED" } : c))
+              );
+            }
+            break;
+          case "verify":
+            result = await toggleCreatorVerified(slug, true);
+            if (result.success) {
+              setLocalCreators((prev) =>
+                prev.map((c) => (c.slug === slug ? { ...c, verified: true } : c))
+              );
+            }
+            break;
+          case "unverify":
+            result = await toggleCreatorVerified(slug, false);
+            if (result.success) {
+              setLocalCreators((prev) =>
+                prev.map((c) => (c.slug === slug ? { ...c, verified: false } : c))
+              );
+            }
+            break;
+          case "delete": {
+            const res = await fetch(`/api/creators/${slug}`, { method: "DELETE" });
+            const data = await res.json();
+            result = { success: data.success, message: data.error || "" };
+            if (data.success) {
+              setLocalCreators((prev) => prev.filter((c) => c.slug !== slug));
+            }
+            break;
+          }
+          default:
+            result = { success: false, message: "Unknown action" };
+        }
+        if (result.success) successCount++;
+        else failCount++;
+      } catch {
+        failCount++;
+      }
+      setBatchProgress((prev) => ({ ...prev, done: prev.done + 1 }));
+    });
+
+    await Promise.allSettled(promises);
+
+    setSelectedSlugs(new Set());
+    setBatchAction(null);
+    setBatchConfirmAction(null);
+
+    const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+    if (failCount === 0) {
+      setActionResult({
+        type: "success",
+        message: `${actionLabel}: ${successCount} creator${successCount !== 1 ? "s" : ""} updated successfully.`,
+      });
+    } else {
+      setActionResult({
+        type: "error",
+        message: `${actionLabel}: ${successCount} succeeded, ${failCount} failed.`,
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedSlugs.size > 0 ? "pb-20" : ""}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -474,6 +631,9 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
             <option value="FEATURED" className="bg-[#0f0f12]">
               Featured
             </option>
+            <option value="PENDING_REVIEW" className="bg-[#0f0f12]">
+              Pending Review
+            </option>
           </select>
 
           {/* Verified Filter */}
@@ -523,10 +683,23 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
           </select>
         </div>
 
-        <p className="text-xs text-slate-500 mt-3">
-          Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedCreators.length)} of {sortedCreators.length} creators
-          {sortedCreators.length !== localCreators.length && ` (${localCreators.length} total)`}
-        </p>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            onClick={toggleSelectAllOnPage}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            {allOnPageSelected ? (
+              <CheckSquare className="w-3.5 h-3.5 text-[#DE2010]" />
+            ) : (
+              <Square className="w-3.5 h-3.5" />
+            )}
+            Select all on page
+          </button>
+          <p className="text-xs text-slate-500">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedCreators.length)} of {sortedCreators.length} creators
+            {sortedCreators.length !== localCreators.length && ` (${localCreators.length} total)`}
+          </p>
+        </div>
       </div>
 
       {/* Creators Table */}
@@ -548,15 +721,29 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
         <div className="space-y-3">
           {paginatedCreators.map((creator) => {
             const isToggling = togglingSlug === creator.slug;
+            const isSelected = selectedSlugs.has(creator.slug);
 
             return (
               <div
                 key={creator.slug}
-                className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5 hover:border-white/[0.1] transition-colors"
+                className={`bg-white/[0.02] border rounded-xl p-5 hover:border-white/[0.1] transition-colors ${
+                  isSelected ? "border-[#DE2010]/40 bg-[#DE2010]/[0.03]" : "border-white/[0.05]"
+                }`}
               >
                 <div className="flex items-center justify-between">
                   {/* Creator Info */}
                   <div className="flex items-center gap-4 min-w-0 flex-1">
+                    {/* Selection Checkbox */}
+                    <button
+                      onClick={() => toggleSelectSlug(creator.slug)}
+                      className="flex-shrink-0 text-slate-500 hover:text-white transition-colors"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="w-5 h-5 text-[#DE2010]" />
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
                     {/* Avatar */}
                     {creator.profilePicUrl ? (
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0">
@@ -591,10 +778,12 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                               ? "bg-[#FFD200]/10 text-[#FFD200]"
                               : creator.status === "INACTIVE"
                               ? "bg-slate-500/10 text-slate-500"
+                              : creator.status === "PENDING_REVIEW"
+                              ? "bg-orange-500/10 text-orange-400"
                               : "bg-[#319E31]/10 text-[#319E31]"
                           }`}
                         >
-                          {creator.status}
+                          {creator.status === "PENDING_REVIEW" ? "Pending Review" : creator.status}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-sm">
@@ -617,8 +806,24 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                    {/* Approve Button for Pending Review */}
+                    {creator.status === "PENDING_REVIEW" && (
+                      <button
+                        onClick={() => handleApprove(creator.slug)}
+                        disabled={approvingSlug === creator.slug}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 bg-[#319E31]/10 text-[#319E31] border border-[#319E31]/20 hover:bg-[#319E31]/20"
+                      >
+                        {approvingSlug === creator.slug ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        )}
+                        Approve
+                      </button>
+                    )}
+
                     {/* Active/Inactive Toggle */}
-                    {creator.status !== "FEATURED" && (
+                    {creator.status !== "FEATURED" && creator.status !== "PENDING_REVIEW" && (
                       <button
                         onClick={() => handleToggleActive(creator.slug, creator.status)}
                         disabled={togglingActiveSlug === creator.slug}
@@ -638,7 +843,7 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                     )}
 
                     {/* Featured Toggle */}
-                    {creator.status !== "INACTIVE" && (
+                    {creator.status !== "INACTIVE" && creator.status !== "PENDING_REVIEW" && (
                       <button
                         onClick={() => handleToggleFeatured(creator.slug, creator.status)}
                         disabled={togglingFeaturedSlug === creator.slug}
@@ -822,6 +1027,125 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
         </div>
       )}
 
+      {/* Batch Action Bar */}
+      {selectedSlugs.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#141418]/95 backdrop-blur-md border-t border-white/[0.1] px-6 py-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-white">
+                {selectedSlugs.size} selected
+              </span>
+              <button
+                onClick={() => setSelectedSlugs(new Set())}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear
+              </button>
+            </div>
+
+            {batchAction ? (
+              <div className="flex items-center gap-3 text-sm text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-[#DE2010]" />
+                <span>
+                  Processing {batchProgress.done} of {batchProgress.total}...
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => handleBatchAction("approve")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#319E31]/10 text-[#319E31] border border-[#319E31]/20 hover:bg-[#319E31]/20 transition-colors"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleBatchAction("activate")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#319E31]/10 text-[#319E31] border border-[#319E31]/20 hover:bg-[#319E31]/20 transition-colors"
+                >
+                  Activate
+                </button>
+                <button
+                  onClick={() => handleBatchAction("deactivate")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20 hover:bg-slate-500/20 transition-colors"
+                >
+                  Deactivate
+                </button>
+                <button
+                  onClick={() => handleBatchAction("feature")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#FFD200]/10 text-[#FFD200] border border-[#FFD200]/20 hover:bg-[#FFD200]/20 transition-colors"
+                >
+                  Feature
+                </button>
+                <button
+                  onClick={() => handleBatchAction("verify")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#319E31]/10 text-[#319E31] border border-[#319E31]/20 hover:bg-[#319E31]/20 transition-colors"
+                >
+                  Verify
+                </button>
+                <button
+                  onClick={() => handleBatchAction("unverify")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.05] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
+                >
+                  Unverify
+                </button>
+                <button
+                  onClick={() => setBatchConfirmAction("delete")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#DE2010]/10 text-[#DE2010] border border-[#DE2010]/20 hover:bg-[#DE2010]/20 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Batch Delete Confirmation Modal */}
+      {batchConfirmAction === "delete" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141418] border border-white/[0.1] rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#DE2010]/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-[#DE2010]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Delete {selectedSlugs.size} Creator{selectedSlugs.size !== 1 ? "s" : ""}</h3>
+            </div>
+            <p className="text-sm text-slate-400 mb-2">
+              Are you sure you want to delete <span className="text-white font-medium">{selectedSlugs.size} creator{selectedSlugs.size !== 1 ? "s" : ""}</span>?
+            </p>
+            <p className="text-xs text-slate-500 mb-6">
+              This action cannot be undone. All selected creator data including profiles, platform links, and metrics will be permanently removed.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setBatchConfirmAction(null)}
+                className="px-4 py-2 rounded-lg bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBatchAction("delete")}
+                disabled={!!batchAction}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#DE2010] text-white hover:bg-[#ff2a17] transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {batchAction === "delete" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete {selectedSlugs.size} Creator{selectedSlugs.size !== 1 ? "s" : ""}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Creator Modal */}
       {editingSlug && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -877,7 +1201,7 @@ export function CreatorsManagement({ creators }: CreatorsManagementProps) {
                 >
                   <option value="ACTIVE" className="bg-[#141418]">Active</option>
                   <option value="FEATURED" className="bg-[#141418]">Featured</option>
-                  <option value="PENDING" className="bg-[#141418]">Pending</option>
+                  <option value="PENDING_REVIEW" className="bg-[#141418]">Pending Review</option>
                   <option value="INACTIVE" className="bg-[#141418]">Inactive</option>
                 </select>
               </div>

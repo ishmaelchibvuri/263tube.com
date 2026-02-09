@@ -279,8 +279,9 @@ export async function seedCategories(): Promise<{
  * Cached for 5 minutes.
  */
 export const getCreatorAggregates = unstable_cache(
-  async (): Promise<{ totalReach: number; uniqueNiches: number }> => {
+  async (): Promise<{ totalCreators: number; totalReach: number; uniqueNiches: number }> => {
     const tableName = getTableName();
+    let totalCreators = 0;
     let totalReach = 0;
     const niches = new Set<string>();
 
@@ -301,6 +302,7 @@ export const getCreatorAggregates = unstable_cache(
         );
 
         for (const item of result.Items || []) {
+          totalCreators++;
           totalReach += (item.metrics as Record<string, number>)?.totalReach || 0;
           if (item.niche) niches.add(item.niche as string);
         }
@@ -318,7 +320,7 @@ export const getCreatorAggregates = unstable_cache(
       console.error("Error fetching creator aggregates:", error);
     }
 
-    return { totalReach, uniqueNiches: niches.size };
+    return { totalCreators, totalReach, uniqueNiches: niches.size };
   },
   ["creator-aggregates"],
   { tags: ["category-stats"], revalidate: 300 }

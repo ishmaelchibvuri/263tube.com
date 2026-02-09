@@ -763,6 +763,64 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 }
 
 // ============================================================================
+// Blacklist — prevent deleted channels from being re-discovered
+// ============================================================================
+
+/**
+ * Add a YouTube channel ID to the blacklist in DynamoDB.
+ * Each blacklisted channel is stored as pk=BLACKLIST, sk=CHANNEL#<channelId>.
+ */
+export async function addToBlacklist(channelId: string, slug?: string): Promise<void> {
+  const tableName = getTableName();
+
+  await docClient.send(
+    new PutCommand({
+      TableName: tableName,
+      Item: {
+        pk: "BLACKLIST",
+        sk: `CHANNEL#${channelId}`,
+        channelId,
+        slug: slug || null,
+        blacklistedAt: new Date().toISOString(),
+      },
+    })
+  );
+}
+
+/**
+ * Get all blacklisted YouTube channel IDs from DynamoDB.
+ * Returns a Set for O(1) lookup.
+ */
+export async function getBlacklistedChannelIds(): Promise<Set<string>> {
+  const tableName = getTableName();
+  const ids = new Set<string>();
+  let lastKey: Record<string, unknown> | undefined;
+
+  do {
+    const result = await docClient.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
+        ExpressionAttributeValues: {
+          ":pk": "BLACKLIST",
+          ":prefix": "CHANNEL#",
+        },
+        ProjectionExpression: "channelId",
+        ExclusiveStartKey: lastKey,
+      })
+    );
+
+    for (const item of result.Items || []) {
+      if (item.channelId) ids.add(item.channelId as string);
+    }
+
+    lastKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (lastKey);
+
+  return ids;
+}
+
+// ============================================================================
 // Exports
 // ============================================================================
 
@@ -780,4 +838,7 @@ export default {
   trackReferral,
   getTopReferrers,
   resetWeeklyReferrals,
+  // Blacklist
+  addToBlacklist,
+  getBlacklistedChannelIds,
 };

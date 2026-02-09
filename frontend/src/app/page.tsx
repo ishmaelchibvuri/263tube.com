@@ -279,8 +279,8 @@ export default async function HomePage() {
       ? trendingCreators.slice(0, 4)
       : allCreators.slice(0, 4);
 
-  // Calculate total stats from DynamoDB directly (not limited by API Gateway)
-  const totalCreators = allCategoryStats.reduce((sum, c) => sum + c.creatorCount, 0);
+  // Stats from active + featured creators only
+  const totalCreators = creatorAggregates.totalCreators;
   const totalReach = creatorAggregates.totalReach;
   const totalNiches = creatorAggregates.uniqueNiches;
 

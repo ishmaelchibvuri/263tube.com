@@ -11,6 +11,7 @@ import {
   getCreatorBySlug,
   updateCreator,
   deleteCreator,
+  addToBlacklist,
 } from "@/lib/creators";
 
 // Enable ISR with 60 second revalidation
@@ -184,7 +185,23 @@ export async function DELETE(
       );
     }
 
+    // Extract YouTube channel ID for blacklisting before deleting
+    const verifiedLinks = (existing as unknown as Record<string, unknown>).verifiedLinks as
+      | { platform: string; channelId?: string }[]
+      | undefined;
+    const ytLink = verifiedLinks?.find((l) => l.platform === "youtube");
+    const channelId = ytLink?.channelId;
+
     await deleteCreator(slug);
+
+    // Add to blacklist so discovery/sync never re-adds this channel
+    if (channelId) {
+      try {
+        await addToBlacklist(channelId, slug);
+      } catch (err) {
+        console.warn(`Failed to blacklist channel ${channelId}:`, err);
+      }
+    }
 
     return NextResponse.json(
       {

@@ -48,6 +48,7 @@ import {
   DeleteCommand,
   QueryCommand,
   UpdateCommand,
+  PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
   S3Client,
@@ -571,6 +572,78 @@ function loadBlacklist() {
   } catch (err) {
     console.warn("Could not load blacklist:", err.message);
     return new Set();
+  }
+}
+
+/**
+ * Load blacklisted channel IDs from DynamoDB.
+ * Each blacklisted channel is stored as pk=BLACKLIST, sk=CHANNEL#<channelId>.
+ */
+async function loadBlacklistFromDynamo() {
+  const ids = new Set();
+  let lastKey = undefined;
+
+  try {
+    do {
+      const result = await docClient.send(
+        new QueryCommand({
+          TableName: TABLE_NAME,
+          KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
+          ExpressionAttributeValues: {
+            ":pk": "BLACKLIST",
+            ":prefix": "CHANNEL#",
+          },
+          ProjectionExpression: "channelId",
+          ExclusiveStartKey: lastKey,
+        })
+      );
+
+      for (const item of result.Items || []) {
+        if (item.channelId) ids.add(item.channelId);
+      }
+
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+  } catch (err) {
+    console.warn("Could not load DynamoDB blacklist:", err.message);
+  }
+
+  if (ids.size > 0) {
+    console.log(`Loaded DynamoDB blacklist: ${ids.size} channel IDs`);
+  }
+  return ids;
+}
+
+/**
+ * Sync file-based blacklist entries into DynamoDB so the cron job also respects them.
+ */
+async function syncFileBlacklistToDynamo(fileBlacklist) {
+  let synced = 0;
+  for (const channelId of fileBlacklist) {
+    try {
+      await docClient.send(
+        new PutCommand({
+          TableName: TABLE_NAME,
+          Item: {
+            pk: "BLACKLIST",
+            sk: `CHANNEL#${channelId}`,
+            channelId,
+            slug: null,
+            blacklistedAt: new Date().toISOString(),
+          },
+          ConditionExpression: "attribute_not_exists(pk)",
+        })
+      );
+      synced++;
+    } catch (err) {
+      // ConditionalCheckFailedException = already exists, which is fine
+      if (err.name !== "ConditionalCheckFailedException") {
+        console.warn(`  Failed to sync blacklist entry ${channelId}:`, err.message);
+      }
+    }
+  }
+  if (synced > 0) {
+    console.log(`  Synced ${synced} file-based blacklist entries to DynamoDB`);
   }
 }
 
@@ -1645,14 +1718,39 @@ async function main() {
   console.log("Loading existing ETags from DynamoDB...");
   const existingETags = await loadExistingETags();
 
-  // ── Blacklist: filter out non-Zimbabwean creators ──
-  const blacklist = loadBlacklist();
+  // ── Blacklist: merge file + DynamoDB blacklists ──
+  const fileBlacklist = loadBlacklist();
+  const dynamoBlacklist = await loadBlacklistFromDynamo();
+
+  // Merge both sources
+  const blacklist = new Set([...fileBlacklist, ...dynamoBlacklist]);
+  console.log(`Combined blacklist: ${blacklist.size} channel IDs (${fileBlacklist.size} file, ${dynamoBlacklist.size} DynamoDB)`);
+
+  // Sync file blacklist entries into DynamoDB for the cron job
+  if (fileBlacklist.size > 0) {
+    await syncFileBlacklistToDynamo(fileBlacklist);
+  }
+
   if (blacklist.size > 0) {
     const beforeCount = channelIds.length;
     channelIds = channelIds.filter((id) => !blacklist.has(id));
     const removed = beforeCount - channelIds.length;
     if (removed > 0) {
       console.log(`  Blacklist: removed ${removed} channel IDs from queue`);
+
+      // Purge blacklisted IDs from the discovery cache so they don't waste slots
+      const cache = loadDiscoveryCache();
+      let cacheChanged = false;
+      for (const id of blacklist) {
+        if (cache.channelIds.has(id)) {
+          cache.channelIds.delete(id);
+          cacheChanged = true;
+        }
+      }
+      if (cacheChanged) {
+        saveDiscoveryCache(cache.channelIds, cache.completedQueries);
+        console.log(`  Blacklist: purged ${removed} IDs from discovery cache`);
+      }
     }
 
     // Delete blacklisted creators that already exist in DynamoDB
