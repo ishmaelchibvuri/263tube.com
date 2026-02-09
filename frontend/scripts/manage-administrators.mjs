@@ -4,10 +4,15 @@
  * Add or remove users from the "admins" group in Cognito.
  *
  * Usage:
- *   node scripts/manage-admin.mjs add <email>              # dev (default)
- *   node scripts/manage-admin.mjs add <email> --env=prod
- *   node scripts/manage-admin.mjs remove <email>
- *   node scripts/manage-admin.mjs list                     # list all admins
+ *   node scripts/manage-administrators.mjs add <email>              # dev (default)
+ *   node scripts/manage-administrators.mjs add <email> --env=qa
+ *   node scripts/manage-administrators.mjs add <email> --env=prod
+ *   node scripts/manage-administrators.mjs remove <email>           # dev (default)
+ *   node scripts/manage-administrators.mjs remove <email> --env=qa
+ *   node scripts/manage-administrators.mjs remove <email> --env=prod
+ *   node scripts/manage-administrators.mjs list                     # dev (default)
+ *   node scripts/manage-administrators.mjs list --env=qa
+ *   node scripts/manage-administrators.mjs list --env=prod
  *
  * Prerequisites: AWS credentials configured with Cognito admin access
  */
@@ -28,10 +33,9 @@ const REGION = "af-south-1";
 const GROUP_NAME = "admins";
 
 const USER_POOLS = {
-  dev: "af-south-1_tl53nFXtH",
-  // Add qa / prod pool IDs here as they're created:
-  // qa:   "af-south-1_XXXXXXXX",
-  // prod: "af-south-1_XXXXXXXX",
+  dev:  "af-south-1_tl53nFXtH",
+  qa:   "af-south-1_ERbM0hMU1",
+  prod: "af-south-1_tn35fXjiP",
 };
 
 // ============================================================================
@@ -136,9 +140,9 @@ async function main() {
 263Tube — Manage Admin Users
 
 Usage:
-  node scripts/manage-admin.mjs add <email>    [--env=dev|qa|prod]
-  node scripts/manage-admin.mjs remove <email> [--env=dev|qa|prod]
-  node scripts/manage-admin.mjs list           [--env=dev|qa|prod]
+  node scripts/manage-administrators.mjs add <email>    [--env=dev|qa|prod]
+  node scripts/manage-administrators.mjs remove <email> [--env=dev|qa|prod]
+  node scripts/manage-administrators.mjs list           [--env=dev|qa|prod]
 `);
     process.exit(1);
   }
